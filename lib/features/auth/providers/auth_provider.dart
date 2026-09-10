@@ -7,12 +7,14 @@ class AuthState {
   final bool isLoading;
   final String? errorMessage;
   final String email;
+  final String name;
 
   const AuthState({
     this.step = AuthStep.enterEmail,
     this.isLoading = false,
     this.errorMessage,
     this.email = '',
+    this.name = '',
   });
 
   AuthState copyWith({
@@ -20,12 +22,14 @@ class AuthState {
     bool? isLoading,
     String? errorMessage,
     String? email,
+    String? name,
   }) {
     return AuthState(
       step: step ?? this.step,
       isLoading: isLoading ?? this.isLoading,
       errorMessage: errorMessage, // null explicitly clear karne ke liye
       email: email ?? this.email,
+      name: name ?? this.name,
     );
   }
 }
@@ -52,6 +56,30 @@ class AuthNotifier extends Notifier<AuthState> {
     state = state.copyWith(isLoading: false, step: AuthStep.enterOtp);
   }
 
+  // Signup Step 1: Name and Email submit -> OTP bhejna
+  Future<void> sendSignupOtp(String name, String email) async {
+    if (name.isEmpty) {
+      state = state.copyWith(errorMessage: 'Please enter your name');
+      return;
+    }
+    if (email.isEmpty || !email.contains('@')) {
+      state = state.copyWith(errorMessage: 'Please enter a valid email');
+      return;
+    }
+
+    state = state.copyWith(
+      isLoading: true,
+      errorMessage: null,
+      email: email,
+      name: name,
+    );
+
+    // TODO: Yahan actual Signup OTP API call aayegi
+    await Future.delayed(const Duration(milliseconds: 1500));
+
+    state = state.copyWith(isLoading: false, step: AuthStep.enterOtp);
+  }
+
   // Step 2: OTP verify karna
   Future<void> verifyOtp(String otp) async {
     if (otp.length != 6) {
@@ -66,6 +94,22 @@ class AuthNotifier extends Notifier<AuthState> {
 
     state = state.copyWith(isLoading: false);
     // TODO: Success hone par -> go_router se home pe navigate karenge
+  }
+
+  // Signup Step 2: OTP verify for signup
+  Future<void> verifySignupOtp(String otp) async {
+    if (otp.length != 6) {
+      state = state.copyWith(errorMessage: 'Enter valid 6-digit OTP');
+      return;
+    }
+
+    state = state.copyWith(isLoading: true, errorMessage: null);
+
+    // TODO: Yahan actual Signup completion API call aayegi
+    await Future.delayed(const Duration(milliseconds: 1500));
+
+    state = state.copyWith(isLoading: false);
+    // TODO: Success hone par -> home pe navigate karenge
   }
 
   // Google sign-in

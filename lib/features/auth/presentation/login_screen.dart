@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/custom_textfield.dart';
 import '../providers/auth_provider.dart';
+import 'signup_screen.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -184,7 +185,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             style: GoogleFonts.poppins(color: AppColors.textSecondary, fontSize: 13)),
                         GestureDetector(
                           onTap: () {
-                            // TODO: context.go('/signup')
+                            authNotifier.backToEmailStep();
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (context) => const SignupScreen()),
+                            );
                           },
                           child: Text(
                             'Sign up',
