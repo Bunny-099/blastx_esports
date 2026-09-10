@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../core/theme/app_colors.dart';
 
 class CustomTextField extends StatelessWidget {
@@ -24,11 +25,11 @@ class CustomTextField extends StatelessWidget {
       keyboardType: keyboardType,
       maxLength: maxLength,
       obscureText: obscureText,
-      style: TextStyle(color: AppColors.textPrimary),
+      style: GoogleFonts.poppins(color: AppColors.textPrimary),
       decoration: InputDecoration(
         hintText: hintText,
         counterText: '', // maxLength ka counter hide karne ke liye
-        hintStyle: TextStyle(color: AppColors.textMuted),
+        hintStyle: GoogleFonts.poppins(color: AppColors.textMuted),
         filled: true,
         fillColor: AppColors.surface,
         contentPadding:

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/custom_textfield.dart';
 import '../providers/auth_provider.dart';
@@ -49,13 +50,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   const SizedBox(height: 24),
                   Text(
                     'Login to continue to BlastXEsports',
-                    style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
+                    style: GoogleFonts.poppins(fontSize: 14, color: AppColors.textSecondary),
                   ),
                   const SizedBox(height: 24),
 
                   Text(
                     'Email',
-                    style: TextStyle(
+                    style: GoogleFonts.poppins(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
                       color: AppColors.textPrimary,
@@ -73,7 +74,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       padding: const EdgeInsets.only(top: 8),
                       child: Text(
                         authState.errorMessage!,
-                        style: TextStyle(color: AppColors.error, fontSize: 13),
+                        style: GoogleFonts.poppins(color: AppColors.error, fontSize: 13),
                       ),
                     ),
 
@@ -102,7 +103,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               onTap: authNotifier.backToEmailStep,
                               child: Text(
                                 'Change email',
-                                style: TextStyle(
+                                style: GoogleFonts.poppins(
                                   fontSize: 12,
                                   color: AppColors.secondaryDark,
                                   fontWeight: FontWeight.w600,
@@ -119,7 +120,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               padding: const EdgeInsets.symmetric(horizontal: 10),
                               child: Text(
                                 'Enter OTP',
-                                style: TextStyle(
+                                style: GoogleFonts.poppins(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w600,
                                   color: AppColors.textPrimary,
@@ -132,7 +133,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         const SizedBox(height: 8),
                         Text(
                           'Sent to ${authState.email}',
-                          style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+                          style: GoogleFonts.poppins(fontSize: 12, color: AppColors.textMuted),
                         ),
                         const SizedBox(height: 10),
                         CustomTextField(
@@ -163,7 +164,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 12),
                         child: Text('OR',
-                            style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                            style: GoogleFonts.poppins(fontSize: 12, color: AppColors.textMuted)),
                       ),
                       Expanded(child: Divider(color: AppColors.surfaceMuted)),
                     ],
@@ -180,14 +181,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text("Don't have an account? ",
-                            style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+                            style: GoogleFonts.poppins(color: AppColors.textSecondary, fontSize: 13)),
                         GestureDetector(
                           onTap: () {
                             // TODO: context.go('/signup')
                           },
                           child: Text(
                             'Sign up',
-                            style: TextStyle(
+                            style: GoogleFonts.poppins(
                               color: AppColors.primaryDark,
                               fontWeight: FontWeight.bold,
                               fontSize: 13,
@@ -258,7 +259,7 @@ class _GlowButton extends StatelessWidget {
             children: [
               Text(
                 text,
-                style: const TextStyle(
+                style: GoogleFonts.poppins(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
@@ -304,15 +305,15 @@ class _GoogleButton extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Image.network(
-              'https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg',
-              height: 20,
-              width: 20,
+              'https://www.gstatic.com/images/branding/googleg/1x/googleg_standard_color_128dp.png',
+              height: 22,
+              width: 22,
               errorBuilder: (_, __, ___) => const Icon(Icons.g_mobiledata, size: 24),
             ),
             const SizedBox(width: 10),
             Text(
               'Continue with Google',
-              style: TextStyle(
+              style: GoogleFonts.poppins(
                 color: AppColors.textPrimary,
                 fontWeight: FontWeight.w600,
                 fontSize: 15,
