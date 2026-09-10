@@ -1,6 +1,7 @@
+import 'package:blastx_esports/features/auth/presentation/login_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
+import 'features/splash/presentation/splash_screen.dart';
 class MyApp extends ConsumerWidget {
   const MyApp({super.key});
 
@@ -13,11 +14,7 @@ class MyApp extends ConsumerWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: const Scaffold(
-        body: Center(
-          child: Text('BlastX Esports 🔥'),
-        ),
-      ),
+      home: const LoginScreen(),
     );
   }
 }
