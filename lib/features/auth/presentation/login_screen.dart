@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:pushable_button/pushable_button.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/custom_textfield.dart';
+import '../../home/presentation/main_screen.dart';
 import '../providers/auth_provider.dart';
 import 'signup_screen.dart';
 
@@ -148,8 +150,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           text: 'Verify & Login',
                           isLoading: authState.isLoading,
                           showArrow: true,
-                          onPressed: () =>
-                              authNotifier.verifyOtp(_otpController.text.trim()),
+                          onPressed: () async {
+                            final messenger = ScaffoldMessenger.of(context);
+                            await authNotifier.verifyOtp(_otpController.text.trim());
+                            if (!mounted) return;
+                            
+                            Navigator.pushAndRemoveUntil(
+                              context,
+                              MaterialPageRoute(builder: (context) => const MainScreen()),
+                              (route) => false,
+                            );
+                          },
                         ),
                         const SizedBox(height: 8),
                       ],
@@ -173,7 +184,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
                   const SizedBox(height: 24),
 
-                  _GoogleButton(onTap: () => authNotifier.continueWithGoogle()),
+                  _GoogleButton(onTap: () async {
+                    await authNotifier.continueWithGoogle();
+                    if (!mounted) return;
+
+                    Navigator.pushAndRemoveUntil(
+                      context,
+                      MaterialPageRoute(builder: (context) => const MainScreen()),
+                      (route) => false,
+                    );
+                  }),
 
                   const SizedBox(height: 32),
 
@@ -231,59 +251,44 @@ class _GlowButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: isLoading ? null : onPressed,
-      child: Container(
-        width: double.infinity,
-        height: 54,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(30),
-          gradient: LinearGradient(
-            colors: [AppColors.primaryDark, AppColors.primary],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.primary.withValues(alpha: 0.5),
-              blurRadius: 20,
-              spreadRadius: 1,
-              offset: const Offset(0, 6),
-            ),
-          ],
-        ),
-        child: Center(
-          child: isLoading
-              ? const SizedBox(
-            width: 22,
-            height: 22,
-            child: CircularProgressIndicator(strokeWidth: 2.2, color: Colors.white),
-          )
-              : Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                text,
-                style: GoogleFonts.poppins(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                ),
-              ),
-              if (showArrow) ...[
-                const SizedBox(width: 10),
-                Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.white.withValues(alpha: 0.2),
+    return PushableButton(
+      onPressed: isLoading ? null : onPressed,
+      hslColor: HSLColor.fromColor(AppColors.primary),
+      height: 54,
+      elevation: 6,
+      child: Center(
+        child: isLoading
+            ? const SizedBox(
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(
+                    strokeWidth: 2.2, color: Colors.white),
+              )
+            : Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    text,
+                    style: GoogleFonts.poppins(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
                   ),
-                  child: const Icon(Icons.arrow_forward, size: 16, color: Colors.white),
-                ),
-              ],
-            ],
-          ),
-        ),
+                  if (showArrow) ...[
+                    const SizedBox(width: 10),
+                    Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white.withValues(alpha: 0.2),
+                      ),
+                      child: const Icon(Icons.arrow_forward,
+                          size: 16, color: Colors.white),
+                    ),
+                  ],
+                ],
+              ),
       ),
     );
   }
@@ -296,36 +301,36 @@ class _GoogleButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: double.infinity,
-        height: 54,
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColors.surfaceMuted),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Image.network(
-              'https://www.gstatic.com/images/branding/googleg/1x/googleg_standard_color_128dp.png',
-              height: 22,
-              width: 22,
-              errorBuilder: (_, __, ___) => const Icon(Icons.g_mobiledata, size: 24),
+    return PushableButton(
+      onPressed: onTap,
+      hslColor: HSLColor.fromColor(AppColors.surface),
+      height: 54,
+      elevation: 4,
+      shadow: BoxShadow(
+        color: AppColors.textMuted.withValues(alpha: 0.2),
+        blurRadius: 4,
+        offset: const Offset(0, 2),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Image.network(
+            'https://www.gstatic.com/images/branding/googleg/1x/googleg_standard_color_128dp.png',
+            height: 22,
+            width: 22,
+            errorBuilder: (_, __, ___) =>
+                const Icon(Icons.g_mobiledata, size: 24),
+          ),
+          const SizedBox(width: 10),
+          Text(
+            'Continue with Google',
+            style: GoogleFonts.poppins(
+              color: AppColors.textPrimary,
+              fontWeight: FontWeight.w600,
+              fontSize: 15,
             ),
-            const SizedBox(width: 10),
-            Text(
-              'Continue with Google',
-              style: GoogleFonts.poppins(
-                color: AppColors.textPrimary,
-                fontWeight: FontWeight.w600,
-                fontSize: 15,
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

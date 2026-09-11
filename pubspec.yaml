@@ -13,6 +13,9 @@ dependencies:
   cupertino_icons: ^1.0.8
   flutter_riverpod: ^2.6.1
   google_fonts: ^6.2.1
+  pushable_button: ^0.0.4
+  perspective_space: ^0.1.2
+  curved_labeled_navigation_bar: ^2.0.6
 
 dev_dependencies:
   flutter_test:

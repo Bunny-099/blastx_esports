@@ -1,4 +1,5 @@
 import 'package:blastx_esports/features/auth/presentation/login_screen.dart';
+import 'package:blastx_esports/features/home/presentation/main_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'features/splash/presentation/splash_screen.dart';
@@ -14,7 +15,7 @@ class MyApp extends ConsumerWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: const LoginScreen(),
+      home: const MainScreen(),
     );
   }
 }
