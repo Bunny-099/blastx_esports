@@ -5,9 +5,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../live/presentation/live_screen.dart';
 import '../../profile/presentation/profile_screen.dart';
 import '../../settings/presentation/settings_screen.dart';
-import '../../tournaments/presentation/live_screen.dart';
 import '../../tournaments/presentation/upcoming_tournaments_screen.dart';
 import '../providers/navigation_provider.dart';
 
