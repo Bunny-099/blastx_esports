@@ -1,80 +1,175 @@
+import 'package:blastx_esports/features/live/data/models/tournament_model.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../data/models/tournament_model.dart';
 
-// TODO: Jab backend ready ho, is provider ko FutureProvider bana dena
-// aur ApiService.getLiveTournaments() call karna, structure same rahega
+/// ============================================================
+/// LIVE PROVIDER
+/// ============================================================
+/// Riverpod providers that supply tournament data to the UI.
+///
+///  - liveTournamentsProvider : list of all tournaments (dummy data
+///                              for now, replace with repository /
+///                              API call later)
+///  - tournamentByIdProvider  : fetch a single tournament by its id,
+///                              used by tournament_detail_screen.dart
+/// ============================================================
+
+/// NOTE: Replace the fixed import path above ("package:live_tournaments/...")
+/// with your actual app package name from pubspec.yaml if different.
+
+/// Main provider - list of all live/upcoming tournaments.
 final liveTournamentsProvider = Provider<List<TournamentModel>>((ref) {
   return _dummyTournaments;
 });
 
-// Ek specific tournament id se detail nikalne ke liye
-final tournamentByIdProvider = Provider.family<TournamentModel?, String>((ref, id) {
-  final tournaments = ref.watch(liveTournamentsProvider);
+/// Derived provider - only tournaments that are currently LIVE.
+/// Useful if you want a separate "Live Now" horizontal strip later.
+final onlyLiveTournamentsProvider = Provider<List<TournamentModel>>((ref) {
+  final all = ref.watch(liveTournamentsProvider);
+  return all.where((t) => t.isLive).toList();
+});
+
+/// Family provider - fetch a single tournament by its ID.
+/// Used inside tournament_detail_screen.dart via:
+///   ref.watch(tournamentByIdProvider(tournamentId))
+final tournamentByIdProvider =
+Provider.family<TournamentModel?, String>((ref, id) {
+  final all = ref.watch(liveTournamentsProvider);
   try {
-    return tournaments.firstWhere((t) => t.id == id);
+    return all.firstWhere((t) => t.id == id);
   } catch (_) {
     return null;
   }
 });
 
-// ── Dummy Data ──
+/// Simple search query provider - bound to the 3D capsule search bar.
+/// live_screen.dart will update this on every keystroke.
+final tournamentSearchQueryProvider = StateProvider<String>((ref) => '');
+
+/// Filtered list based on search query - what the UI actually renders.
+final filteredTournamentsProvider = Provider<List<TournamentModel>>((ref) {
+  final query = ref.watch(tournamentSearchQueryProvider).trim().toLowerCase();
+  final all = ref.watch(liveTournamentsProvider);
+
+  if (query.isEmpty) return all;
+
+  return all.where((t) {
+    return t.name.toLowerCase().contains(query) ||
+        t.game.toLowerCase().contains(query) ||
+        t.organizer.toLowerCase().contains(query);
+  }).toList();
+});
+
+/// ------------------------------------------------------------
+/// DUMMY DATA
+/// ------------------------------------------------------------
+/// Replace this with a real repository call (API / Firestore) later.
+/// Kept varied on purpose - different games & accent colors so the
+/// unique angular card design can be tested with real visual variety.
 final List<TournamentModel> _dummyTournaments = [
   TournamentModel(
     id: 't1',
-    name: 'BlastX Winter Championship',
-    gameName: 'BGMI',
-    bannerUrl: 'https://picsum.photos/seed/bgmi/600/300',
-    prizePool: '₹1,00,000',
-    viewersCount: 12400,
-    isLive: true,
+    name: 'BGMI Conqueror Series',
+    game: 'BGMI',
+    bannerImageUrl: 'https://picsum.photos/seed/bgmi1/800/450',
+    gameLogoUrl: 'https://picsum.photos/seed/bgmilogo/100/100',
+    prizePool: 500000,
+    viewersCount: 128000,
+    status: TournamentStatus.live,
+    startTime: DateTime.now().subtract(const Duration(hours: 1)),
+    organizer: 'Krafton India',
+    accentColorHex: '#FF7A00',
     teams: [
-      const TeamModel(id: 'a1', name: 'Team Velocity', logoUrl: '', status: TeamStatus.playing, score: 42),
-      const TeamModel(id: 'a2', name: 'Soul Reapers', logoUrl: '', status: TeamStatus.playing, score: 38),
-      const TeamModel(id: 'a3', name: 'Ghost Squad', logoUrl: '', status: TeamStatus.eliminated, score: 15),
-      const TeamModel(id: 'a4', name: 'Team Nova', logoUrl: '', status: TeamStatus.eliminated, score: 12),
-      const TeamModel(id: 'a5', name: 'Fury Esports', logoUrl: '', status: TeamStatus.qualified, score: 55),
-      const TeamModel(id: 'a6', name: 'Blaze Gaming', logoUrl: '', status: TeamStatus.playing, score: 30),
+      const TeamModel(
+          id: 'te1',
+          name: 'Team Soul',
+          logoUrl: 'https://picsum.photos/seed/soul/100/100',
+          score: 42,
+          status: TeamStatus.winning),
+      const TeamModel(
+          id: 'te2',
+          name: 'GodLike Esports',
+          logoUrl: 'https://picsum.photos/seed/godlike/100/100',
+          score: 38,
+          status: TeamStatus.playing),
     ],
     matches: [
       MatchModel(
         id: 'm1',
-        teamA: const TeamModel(id: 'a1', name: 'Team Velocity', logoUrl: '', status: TeamStatus.playing, score: 42),
-        teamB: const TeamModel(id: 'a2', name: 'Soul Reapers', logoUrl: '', status: TeamStatus.playing, score: 38),
+        tournamentId: 't1',
+        round: 'Grand Finals - Match 3',
+        teamA: const TeamModel(
+            id: 'te1', name: 'Team Soul', logoUrl: '', score: 14),
+        teamB: const TeamModel(
+            id: 'te2', name: 'GodLike Esports', logoUrl: '', score: 11),
+        matchTime: DateTime.now(),
         status: MatchStatus.live,
-        round: 'Grand Finals - Map 3',
-        time: 'LIVE NOW',
-      ),
-      MatchModel(
-        id: 'm2',
-        teamA: const TeamModel(id: 'a5', name: 'Fury Esports', logoUrl: '', status: TeamStatus.qualified, score: 55),
-        teamB: const TeamModel(id: 'a6', name: 'Blaze Gaming', logoUrl: '', status: TeamStatus.playing, score: 30),
-        status: MatchStatus.upcoming,
-        round: 'Grand Finals - Map 4',
-        time: '6:30 PM',
+        mapOrMode: 'Erangel',
       ),
     ],
   ),
   TournamentModel(
     id: 't2',
-    name: 'Free Fire Clash Cup',
-    gameName: 'Free Fire',
-    bannerUrl: 'https://picsum.photos/seed/freefire/600/300',
-    prizePool: '₹50,000',
-    viewersCount: 8100,
-    isLive: true,
-    teams: [
-      const TeamModel(id: 'b1', name: 'Team Elite', logoUrl: '', status: TeamStatus.playing, score: 20),
-      const TeamModel(id: 'b2', name: 'Raptors', logoUrl: '', status: TeamStatus.playing, score: 18),
-    ],
-    matches: [
-      MatchModel(
-        id: 'm3',
-        teamA: const TeamModel(id: 'b1', name: 'Team Elite', logoUrl: '', status: TeamStatus.playing, score: 20),
-        teamB: const TeamModel(id: 'b2', name: 'Raptors', logoUrl: '', status: TeamStatus.playing, score: 18),
-        status: MatchStatus.live,
-        round: 'Group B - Match 5',
-        time: 'LIVE NOW',
-      ),
-    ],
+    name: 'Valorant Champions Qualifier',
+    game: 'Valorant',
+    bannerImageUrl: 'https://picsum.photos/seed/valorant1/800/450',
+    gameLogoUrl: 'https://picsum.photos/seed/vallogo/100/100',
+    prizePool: 750000,
+    viewersCount: 96500,
+    status: TournamentStatus.live,
+    startTime: DateTime.now().subtract(const Duration(minutes: 40)),
+    organizer: 'Riot Games',
+    accentColorHex: '#FF3DAE',
+  ),
+  TournamentModel(
+    id: 't3',
+    name: 'Free Fire Max India Cup',
+    game: 'Free Fire',
+    bannerImageUrl: 'https://picsum.photos/seed/freefire1/800/450',
+    gameLogoUrl: 'https://picsum.photos/seed/fflogo/100/100',
+    prizePool: 300000,
+    viewersCount: 210000,
+    status: TournamentStatus.live,
+    startTime: DateTime.now().subtract(const Duration(hours: 2)),
+    organizer: 'Garena',
+    accentColorHex: '#00E5FF',
+  ),
+  TournamentModel(
+    id: 't4',
+    name: 'CODM World Series',
+    game: 'Call of Duty Mobile',
+    bannerImageUrl: 'https://picsum.photos/seed/codm1/800/450',
+    gameLogoUrl: 'https://picsum.photos/seed/codmlogo/100/100',
+    prizePool: 1000000,
+    viewersCount: 54000,
+    status: TournamentStatus.upcoming,
+    startTime: DateTime.now().add(const Duration(hours: 5)),
+    organizer: 'Activision',
+    accentColorHex: '#9B5CFF',
+  ),
+  TournamentModel(
+    id: 't5',
+    name: 'Chess.com Titled Tuesday',
+    game: 'Chess',
+    bannerImageUrl: 'https://picsum.photos/seed/chess1/800/450',
+    gameLogoUrl: 'https://picsum.photos/seed/chesslogo/100/100',
+    prizePool: 50000,
+    viewersCount: 8200,
+    status: TournamentStatus.upcoming,
+    startTime: DateTime.now().add(const Duration(days: 1)),
+    organizer: 'Chess.com',
+    accentColorHex: '#3DDC84',
+  ),
+  TournamentModel(
+    id: 't6',
+    name: 'Clash of Clans Legends Cup',
+    game: 'Clash of Clans',
+    bannerImageUrl: 'https://picsum.photos/seed/coc1/800/450',
+    gameLogoUrl: 'https://picsum.photos/seed/coclogo/100/100',
+    prizePool: 150000,
+    viewersCount: 31000,
+    status: TournamentStatus.completed,
+    startTime: DateTime.now().subtract(const Duration(days: 2)),
+    organizer: 'Supercell',
+    accentColorHex: '#FFC53D',
   ),
 ];

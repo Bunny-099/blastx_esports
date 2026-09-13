@@ -7,7 +7,6 @@ class AppColors {
   static const Color background = Color(0xFFFAFAF7);      // off-white
   static const Color surface = Color(0xFFFFFFFF);
   static const Color surfaceMuted = Color(0xFFF0F0EC);
-
   // Primary accent — Mint Green
   static const Color primary = Color(0xFF6FD7A0);
   static const Color primaryDark = Color(0xFF4FB37F);       // pressed states
