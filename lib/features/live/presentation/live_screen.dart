@@ -17,7 +17,7 @@ import 'widgets/tournament_card.dart';
 class _LocalTokens {
   _LocalTokens._();
 
-  static const LinearGradient primaryGradient = LinearGradient(
+  static final LinearGradient primaryGradient = LinearGradient(
     colors: AppColors.primaryGradient,
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,

@@ -28,6 +28,12 @@ final onlyLiveTournamentsProvider = Provider<List<TournamentModel>>((ref) {
   return all.where((t) => t.isLive).toList();
 });
 
+/// Derived provider - only tournaments that are UPCOMING.
+final upcomingTournamentsProvider = Provider<List<TournamentModel>>((ref) {
+  final all = ref.watch(liveTournamentsProvider);
+  return all.where((t) => t.status == TournamentStatus.upcoming).toList();
+});
+
 /// Family provider - fetch a single tournament by its ID.
 /// Used inside tournament_detail_screen.dart via:
 ///   ref.watch(tournamentByIdProvider(tournamentId))
@@ -49,6 +55,23 @@ final tournamentSearchQueryProvider = StateProvider<String>((ref) => '');
 final filteredTournamentsProvider = Provider<List<TournamentModel>>((ref) {
   final query = ref.watch(tournamentSearchQueryProvider).trim().toLowerCase();
   final all = ref.watch(liveTournamentsProvider);
+
+  if (query.isEmpty) return all;
+
+  return all.where((t) {
+    return t.name.toLowerCase().contains(query) ||
+        t.game.toLowerCase().contains(query) ||
+        t.organizer.toLowerCase().contains(query);
+  }).toList();
+});
+
+/// Simple search query provider for upcoming tournaments.
+final upcomingSearchQueryProvider = StateProvider<String>((ref) => '');
+
+/// Filtered list of upcoming tournaments based on search query.
+final filteredUpcomingTournamentsProvider = Provider<List<TournamentModel>>((ref) {
+  final query = ref.watch(upcomingSearchQueryProvider).trim().toLowerCase();
+  final all = ref.watch(upcomingTournamentsProvider);
 
   if (query.isEmpty) return all;
 
