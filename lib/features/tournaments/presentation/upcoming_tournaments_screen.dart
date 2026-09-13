@@ -135,7 +135,10 @@ class _UpcomingTournamentsScreenState extends ConsumerState<UpcomingTournamentsS
                         child: UpcomingTournamentCard(
                           tournament: tournament,
                           onTap: () {
-                            // Detail screen logic
+                            Navigator.of(context).pushNamed(
+                              '/tournament-detail',
+                              arguments: tournament.id,
+                            );
                           },
                         ),
                       );

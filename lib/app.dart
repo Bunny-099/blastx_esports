@@ -1,8 +1,10 @@
 import 'package:blastx_esports/features/auth/presentation/login_screen.dart';
 import 'package:blastx_esports/features/home/presentation/main_screen.dart';
+import 'package:blastx_esports/features/live/presentation/tournament_detail_screen.dart';
+import 'package:blastx_esports/features/splash/presentation/splash_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'features/splash/presentation/splash_screen.dart';
+
 class MyApp extends ConsumerWidget {
   const MyApp({super.key});
 
@@ -16,6 +18,15 @@ class MyApp extends ConsumerWidget {
         useMaterial3: true,
       ),
       home: const MainScreen(),
+      onGenerateRoute: (settings) {
+        if (settings.name == '/tournament-detail') {
+          final tournamentId = settings.arguments as String;
+          return MaterialPageRoute(
+            builder: (context) => TournamentDetailScreen(tournamentId: tournamentId),
+          );
+        }
+        return null;
+      },
     );
   }
 }
