@@ -27,7 +27,7 @@ class _LocalTokens {
   static const Color searchBarShadowDark = Color(0xFFE3E3DC);
 }
 
-const double _kExpandedHeaderHeight = 100;
+const double _kExpandedHeaderHeight = 150;
 const double _kSearchBarHeight = 52;
 
 class LiveScreen extends ConsumerStatefulWidget {
@@ -93,6 +93,7 @@ class _LiveScreenState extends ConsumerState<LiveScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
+        top: false,
         bottom: false,
         child: CustomScrollView(
           controller: _scrollController,
@@ -116,7 +117,7 @@ class _LiveScreenState extends ConsumerState<LiveScreen> {
             ),
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+                padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -203,34 +204,69 @@ class _CollapsingHeaderDelegate extends SliverPersistentHeaderDelegate {
   final ValueChanged<String> onSearchChanged;
 
   @override
-  double get minExtent => _kSearchBarHeight + 16;
+  double get minExtent => _kSearchBarHeight + 24;
 
   @override
-  double get maxExtent => _kExpandedHeaderHeight + _kSearchBarHeight + 16;
+  double get maxExtent => _kExpandedHeaderHeight + _kSearchBarHeight + 32;
 
   @override
   Widget build(
       BuildContext context, double shrinkOffset, bool overlapsContent) {
-    final opacity = (1 - collapseFraction).clamp(0.0, 1.0);
+    final opacity = (1 - (collapseFraction * 1.5)).clamp(0.0, 1.0);
+    final topPadding = MediaQuery.of(context).padding.top;
 
     return Container(
       color: AppColors.background,
       child: Stack(
         children: [
+          // 1. Background Image (Collapsing)
           Positioned(
-            top: 8,
+            top: 0,
             left: 0,
             right: 0,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: CapsuleSearchBar(
-                controller: searchController,
-                onChanged: onSearchChanged,
+            child: Opacity(
+              opacity: opacity,
+              child: Transform.translate(
+                offset: Offset(0, -collapseFraction * 40),
+                child: Container(
+                  height: _kExpandedHeaderHeight + topPadding - 20,
+                  decoration: const BoxDecoration(
+                    borderRadius: BorderRadius.only(
+                      bottomLeft: Radius.circular(32),
+                      bottomRight: Radius.circular(32),
+                    ),
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      Image.asset(
+                        'assets/images/top_banner.jpg',
+                        fit: BoxFit.cover,
+                      ),
+                      // Dark Overlay for readability
+                      Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              Colors.black.withValues(alpha: 0.5),
+                              Colors.transparent,
+                            ],
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
           ),
+
+          // 2. Greeting & Profile Icon
           Positioned(
-            top: _kSearchBarHeight + 16,
+            top: topPadding + 16,
             left: 0,
             right: 0,
             child: Opacity(
@@ -238,14 +274,14 @@ class _CollapsingHeaderDelegate extends SliverPersistentHeaderDelegate {
               child: Transform.translate(
                 offset: Offset(0, -collapseFraction * 20),
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         'Hey, $username 👋',
                         style: const TextStyle(
-                          color: AppColors.textPrimary,
+                          color: Colors.white,
                           fontSize: 22,
                           fontWeight: FontWeight.w800,
                         ),
@@ -253,27 +289,44 @@ class _CollapsingHeaderDelegate extends SliverPersistentHeaderDelegate {
                       const SizedBox(height: 4),
                       Text(
                         greetingText,
-                        style: const TextStyle(
-                          color: AppColors.textSecondary,
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.9),
                           fontSize: 14,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
                       const SizedBox(height: 6),
-                      Text(
-                        quote,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: AppColors.secondaryDark,
-                          fontSize: 12.5,
-                          fontStyle: FontStyle.italic,
-                          fontWeight: FontWeight.w600,
+                      SizedBox(
+                        width: MediaQuery.of(context).size.width * 0.7,
+                        child: Text(
+                          quote,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.8),
+                            fontSize: 12.5,
+                            fontStyle: FontStyle.italic,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
                     ],
                   ),
                 ),
+              ),
+            ),
+          ),
+
+          // 3. Floating Search Bar (Separated below)
+          Positioned(
+            bottom: 12,
+            left: 0,
+            right: 0,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: CapsuleSearchBar(
+                controller: searchController,
+                onChanged: onSearchChanged,
               ),
             ),
           ),
