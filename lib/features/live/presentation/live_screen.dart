@@ -1,31 +1,26 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shimmer/shimmer.dart';
+
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_text_styles.dart';
+import '../../../core/transitions/fire_page_route.dart';
 import '../providers/live_provider.dart';
+import 'tournament_detail_screen.dart';
 import 'widgets/tournament_card.dart';
 
 /// ============================================================
-/// PREMIUM LIVE SCREEN
+/// PREMIUM LIVE SCREEN — "Sexy" Free Fire Theme
 /// ============================================================
-/// Adapted to the EXISTING light/pastel AppColors theme.
-/// Features:
-///  1. 3D capsule search bar - LIGHT neumorphic style.
-///  2. Greeting block that collapses & fades away on scroll.
-///  3. Angular-cut tournament cards list with accent glow.
+/// - Ambient breathing gradient background (orange/red glow blobs)
+/// - Glassmorphism collapsing header + frosted search bar
+/// - Staggered fade+slide entrance for each tournament card
+/// - Shimmer skeleton while the list "loads"
+/// - Cinematic push transition into the detail screen (FirePageRoute)
 /// ============================================================
-
-class _LocalTokens {
-  _LocalTokens._();
-
-  static final LinearGradient primaryGradient = LinearGradient(
-    colors: AppColors.primaryGradient,
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-  );
-
-  static const Color searchBarShadowLight = Colors.white;
-  static const Color searchBarShadowDark = Color(0xFFE3E3DC);
-}
 
 const double _kExpandedHeaderHeight = 150;
 const double _kSearchBarHeight = 52;
@@ -39,11 +34,18 @@ class LiveScreen extends ConsumerStatefulWidget {
   ConsumerState<LiveScreen> createState() => _LiveScreenState();
 }
 
-class _LiveScreenState extends ConsumerState<LiveScreen> {
+class _LiveScreenState extends ConsumerState<LiveScreen>
+    with TickerProviderStateMixin {
   final ScrollController _scrollController = ScrollController();
   final TextEditingController _searchController = TextEditingController();
 
   double _collapseFraction = 0;
+  bool _isLoading = true;
+
+  late final AnimationController _ambientController = AnimationController(
+    vsync: this,
+    duration: const Duration(seconds: 6),
+  )..repeat(reverse: true);
 
   static const List<String> _motivationalQuotes = [
     "Champions aren't made in comfort zones. Go clutch it. 🔥",
@@ -54,7 +56,7 @@ class _LiveScreenState extends ConsumerState<LiveScreen> {
   ];
 
   late final String _quote =
-      _motivationalQuotes[DateTime.now().second % _motivationalQuotes.length];
+  _motivationalQuotes[DateTime.now().second % _motivationalQuotes.length];
 
   String get _greetingText {
     final hour = DateTime.now().hour;
@@ -67,6 +69,12 @@ class _LiveScreenState extends ConsumerState<LiveScreen> {
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
+    // Brief simulated load so the shimmer skeleton gets a moment to show.
+    // Safe to remove once tournaments come from a real async source
+    // (the provider itself should expose its own loading state then).
+    Future.delayed(const Duration(milliseconds: 700), () {
+      if (mounted) setState(() => _isLoading = false);
+    });
   }
 
   void _onScroll() {
@@ -83,6 +91,7 @@ class _LiveScreenState extends ConsumerState<LiveScreen> {
     _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
     _searchController.dispose();
+    _ambientController.dispose();
     super.dispose();
   }
 
@@ -92,96 +101,171 @@ class _LiveScreenState extends ConsumerState<LiveScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: SafeArea(
-        top: false,
-        bottom: false,
-        child: CustomScrollView(
-          controller: _scrollController,
-          physics: const BouncingScrollPhysics(
-            parent: AlwaysScrollableScrollPhysics(),
-          ),
-          slivers: [
-            SliverPersistentHeader(
-              pinned: true,
-              delegate: _CollapsingHeaderDelegate(
-                collapseFraction: _collapseFraction,
-                username: widget.username,
-                greetingText: _greetingText,
-                quote: _quote,
-                searchController: _searchController,
-                onSearchChanged: (value) {
-                  ref.read(tournamentSearchQueryProvider.notifier).state =
-                      value;
-                },
+      body: Stack(
+        children: [
+          _AmbientBackground(controller: _ambientController),
+          SafeArea(
+            top: false,
+            bottom: false,
+            child: CustomScrollView(
+              controller: _scrollController,
+              physics: const BouncingScrollPhysics(
+                parent: AlwaysScrollableScrollPhysics(),
               ),
-            ),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'Live Tournaments',
-                      style: TextStyle(
-                        color: AppColors.textPrimary,
-                        fontSize: 20,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 0.2,
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        gradient: TournamentCardGradients.liveGradient,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        '${tournaments.where((t) => t.isLive).length} LIVE',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            if (tournaments.isEmpty)
-              const SliverFillRemaining(
-                hasScrollBody: false,
-                child: _EmptyState(),
-              )
-            else
-              SliverPadding(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-                sliver: SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (context, index) {
-                      final tournament = tournaments[index];
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 18),
-                        child: TournamentCard(
-                          tournament: tournament,
-                          onTap: () {
-                            Navigator.of(context).pushNamed(
-                              '/tournament-detail',
-                              arguments: tournament.id,
-                            );
-                          },
-                        ),
-                      );
+              slivers: [
+                SliverPersistentHeader(
+                  pinned: true,
+                  delegate: _CollapsingHeaderDelegate(
+                    collapseFraction: _collapseFraction,
+                    username: widget.username,
+                    greetingText: _greetingText,
+                    quote: _quote,
+                    searchController: _searchController,
+                    onSearchChanged: (value) {
+                      ref.read(tournamentSearchQueryProvider.notifier).state =
+                          value;
                     },
-                    childCount: tournaments.length,
                   ),
                 ),
-              ),
-          ],
-        ),
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('Live Tournaments', style: AppTextStyles.headingLg),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 5),
+                          decoration: BoxDecoration(
+                            gradient: AppColors.fireGradient,
+                            borderRadius: BorderRadius.circular(20),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.primary.withOpacity(0.35),
+                                blurRadius: 14,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Text(
+                            '${tournaments.where((t) => t.isLive).length} LIVE',
+                            style: AppTextStyles.caption
+                                .copyWith(color: Colors.white, letterSpacing: 0.6),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                if (_isLoading)
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+                    sliver: SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                            (context, index) => const Padding(
+                          padding: EdgeInsets.only(bottom: 18),
+                          child: _CardShimmer(),
+                        ),
+                        childCount: 3,
+                      ),
+                    ),
+                  )
+                else if (tournaments.isEmpty)
+                  const SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: _EmptyState(),
+                  )
+                else
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+                    sliver: SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                            (context, index) {
+                          final tournament = tournaments[index];
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 18),
+                            child: TournamentCard(
+                              tournament: tournament,
+                              onTap: () {
+                                Navigator.of(context).push(
+                                  FirePageRoute(
+                                    page: TournamentDetailScreen(
+                                      tournamentId: tournament.id,
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          )
+                              .animate(delay: (60 * index).ms)
+                              .fadeIn(duration: 420.ms, curve: Curves.easeOut)
+                              .slideY(
+                            begin: 0.12,
+                            end: 0,
+                            duration: 420.ms,
+                            curve: Curves.easeOutCubic,
+                          );
+                        },
+                        childCount: tournaments.length,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
       ),
+    );
+  }
+}
+
+/// ------------------------------------------------------------
+/// Ambient breathing background — two soft glow blobs that
+/// slowly drift, giving the dark background depth instead of
+/// being flat black.
+/// ------------------------------------------------------------
+
+class _AmbientBackground extends StatelessWidget {
+  const _AmbientBackground({required this.controller});
+  final AnimationController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: controller,
+      builder: (context, _) {
+        final t = controller.value;
+        return Stack(
+          children: [
+            Container(color: AppColors.background),
+            Positioned(
+              top: -80 + (t * 30),
+              right: -60,
+              child: Container(
+                width: 260,
+                height: 260,
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: AppColors.ambientGlowOrange,
+                ),
+              ),
+            ),
+            Positioned(
+              bottom: 40 - (t * 20),
+              left: -80,
+              child: Container(
+                width: 300,
+                height: 300,
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: AppColors.ambientGlowRed,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }
@@ -219,7 +303,7 @@ class _CollapsingHeaderDelegate extends SliverPersistentHeaderDelegate {
       color: AppColors.background,
       child: Stack(
         children: [
-          // 1. Background Image (Collapsing)
+          // 1. Background image (collapsing, cinematic dark overlay)
           Positioned(
             top: 0,
             left: 0,
@@ -232,8 +316,8 @@ class _CollapsingHeaderDelegate extends SliverPersistentHeaderDelegate {
                   height: _kExpandedHeaderHeight + topPadding - 20,
                   decoration: const BoxDecoration(
                     borderRadius: BorderRadius.only(
-                      bottomLeft: Radius.circular(32),
-                      bottomRight: Radius.circular(32),
+                      bottomLeft: Radius.circular(28),
+                      bottomRight: Radius.circular(28),
                     ),
                   ),
                   clipBehavior: Clip.antiAlias,
@@ -243,17 +327,30 @@ class _CollapsingHeaderDelegate extends SliverPersistentHeaderDelegate {
                       Image.asset(
                         'assets/images/top_banner.jpg',
                         fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) =>
+                            Container(color: AppColors.surface),
                       ),
-                      // Dark Overlay for readability
                       Container(
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
                             colors: [
-                              Colors.black.withValues(alpha: 0.5),
-                              Colors.transparent,
+                              AppColors.background.withOpacity(0.15),
+                              AppColors.background.withOpacity(0.9),
                             ],
                             begin: Alignment.topCenter,
                             end: Alignment.bottomCenter,
+                          ),
+                        ),
+                      ),
+                      Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              AppColors.primary.withOpacity(0.18),
+                              Colors.transparent,
+                            ],
+                            begin: Alignment.bottomLeft,
+                            end: Alignment.topRight,
                           ),
                         ),
                       ),
@@ -264,7 +361,7 @@ class _CollapsingHeaderDelegate extends SliverPersistentHeaderDelegate {
             ),
           ),
 
-          // 2. Greeting & Profile Icon
+          // 2. Greeting block
           Positioned(
             top: topPadding + 16,
             left: 0,
@@ -278,23 +375,9 @@ class _CollapsingHeaderDelegate extends SliverPersistentHeaderDelegate {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'Hey, $username 👋',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 22,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
+                      Text('Hey, $username 👋', style: AppTextStyles.headingXl),
                       const SizedBox(height: 4),
-                      Text(
-                        greetingText,
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.9),
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
+                      Text(greetingText, style: AppTextStyles.bodyMd),
                       const SizedBox(height: 6),
                       SizedBox(
                         width: MediaQuery.of(context).size.width * 0.7,
@@ -302,11 +385,9 @@ class _CollapsingHeaderDelegate extends SliverPersistentHeaderDelegate {
                           quote,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.8),
-                            fontSize: 12.5,
+                          style: AppTextStyles.bodySm.copyWith(
                             fontStyle: FontStyle.italic,
-                            fontWeight: FontWeight.w600,
+                            color: AppColors.primaryLight,
                           ),
                         ),
                       ),
@@ -317,7 +398,7 @@ class _CollapsingHeaderDelegate extends SliverPersistentHeaderDelegate {
             ),
           ),
 
-          // 3. Floating Search Bar (Separated below)
+          // 3. Floating glass search bar
           Positioned(
             bottom: 12,
             left: 0,
@@ -356,60 +437,66 @@ class CapsuleSearchBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: _kSearchBarHeight,
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(32),
-        border: Border.all(
-          color: AppColors.primary.withValues(alpha: 0.25),
-          width: 1.2,
-        ),
-        boxShadow: const [
-          BoxShadow(
-            color: _LocalTokens.searchBarShadowDark,
-            offset: Offset(4, 4),
-            blurRadius: 10,
-          ),
-          BoxShadow(
-            color: _LocalTokens.searchBarShadowLight,
-            offset: Offset(-4, -4),
-            blurRadius: 10,
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          const SizedBox(width: 18),
-          ShaderMask(
-            shaderCallback: (bounds) =>
-                _LocalTokens.primaryGradient.createShader(bounds),
-            child: const Icon(Icons.search_rounded,
-                color: Colors.white, size: 20),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: TextField(
-              controller: controller,
-              onChanged: onChanged,
-              style: const TextStyle(
-                color: AppColors.textPrimary,
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-              ),
-              decoration: const InputDecoration(
-                border: InputBorder.none,
-                hintText: 'Search tournaments, games...',
-                hintStyle: TextStyle(
-                  color: AppColors.textMuted,
-                  fontSize: 13.5,
-                ),
-                isCollapsed: true,
-              ),
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(32),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+        child: Container(
+          height: _kSearchBarHeight,
+          decoration: BoxDecoration(
+            gradient: AppColors.glassFill,
+            borderRadius: BorderRadius.circular(32),
+            border: Border.all(
+              color: Colors.white.withOpacity(0.12),
+              width: 1,
             ),
           ),
-          const SizedBox(width: 16),
-        ],
+          child: Row(
+            children: [
+              const SizedBox(width: 18),
+              ShaderMask(
+                shaderCallback: (bounds) =>
+                    AppColors.fireGradient.createShader(bounds),
+                child: const Icon(Icons.search_rounded,
+                    color: Colors.white, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: TextField(
+                  controller: controller,
+                  onChanged: onChanged,
+                  style: AppTextStyles.bodyLg,
+                  decoration: InputDecoration(
+                    border: InputBorder.none,
+                    hintText: 'Search tournaments, games...',
+                    hintStyle: AppTextStyles.bodyMd,
+                    isCollapsed: true,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 16),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CardShimmer extends StatelessWidget {
+  const _CardShimmer();
+
+  @override
+  Widget build(BuildContext context) {
+    return Shimmer.fromColors(
+      baseColor: AppColors.surface,
+      highlightColor: AppColors.surfaceMuted,
+      child: Container(
+        height: 168,
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(20),
+        ),
       ),
     );
   }
@@ -420,21 +507,14 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
+    return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.sports_esports_rounded,
+          const Icon(Icons.sports_esports_rounded,
               color: AppColors.textMuted, size: 48),
-          SizedBox(height: 12),
-          Text(
-            'No tournaments found',
-            style: TextStyle(
-              color: AppColors.textSecondary,
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
+          const SizedBox(height: 12),
+          Text('No tournaments found', style: AppTextStyles.bodyMd),
         ],
       ),
     );
