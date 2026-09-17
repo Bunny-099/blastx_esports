@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -11,7 +9,6 @@ import '../../../core/transitions/fire_page_route.dart';
 import '../providers/live_provider.dart';
 import 'tournament_detail_screen.dart';
 import 'widgets/tournament_card.dart';
-import 'widgets/capsule_search_bar.dart';
 
 /// ============================================================
 /// PREMIUM LIVE SCREEN — "Sexy" Free Fire Theme
@@ -24,7 +21,6 @@ import 'widgets/capsule_search_bar.dart';
 /// ============================================================
 
 const double _kExpandedHeaderHeight = 150;
-const double _kSearchBarHeight = 52;
 
 class LiveScreen extends ConsumerStatefulWidget {
   const LiveScreen({super.key, this.username = 'Player'});
@@ -38,7 +34,6 @@ class LiveScreen extends ConsumerStatefulWidget {
 class _LiveScreenState extends ConsumerState<LiveScreen>
     with TickerProviderStateMixin {
   final ScrollController _scrollController = ScrollController();
-  final TextEditingController _searchController = TextEditingController();
 
   double _collapseFraction = 0;
   bool _isLoading = true;
@@ -91,7 +86,6 @@ class _LiveScreenState extends ConsumerState<LiveScreen>
   void dispose() {
     _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
-    _searchController.dispose();
     _ambientController.dispose();
     super.dispose();
   }
@@ -121,11 +115,6 @@ class _LiveScreenState extends ConsumerState<LiveScreen>
                     username: widget.username,
                     greetingText: _greetingText,
                     quote: _quote,
-                    searchController: _searchController,
-                    onSearchChanged: (value) {
-                      ref.read(tournamentSearchQueryProvider.notifier).state =
-                          value;
-                    },
                   ),
                 ),
                 SliverToBoxAdapter(
@@ -277,22 +266,18 @@ class _CollapsingHeaderDelegate extends SliverPersistentHeaderDelegate {
     required this.username,
     required this.greetingText,
     required this.quote,
-    required this.searchController,
-    required this.onSearchChanged,
   });
 
   final double collapseFraction;
   final String username;
   final String greetingText;
   final String quote;
-  final TextEditingController searchController;
-  final ValueChanged<String> onSearchChanged;
 
   @override
-  double get minExtent => _kSearchBarHeight + 24;
+  double get minExtent => 60; // Just enough for status bar + small padding
 
   @override
-  double get maxExtent => _kExpandedHeaderHeight + _kSearchBarHeight + 32;
+  double get maxExtent => _kExpandedHeaderHeight + 20;
 
   @override
   Widget build(
@@ -396,17 +381,6 @@ class _CollapsingHeaderDelegate extends SliverPersistentHeaderDelegate {
                   ),
                 ),
               ),
-            ),
-          ),
-
-          // 3. Search Bar (Pinned at bottom)
-          Positioned(
-            left: 20,
-            right: 20,
-            bottom: 12,
-            child: CapsuleSearchBar(
-              controller: searchController,
-              onChanged: onSearchChanged,
             ),
           ),
         ],
