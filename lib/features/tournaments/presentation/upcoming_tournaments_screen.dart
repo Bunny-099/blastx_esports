@@ -98,7 +98,7 @@ class _UpcomingTournamentsScreenState extends ConsumerState<UpcomingTournamentsS
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          'Upcoming Battles',
+                          'Tournaments',
                           style: AppTextStyles.headingLg,
                         ),
                         Container(

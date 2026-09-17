@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../settings/presentation/settings_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -30,6 +31,19 @@ class ProfileScreen extends StatelessWidget {
                       bottomLeft: Radius.circular(32),
                       bottomRight: Radius.circular(32),
                     ),
+                  ),
+                ),
+                // Settings Icon
+                Positioned(
+                  top: 50,
+                  right: 20,
+                  child: IconButton(
+                    icon: const Icon(Icons.settings, color: Colors.white, size: 28),
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(builder: (context) => const SettingsScreen()),
+                      );
+                    },
                   ),
                 ),
                 // 2. Profile Photo Avatar
