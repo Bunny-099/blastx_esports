@@ -11,6 +11,7 @@ import '../../../core/transitions/fire_page_route.dart';
 import '../providers/live_provider.dart';
 import 'tournament_detail_screen.dart';
 import 'widgets/tournament_card.dart';
+import 'widgets/capsule_search_bar.dart';
 
 /// ============================================================
 /// PREMIUM LIVE SCREEN — "Sexy" Free Fire Theme
@@ -72,7 +73,7 @@ class _LiveScreenState extends ConsumerState<LiveScreen>
     // Brief simulated load so the shimmer skeleton gets a moment to show.
     // Safe to remove once tournaments come from a real async source
     // (the provider itself should expose its own loading state then).
-    Future.delayed(const Duration(milliseconds: 700), () {
+    Future.delayed(const Duration(milliseconds: 700), ( ) {
       if (mounted) setState(() => _isLoading = false);
     });
   }
@@ -398,17 +399,14 @@ class _CollapsingHeaderDelegate extends SliverPersistentHeaderDelegate {
             ),
           ),
 
-          // 3. Floating glass search bar
+          // 3. Search Bar (Pinned at bottom)
           Positioned(
+            left: 20,
+            right: 20,
             bottom: 12,
-            left: 0,
-            right: 0,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: CapsuleSearchBar(
-                controller: searchController,
-                onChanged: onSearchChanged,
-              ),
+            child: CapsuleSearchBar(
+              controller: searchController,
+              onChanged: onSearchChanged,
             ),
           ),
         ],
@@ -422,64 +420,6 @@ class _CollapsingHeaderDelegate extends SliverPersistentHeaderDelegate {
         oldDelegate.username != username ||
         oldDelegate.greetingText != greetingText ||
         oldDelegate.quote != quote;
-  }
-}
-
-class CapsuleSearchBar extends StatelessWidget {
-  const CapsuleSearchBar({
-    super.key,
-    required this.controller,
-    required this.onChanged,
-  });
-
-  final TextEditingController controller;
-  final ValueChanged<String> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(32),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-        child: Container(
-          height: _kSearchBarHeight,
-          decoration: BoxDecoration(
-            gradient: AppColors.glassFill,
-            borderRadius: BorderRadius.circular(32),
-            border: Border.all(
-              color: Colors.white.withOpacity(0.12),
-              width: 1,
-            ),
-          ),
-          child: Row(
-            children: [
-              const SizedBox(width: 18),
-              ShaderMask(
-                shaderCallback: (bounds) =>
-                    AppColors.fireGradient.createShader(bounds),
-                child: const Icon(Icons.search_rounded,
-                    color: Colors.white, size: 20),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: TextField(
-                  controller: controller,
-                  onChanged: onChanged,
-                  style: AppTextStyles.bodyLg,
-                  decoration: InputDecoration(
-                    border: InputBorder.none,
-                    hintText: 'Search tournaments, games...',
-                    hintStyle: AppTextStyles.bodyMd,
-                    isCollapsed: true,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 16),
-            ],
-          ),
-        ),
-      ),
-    );
   }
 }
 

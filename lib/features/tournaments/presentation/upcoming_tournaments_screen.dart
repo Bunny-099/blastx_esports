@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../live/presentation/live_screen.dart'; // To reuse CapsuleSearchBar and Header components if possible
+import '../../../core/theme/app_text_styles.dart';
 import '../../live/providers/live_provider.dart';
+import '../../live/presentation/widgets/capsule_search_bar.dart';
 import 'widgets/upcoming_tournament_card.dart';
 
 class UpcomingTournamentsScreen extends ConsumerStatefulWidget {
@@ -14,10 +16,15 @@ class UpcomingTournamentsScreen extends ConsumerStatefulWidget {
   ConsumerState<UpcomingTournamentsScreen> createState() => _UpcomingTournamentsScreenState();
 }
 
-class _UpcomingTournamentsScreenState extends ConsumerState<UpcomingTournamentsScreen> {
+class _UpcomingTournamentsScreenState extends ConsumerState<UpcomingTournamentsScreen> with TickerProviderStateMixin {
   final ScrollController _scrollController = ScrollController();
   final TextEditingController _searchController = TextEditingController();
   double _collapseFraction = 0;
+
+  late final AnimationController _ambientController = AnimationController(
+    vsync: this,
+    duration: const Duration(seconds: 6),
+  )..repeat(reverse: true);
 
   static const List<String> _upcomingQuotes = [
     "Preparation is the key to success. 🏆",
@@ -51,6 +58,7 @@ class _UpcomingTournamentsScreenState extends ConsumerState<UpcomingTournamentsS
     _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
     _searchController.dispose();
+    _ambientController.dispose();
     super.dispose();
   }
 
@@ -60,96 +68,130 @@ class _UpcomingTournamentsScreenState extends ConsumerState<UpcomingTournamentsS
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: SafeArea(
-        bottom: false,
-        child: CustomScrollView(
-          controller: _scrollController,
-          physics: const BouncingScrollPhysics(
-            parent: AlwaysScrollableScrollPhysics(),
-          ),
-          slivers: [
-            SliverPersistentHeader(
-              pinned: true,
-              delegate: _UpcomingHeaderDelegate(
-                collapseFraction: _collapseFraction,
-                username: widget.username,
-                quote: _quote,
-                searchController: _searchController,
-                onSearchChanged: (value) {
-                  ref.read(upcomingSearchQueryProvider.notifier).state = value;
-                },
+      body: Stack(
+        children: [
+          _AmbientBackground(controller: _ambientController),
+          SafeArea(
+            bottom: false,
+            child: CustomScrollView(
+              controller: _scrollController,
+              physics: const BouncingScrollPhysics(
+                parent: AlwaysScrollableScrollPhysics(),
               ),
-            ),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'Upcoming Battles',
-                      style: TextStyle(
-                        color: AppColors.textPrimary,
-                        fontSize: 20,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 0.2,
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: AppColors.secondary.withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: AppColors.secondary.withValues(alpha: 0.4),
-                        ),
-                      ),
-                      child: Text(
-                        '${tournaments.length} EVENTS',
-                        style: const TextStyle(
-                          color: AppColors.secondaryDark,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            if (tournaments.isEmpty)
-              const SliverFillRemaining(
-                hasScrollBody: false,
-                child: _EmptyUpcomingState(),
-              )
-            else
-              SliverPadding(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-                sliver: SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                        (context, index) {
-                      final tournament = tournaments[index];
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 18),
-                        child: UpcomingTournamentCard(
-                          tournament: tournament,
-                          onTap: () {
-                            Navigator.of(context).pushNamed(
-                              '/tournament-detail',
-                              arguments: tournament.id,
-                            );
-                          },
-                        ),
-                      );
+              slivers: [
+                SliverPersistentHeader(
+                  pinned: true,
+                  delegate: _UpcomingHeaderDelegate(
+                    collapseFraction: _collapseFraction,
+                    username: widget.username,
+                    quote: _quote,
+                    searchController: _searchController,
+                    onSearchChanged: (value) {
+                      ref.read(upcomingSearchQueryProvider.notifier).state = value;
                     },
-                    childCount: tournaments.length,
                   ),
                 ),
-              ),
-          ],
-        ),
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Upcoming Battles',
+                          style: AppTextStyles.headingLg,
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: AppColors.secondary.withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: AppColors.secondary.withValues(alpha: 0.4),
+                            ),
+                          ),
+                          child: Text(
+                            '${tournaments.length} EVENTS',
+                            style: AppTextStyles.caption.copyWith(
+                              color: AppColors.secondaryLight,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                if (tournaments.isEmpty)
+                  const SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: _EmptyUpcomingState(),
+                  )
+                else
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+                    sliver: SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                            (context, index) {
+                          final tournament = tournaments[index];
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 18),
+                            child: UpcomingTournamentCard(
+                              tournament: tournament,
+                              onTap: () {
+                                Navigator.of(context).pushNamed(
+                                  '/tournament-detail',
+                                  arguments: tournament.id,
+                                );
+                              },
+                            ),
+                          )
+                              .animate(delay: (60 * index).ms)
+                              .fadeIn(duration: 400.ms)
+                              .slideX(begin: 0.1, end: 0, curve: Curves.easeOutCubic);
+                        },
+                        childCount: tournaments.length,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
       ),
+    );
+  }
+}
+
+class _AmbientBackground extends StatelessWidget {
+  const _AmbientBackground({required this.controller});
+  final AnimationController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: controller,
+      builder: (context, _) {
+        final t = controller.value;
+        return Stack(
+          children: [
+            Container(color: AppColors.background),
+            Positioned(
+              top: -80 + (t * 30),
+              right: -60,
+              child: Container(
+                width: 260,
+                height: 260,
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: AppColors.ambientGlowOrange,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }
@@ -214,29 +256,20 @@ class _UpcomingHeaderDelegate extends SliverPersistentHeaderDelegate {
                     children: [
                       Text(
                         'Ready for more, $username?',
-                        style: const TextStyle(
-                          color: AppColors.textPrimary,
-                          fontSize: 22,
-                          fontWeight: FontWeight.w800,
-                        ),
+                        style: AppTextStyles.headingLg,
                       ),
                       const SizedBox(height: 4),
-                      const Text(
+                      Text(
                         'Explore what\'s next in the arena',
-                        style: TextStyle(
-                          color: AppColors.textSecondary,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                        ),
+                        style: AppTextStyles.bodyMd,
                       ),
                       const SizedBox(height: 6),
                       Text(
                         quote,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: AppColors.secondaryDark,
-                          fontSize: 12.5,
+                        style: AppTextStyles.bodySm.copyWith(
+                          color: AppColors.secondaryLight,
                           fontStyle: FontStyle.italic,
                           fontWeight: FontWeight.w600,
                         ),
