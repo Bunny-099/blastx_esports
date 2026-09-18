@@ -171,14 +171,16 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                           isLoading: authState.isLoading,
                           showArrow: true,
                           onPressed: () async {
-                            await authNotifier.verifySignupOtp(_otpController.text.trim());
+                            final success = await authNotifier.verifySignupOtp(_otpController.text.trim());
                             if (!mounted) return;
 
-                            Navigator.pushAndRemoveUntil(
-                              context,
-                              MaterialPageRoute(builder: (context) => const MainScreen()),
-                              (route) => false,
-                            );
+                            if (success) {
+                              Navigator.pushAndRemoveUntil(
+                                context,
+                                MaterialPageRoute(builder: (context) => const MainScreen()),
+                                (route) => false,
+                              );
+                            }
                           },
                         ),
                         const SizedBox(height: 8),
@@ -204,14 +206,16 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                   const SizedBox(height: 24),
 
                   _GoogleButton(onTap: () async {
-                    await authNotifier.continueWithGoogle();
+                    final success = await authNotifier.continueWithGoogle();
                     if (!mounted) return;
 
-                    Navigator.pushAndRemoveUntil(
-                      context,
-                      MaterialPageRoute(builder: (context) => const MainScreen()),
-                      (route) => false,
-                    );
+                    if (success) {
+                      Navigator.pushAndRemoveUntil(
+                        context,
+                        MaterialPageRoute(builder: (context) => const MainScreen()),
+                        (route) => false,
+                      );
+                    }
                   }),
 
                   const SizedBox(height: 32),

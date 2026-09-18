@@ -151,15 +151,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           isLoading: authState.isLoading,
                           showArrow: true,
                           onPressed: () async {
-                            final messenger = ScaffoldMessenger.of(context);
-                            await authNotifier.verifyOtp(_otpController.text.trim());
+                            final success = await authNotifier.verifyOtp(_otpController.text.trim());
                             if (!mounted) return;
                             
-                            Navigator.pushAndRemoveUntil(
-                              context,
-                              MaterialPageRoute(builder: (context) => const MainScreen()),
-                              (route) => false,
-                            );
+                            if (success) {
+                              Navigator.pushAndRemoveUntil(
+                                context,
+                                MaterialPageRoute(builder: (context) => const MainScreen()),
+                                (route) => false,
+                              );
+                            }
                           },
                         ),
                         const SizedBox(height: 8),
@@ -185,14 +186,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   const SizedBox(height: 24),
 
                   _GoogleButton(onTap: () async {
-                    await authNotifier.continueWithGoogle();
+                    final success = await authNotifier.continueWithGoogle();
                     if (!mounted) return;
 
-                    Navigator.pushAndRemoveUntil(
-                      context,
-                      MaterialPageRoute(builder: (context) => const MainScreen()),
-                      (route) => false,
-                    );
+                    if (success) {
+                      Navigator.pushAndRemoveUntil(
+                        context,
+                        MaterialPageRoute(builder: (context) => const MainScreen()),
+                        (route) => false,
+                      );
+                    }
                   }),
 
                   const SizedBox(height: 32),

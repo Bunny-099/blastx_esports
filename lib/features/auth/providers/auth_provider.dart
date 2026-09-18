@@ -1,5 +1,20 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../splash/providers/splash_providers.dart';
+import '../data/auth_repository.dart';
+import '../data/services/auth_api_service.dart';
 
+// Providers for Data Layer
+final authApiServiceProvider = Provider((ref) {
+  final apiClient = ref.watch(apiClientProvider);
+  return AuthApiService(apiClient);
+});
+
+final authRepositoryProvider = Provider((ref) {
+  final apiService = ref.watch(authApiServiceProvider);
+  return AuthRepository(apiService);
+});
+
+// UI State Management
 enum AuthStep { enterEmail, enterOtp, verifying }
 
 class AuthState {
@@ -27,7 +42,7 @@ class AuthState {
     return AuthState(
       step: step ?? this.step,
       isLoading: isLoading ?? this.isLoading,
-      errorMessage: errorMessage, // null explicitly clear karne ke liye
+      errorMessage: errorMessage,
       email: email ?? this.email,
       name: name ?? this.name,
     );
@@ -40,6 +55,8 @@ class AuthNotifier extends Notifier<AuthState> {
   @override
   AuthState build() => const AuthState();
 
+  AuthRepository get _repository => ref.read(authRepositoryProvider);
+
   // Step 1: Email submit -> OTP bhejna
   Future<void> sendOtp(String email) async {
     if (email.isEmpty || !email.contains('@')) {
@@ -49,11 +66,15 @@ class AuthNotifier extends Notifier<AuthState> {
 
     state = state.copyWith(isLoading: true, errorMessage: null, email: email);
 
-    // TODO: Yahan actual API call aayegi (send OTP to email)
-    // Abhi ke liye simulate kar rahe hain 1.5 sec delay se
-    await Future.delayed(const Duration(milliseconds: 1500));
-
-    state = state.copyWith(isLoading: false, step: AuthStep.enterOtp);
+    try {
+      await _repository.sendOtp(email);
+      state = state.copyWith(isLoading: false, step: AuthStep.enterOtp);
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: 'Failed to send OTP. Please try again.',
+      );
+    }
   }
 
   // Signup Step 1: Name and Email submit -> OTP bhejna
@@ -74,55 +95,89 @@ class AuthNotifier extends Notifier<AuthState> {
       name: name,
     );
 
-    // TODO: Yahan actual Signup OTP API call aayegi
-    await Future.delayed(const Duration(milliseconds: 1500));
-
-    state = state.copyWith(isLoading: false, step: AuthStep.enterOtp);
+    try {
+      await _repository.sendOtp(email);
+      state = state.copyWith(isLoading: false, step: AuthStep.enterOtp);
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: 'Failed to send OTP. Please try again.',
+      );
+    }
   }
 
-  // Step 2: OTP verify karna
-  Future<void> verifyOtp(String otp) async {
+  // Step 2: OTP verify karna for Login
+  Future<bool> verifyOtp(String otp) async {
     if (otp.length != 6) {
       state = state.copyWith(errorMessage: 'Enter valid 6-digit OTP');
-      return;
+      return false;
     }
 
     state = state.copyWith(isLoading: true, errorMessage: null);
 
-    // TODO: Yahan actual API call aayegi (verify OTP)
-    await Future.delayed(const Duration(milliseconds: 1500));
-
-    state = state.copyWith(isLoading: false);
-    // TODO: Success hone par -> go_router se home pe navigate karenge
+    try {
+      final user = await _repository.login(state.email, otp);
+      // TODO: Save user token and profile locally
+      state = state.copyWith(isLoading: false);
+      return true;
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: 'Invalid OTP or Login failed.',
+      );
+      return false;
+    }
   }
 
   // Signup Step 2: OTP verify for signup
-  Future<void> verifySignupOtp(String otp) async {
+  Future<bool> verifySignupOtp(String otp) async {
     if (otp.length != 6) {
       state = state.copyWith(errorMessage: 'Enter valid 6-digit OTP');
-      return;
+      return false;
     }
 
     state = state.copyWith(isLoading: true, errorMessage: null);
 
-    // TODO: Yahan actual Signup completion API call aayegi
-    await Future.delayed(const Duration(milliseconds: 1500));
-
-    state = state.copyWith(isLoading: false);
-    // TODO: Success hone par -> home pe navigate karenge
+    try {
+      final user = await _repository.register(
+        name: state.name,
+        email: state.email,
+        otp: otp,
+      );
+      // TODO: Save user token and profile locally
+      state = state.copyWith(isLoading: false);
+      return true;
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: 'Registration failed. Try again.',
+      );
+      return false;
+    }
   }
 
   // Google sign-in
-  Future<void> continueWithGoogle() async {
+  Future<bool> continueWithGoogle() async {
     state = state.copyWith(isLoading: true, errorMessage: null);
 
-    // TODO: Yahan Google Sign-In package integrate hoga
-    await Future.delayed(const Duration(milliseconds: 1000));
-
-    state = state.copyWith(isLoading: false);
+    try {
+      // TODO: Implement actual Google Sign-In and get idToken
+      // final idToken = await GoogleSignInService.getIdToken();
+      // final user = await _repository.socialLogin(idToken, 'google');
+      
+      await Future.delayed(const Duration(milliseconds: 1000)); // Dummy delay for now
+      state = state.copyWith(isLoading: false);
+      return true;
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: 'Google sign-in failed.',
+      );
+      return false;
+    }
   }
 
-  // Email step pe wapas jaana (agar user email change karna chahe)
+  // Email step pe wapas jaana
   void backToEmailStep() {
     state = state.copyWith(step: AuthStep.enterEmail, errorMessage: null);
   }
