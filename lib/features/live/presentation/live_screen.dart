@@ -44,11 +44,11 @@ class _LiveScreenState extends ConsumerState<LiveScreen>
   )..repeat(reverse: true);
 
   static const List<String> _motivationalQuotes = [
-    "Champions aren't made in comfort zones. Go clutch it. 🔥",
-    "Every match is a new chance to prove yourself. 🎮",
-    "Grind now, flex later.",
-    "Your next win starts with your next click.",
-    "Play like the finals are today.",
+    "Booyah! Show them who's the real survivor. 🔥",
+    "Stay in the zone, stay in the game. 🎮",
+    "One tap, one kill. The peak of skill.",
+    "Bermuda is yours to conquer today.",
+    "Squad up and dominate the battlefield.",
   ];
 
   late final String _quote =
@@ -92,7 +92,10 @@ class _LiveScreenState extends ConsumerState<LiveScreen>
 
   @override
   Widget build(BuildContext context) {
-    final tournaments = ref.watch(filteredTournamentsProvider);
+    final allTournaments = ref.watch(filteredTournamentsProvider);
+    final tournaments = allTournaments
+        .where((t) => t.game.toLowerCase().contains('free fire'))
+        .toList();
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -123,7 +126,7 @@ class _LiveScreenState extends ConsumerState<LiveScreen>
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('Live Tournaments', style: AppTextStyles.headingLg),
+                        Text('Free Fire Live', style: AppTextStyles.headingLg),
                         Container(
                           padding: const EdgeInsets.symmetric(
                               horizontal: 12, vertical: 5),
