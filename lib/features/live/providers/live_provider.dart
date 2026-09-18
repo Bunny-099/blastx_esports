@@ -21,22 +21,37 @@ final liveTournamentsProvider = Provider<List<TournamentModel>>((ref) {
   return _dummyTournaments;
 });
 
-/// Derived provider - only tournaments that are currently LIVE.
-/// Useful if you want a separate "Live Now" horizontal strip later.
-final onlyLiveTournamentsProvider = Provider<List<TournamentModel>>((ref) {
+/// Official tournaments (Garena)
+final officialTournamentsProvider = Provider<List<TournamentModel>>((ref) {
   final all = ref.watch(liveTournamentsProvider);
-  return all.where((t) => t.isLive).toList();
+  return all.where((t) => 
+    t.organizer.toLowerCase() == 'garena' && 
+    t.game.toLowerCase().contains('free fire')
+  ).toList();
 });
 
-/// Derived provider - only tournaments that are UPCOMING.
-final upcomingTournamentsProvider = Provider<List<TournamentModel>>((ref) {
+/// BlastX (App) tournaments
+final appTournamentsProvider = Provider<List<TournamentModel>>((ref) {
   final all = ref.watch(liveTournamentsProvider);
-  return all.where((t) => t.status == TournamentStatus.upcoming).toList();
+  return all.where((t) => 
+    t.organizer.toLowerCase() == 'blastx' && 
+    t.game.toLowerCase().contains('free fire')
+  ).toList();
+});
+
+/// BlastX Live tournaments
+final appLiveTournamentsProvider = Provider<List<TournamentModel>>((ref) {
+  final appTournaments = ref.watch(appTournamentsProvider);
+  return appTournaments.where((t) => t.isLive).toList();
+});
+
+/// BlastX Upcoming tournaments
+final appUpcomingTournamentsProvider = Provider<List<TournamentModel>>((ref) {
+  final appTournaments = ref.watch(appTournamentsProvider);
+  return appTournaments.where((t) => t.status == TournamentStatus.upcoming).toList();
 });
 
 /// Family provider - fetch a single tournament by its ID.
-/// Used inside tournament_detail_screen.dart via:
-///   ref.watch(tournamentByIdProvider(tournamentId))
 final tournamentByIdProvider =
 Provider.family<TournamentModel?, String>((ref, id) {
   final all = ref.watch(liveTournamentsProvider);
@@ -71,7 +86,35 @@ final upcomingSearchQueryProvider = StateProvider<String>((ref) => '');
 /// Filtered list of upcoming tournaments based on search query.
 final filteredUpcomingTournamentsProvider = Provider<List<TournamentModel>>((ref) {
   final query = ref.watch(upcomingSearchQueryProvider).trim().toLowerCase();
-  final all = ref.watch(upcomingTournamentsProvider);
+  final all = ref.watch(appUpcomingTournamentsProvider);
+
+  if (query.isEmpty) return all;
+
+  return all.where((t) {
+    return t.name.toLowerCase().contains(query) ||
+        t.game.toLowerCase().contains(query) ||
+        t.organizer.toLowerCase().contains(query);
+  }).toList();
+});
+
+/// Filtered list of app live tournaments based on search query.
+final filteredAppLiveTournamentsProvider = Provider<List<TournamentModel>>((ref) {
+  final query = ref.watch(upcomingSearchQueryProvider).trim().toLowerCase();
+  final all = ref.watch(appLiveTournamentsProvider);
+
+  if (query.isEmpty) return all;
+
+  return all.where((t) {
+    return t.name.toLowerCase().contains(query) ||
+        t.game.toLowerCase().contains(query) ||
+        t.organizer.toLowerCase().contains(query);
+  }).toList();
+});
+
+/// Filtered list of official tournaments based on search query.
+final filteredOfficialTournamentsProvider = Provider<List<TournamentModel>>((ref) {
+  final query = ref.watch(tournamentSearchQueryProvider).trim().toLowerCase();
+  final all = ref.watch(officialTournamentsProvider);
 
   if (query.isEmpty) return all;
 

@@ -8,7 +8,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../challenges/presentation/challenges_screen.dart';
 import '../../live/presentation/live_screen.dart';
 import '../../profile/presentation/profile_screen.dart';
-import '../../tournaments/presentation/upcoming_tournaments_screen.dart';
+import '../../tournaments/presentation/tournaments_screen.dart';
 import '../providers/navigation_provider.dart';
 
 class MainScreen extends ConsumerWidget {
@@ -20,7 +20,7 @@ class MainScreen extends ConsumerWidget {
 
     final List<Widget> screens = [
       const LiveScreen(),
-      const UpcomingTournamentsScreen(),
+      const TournamentsScreen(),
       const ChallengesScreen(),
       const ProfileScreen(),
     ];

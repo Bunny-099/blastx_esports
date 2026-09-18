@@ -92,10 +92,7 @@ class _LiveScreenState extends ConsumerState<LiveScreen>
 
   @override
   Widget build(BuildContext context) {
-    final allTournaments = ref.watch(filteredTournamentsProvider);
-    final tournaments = allTournaments
-        .where((t) => t.game.toLowerCase().contains('free fire'))
-        .toList();
+    final tournaments = ref.watch(filteredOfficialTournamentsProvider);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -135,7 +132,7 @@ class _LiveScreenState extends ConsumerState<LiveScreen>
                             borderRadius: BorderRadius.circular(20),
                             boxShadow: [
                               BoxShadow(
-                                color: AppColors.primary.withOpacity(0.35),
+                                color: AppColors.primary.withValues(alpha: 0.35),
                                 blurRadius: 14,
                                 offset: const Offset(0, 4),
                               ),
@@ -316,7 +313,7 @@ class _CollapsingHeaderDelegate extends SliverPersistentHeaderDelegate {
                       Image.asset(
                         'assets/images/top_banner.jpg',
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) =>
+                        errorBuilder: (context, error, stackTrace) =>
                             Container(color: AppColors.surface),
                       ),
                       Container(
