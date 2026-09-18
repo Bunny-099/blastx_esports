@@ -1,15 +1,17 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
+import '../providers/splash_providers.dart';
 
-class SplashScreen extends StatefulWidget {
+class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
 
   @override
-  State<SplashScreen> createState() => _SplashScreenState();
+  ConsumerState<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen>
+class _SplashScreenState extends ConsumerState<SplashScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _logoScale;
@@ -26,7 +28,7 @@ class _SplashScreenState extends State<SplashScreen>
       duration: const Duration(milliseconds: 2000),
     );
 
-    // Logo pehle chhota hota hai, phir zoom-in ke saath aata hai (0% - 60% of timeline)
+    // ... (rest of animations remains same)
     _logoScale = Tween<double>(begin: 0.5, end: 1.0).animate(
       CurvedAnimation(
         parent: _controller,
@@ -41,7 +43,6 @@ class _SplashScreenState extends State<SplashScreen>
       ),
     );
 
-    // Glow ring pulse — continuous breathing effect jaisa
     _glowPulse = Tween<double>(begin: 0.85, end: 1.15).animate(
       CurvedAnimation(
         parent: _controller,
@@ -49,7 +50,6 @@ class _SplashScreenState extends State<SplashScreen>
       ),
     );
 
-    // Text (app name) logo ke thoda baad fade in hota hai (50% - 80%)
     _textFade = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
         parent: _controller,
@@ -59,10 +59,42 @@ class _SplashScreenState extends State<SplashScreen>
 
     _controller.forward();
 
-    // 2.8 sec baad navigate — abhi timer, baad me go_router se replace karenge
-    Timer(const Duration(milliseconds: 2800), () {
-      // TODO: context.go('/login');
-    });
+    _initializeApp();
+  }
+
+  Future<void> _initializeApp() async {
+    try {
+      // 1. Fetch App Config (Maintenance/Update)
+      final repository = ref.read(splashRepositoryProvider);
+      final config = await repository.getAppConfig();
+
+      if (config.isMaintenance) {
+        // TODO: Show Maintenance Screen
+        debugPrint('Maintenance Mode: ${config.maintenanceMessage}');
+      }
+
+      // 2. Check Auth Session
+      final isLoggedIn = await repository.checkUserAuth();
+
+      // 3. Navigation Logic
+      Timer(const Duration(milliseconds: 2800), () {
+        if (mounted) {
+          if (isLoggedIn) {
+            // context.go('/home');
+            debugPrint('Navigating to Home');
+          } else {
+            // context.go('/login');
+            debugPrint('Navigating to Login');
+          }
+        }
+      });
+    } catch (e) {
+      debugPrint('Initialization Error: $e');
+      // Fallback navigation if API fails
+      Timer(const Duration(milliseconds: 2800), () {
+        if (mounted) debugPrint('Navigating to Login (Fallback)');
+      });
+    }
   }
 
   @override

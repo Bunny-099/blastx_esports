@@ -19,6 +19,7 @@ dependencies:
   intl: ^0.20.3
   shimmer: ^4.0.0
   flutter_animate: ^4.5.2
+  dio: ^5.11.1
 dev_dependencies:
   flutter_test:
     sdk: flutter
