@@ -1,6 +1,6 @@
 class ApiEndpoints {
   // Base URLs
-  static const String baseUrl = 'https://api.blastxesports.com'; // Backend developer can change this
+  static const String baseUrl = 'https://blastx-esports-backend-production.up.railway.app';
 
   // Config Endpoints
   static const String appInit = '/v1/config/init';

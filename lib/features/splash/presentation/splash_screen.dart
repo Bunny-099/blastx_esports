@@ -80,11 +80,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       Timer(const Duration(milliseconds: 2800), () {
         if (mounted) {
           if (isLoggedIn) {
-            // context.go('/home');
-            debugPrint('Navigating to Home');
+            Navigator.pushReplacementNamed(context, '/home');
           } else {
-            // context.go('/login');
-            debugPrint('Navigating to Login');
+            Navigator.pushReplacementNamed(context, '/login');
           }
         }
       });
@@ -92,7 +90,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       debugPrint('Initialization Error: $e');
       // Fallback navigation if API fails
       Timer(const Duration(milliseconds: 2800), () {
-        if (mounted) debugPrint('Navigating to Login (Fallback)');
+        if (mounted) {
+          Navigator.pushReplacementNamed(context, '/login');
+        }
       });
     }
   }

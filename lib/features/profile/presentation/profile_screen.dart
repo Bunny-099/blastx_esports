@@ -73,7 +73,7 @@ class ProfileScreen extends StatelessWidget {
 
             // 3. Username and Player ID
             Text(
-              'Xenon_Hunter',
+              'Jonu',
               style: GoogleFonts.poppins(
                 fontSize: 24,
                 fontWeight: FontWeight.w800,

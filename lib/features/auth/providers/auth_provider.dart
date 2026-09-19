@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/constants/app_constants.dart';
 import '../../splash/providers/splash_providers.dart';
 import '../data/auth_repository.dart';
+import '../data/models/user_model.dart';
 import '../data/services/auth_api_service.dart';
 
 // Providers for Data Layer
@@ -10,9 +12,59 @@ final authApiServiceProvider = Provider((ref) {
 });
 
 final authRepositoryProvider = Provider((ref) {
+  if (AppConstants.useMockData) return MockAuthRepository();
+  
   final apiService = ref.watch(authApiServiceProvider);
   return AuthRepository(apiService);
 });
+
+// Fake Repository for testing when backend is not live
+class MockAuthRepository implements AuthRepository {
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+
+  @override
+  Future<void> sendOtp(String email) async {
+    await Future.delayed(const Duration(seconds: 1));
+  }
+
+  @override
+  Future<UserModel> login(String email, String otp) async {
+    await Future.delayed(const Duration(seconds: 1));
+    return UserModel(
+      id: 'mock_user_123',
+      name: 'Test Player',
+      email: email,
+      token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+    );
+  }
+
+  @override
+  Future<UserModel> register({
+    required String name,
+    required String email,
+    required String otp,
+  }) async {
+    await Future.delayed(const Duration(seconds: 1));
+    return UserModel(
+      id: 'mock_user_456',
+      name: name,
+      email: email,
+      token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+    );
+  }
+
+  @override
+  Future<UserModel> socialLogin(String idToken, String provider) async {
+    await Future.delayed(const Duration(seconds: 1));
+    return UserModel(
+      id: 'mock_user_google',
+      name: 'Google User',
+      email: 'google@test.com',
+      token: 'mock_google_token',
+    );
+  }
+}
 
 // UI State Management
 enum AuthStep { enterEmail, enterOtp, verifying }
@@ -117,7 +169,15 @@ class AuthNotifier extends Notifier<AuthState> {
 
     try {
       final user = await _repository.login(state.email, otp);
-      // TODO: Save user token and profile locally
+      
+      // Save token and user data
+      final storage = ref.read(storageServiceProvider);
+      if (user.token != null) {
+        await storage.saveToken(user.token!);
+      }
+      // You might want to save full user object too
+      // await storage.saveString('user_data', jsonEncode(user.toJson()));
+
       state = state.copyWith(isLoading: false);
       return true;
     } catch (e) {
@@ -144,7 +204,13 @@ class AuthNotifier extends Notifier<AuthState> {
         email: state.email,
         otp: otp,
       );
-      // TODO: Save user token and profile locally
+      
+      // Save token and user data
+      final storage = ref.read(storageServiceProvider);
+      if (user.token != null) {
+        await storage.saveToken(user.token!);
+      }
+
       state = state.copyWith(isLoading: false);
       return true;
     } catch (e) {

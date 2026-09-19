@@ -15,14 +15,14 @@ class AuthApiService {
   }
 
   Future<UserModel> login(String email, String otp) async {
-    final response = await _apiClient.post(
+    final responseData = await _apiClient.post(
       ApiEndpoints.login,
       data: {
         'email': email,
         'otp': otp,
       },
     );
-    return UserModel.fromJson(response.data['data']);
+    return UserModel.fromJson(responseData);
   }
 
   Future<UserModel> register({
@@ -30,7 +30,7 @@ class AuthApiService {
     required String email,
     required String otp,
   }) async {
-    final response = await _apiClient.post(
+    final responseData = await _apiClient.post(
       ApiEndpoints.register,
       data: {
         'name': name,
@@ -38,17 +38,17 @@ class AuthApiService {
         'otp': otp,
       },
     );
-    return UserModel.fromJson(response.data['data']);
+    return UserModel.fromJson(responseData);
   }
 
   Future<UserModel> socialLogin(String idToken, String provider) async {
-    final response = await _apiClient.post(
+    final responseData = await _apiClient.post(
       ApiEndpoints.socialLogin,
       data: {
         'token': idToken,
         'provider': provider,
       },
     );
-    return UserModel.fromJson(response.data['data']);
+    return UserModel.fromJson(responseData);
   }
 }

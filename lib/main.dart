@@ -1,11 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'app.dart';
+import 'features/splash/providers/splash_providers.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  final container = ProviderContainer();
+  await container.read(storageServiceProvider).init();
+
   runApp(
-    const ProviderScope(
-      child: MyApp(),
+    UncontrolledProviderScope(
+      container: container,
+      child: const MyApp(),
     ),
   );
 }

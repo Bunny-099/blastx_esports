@@ -155,9 +155,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             if (!mounted) return;
                             
                             if (success) {
-                              Navigator.pushAndRemoveUntil(
+                              Navigator.pushNamedAndRemoveUntil(
                                 context,
-                                MaterialPageRoute(builder: (context) => const MainScreen()),
+                                '/home',
                                 (route) => false,
                               );
                             }
@@ -190,9 +190,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     if (!mounted) return;
 
                     if (success) {
-                      Navigator.pushAndRemoveUntil(
+                      Navigator.pushNamedAndRemoveUntil(
                         context,
-                        MaterialPageRoute(builder: (context) => const MainScreen()),
+                        '/home',
                         (route) => false,
                       );
                     }
@@ -306,7 +306,7 @@ class _GoogleButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return PushableButton(
       onPressed: onTap,
-      hslColor: HSLColor.fromColor(AppColors.surface),
+      hslColor: HSLColor.fromColor(AppColors.surface).withLightness(0.2),
       height: 54,
       elevation: 4,
       shadow: BoxShadow(

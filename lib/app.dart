@@ -17,7 +17,11 @@ class MyApp extends ConsumerWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: const MainScreen(),
+      home: const SplashScreen(),
+      routes: {
+        '/login': (context) => const LoginScreen(),
+        '/home': (context) => const MainScreen(),
+      },
       onGenerateRoute: (settings) {
         if (settings.name == '/tournament-detail') {
           final tournamentId = settings.arguments as String;

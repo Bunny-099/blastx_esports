@@ -1,15 +1,17 @@
 import 'package:dio/dio.dart';
+import '../services/storage_service.dart';
 import 'api_endpoints.dart';
 
 class ApiClient {
   late final Dio _dio;
+  final StorageService _storageService;
 
-  ApiClient() {
+  ApiClient(this._storageService) {
     _dio = Dio(
       BaseOptions(
         baseUrl: ApiEndpoints.baseUrl,
-        connectTimeout: const Duration(seconds: 10),
-        receiveTimeout: const Duration(seconds: 10),
+        connectTimeout: const Duration(seconds: 15),
+        receiveTimeout: const Duration(seconds: 15),
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
@@ -17,44 +19,89 @@ class ApiClient {
       ),
     );
 
-    // Add interceptors for logging, auth tokens, etc.
+    _dio.interceptors.add(InterceptorsWrapper(
+      onRequest: (options, handler) async {
+        final token = await _storageService.getToken();
+        if (token != null) {
+          options.headers['Authorization'] = 'Bearer $token';
+        }
+        return handler.next(options);
+      },
+      onError: (DioException e, handler) async {
+        if (e.response?.statusCode == 401) {
+          // Auto logout on token expiry
+          await _storageService.deleteToken();
+          // Optionally notify a provider to redirect to login
+        }
+        return handler.next(e);
+      },
+    ));
+
     _dio.interceptors.add(LogInterceptor(
       requestBody: true,
       responseBody: true,
     ));
   }
 
-  Future<Response> get(
+  Future<dynamic> get(
     String endpoint, {
     Map<String, dynamic>? queryParameters,
     Options? options,
   }) async {
     try {
-      return await _dio.get(
+      final response = await _dio.get(
         endpoint,
         queryParameters: queryParameters,
         options: options,
       );
+      return _handleResponse(response);
     } catch (e) {
       rethrow;
     }
   }
 
-  Future<Response> post(
+  Future<dynamic> post(
     String endpoint, {
     dynamic data,
     Map<String, dynamic>? queryParameters,
     Options? options,
   }) async {
     try {
-      return await _dio.post(
+      final response = await _dio.post(
         endpoint,
         data: data,
         queryParameters: queryParameters,
         options: options,
       );
+      return _handleResponse(response);
     } catch (e) {
       rethrow;
     }
+  }
+
+  Future<dynamic> patch(
+    String endpoint, {
+    dynamic data,
+    Map<String, dynamic>? queryParameters,
+    Options? options,
+  }) async {
+    try {
+      final response = await _dio.patch(
+        endpoint,
+        data: data,
+        queryParameters: queryParameters,
+        options: options,
+      );
+      return _handleResponse(response);
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  dynamic _handleResponse(Response response) {
+    if (response.data != null && response.data['status'] == 'success') {
+      return response.data['data'];
+    }
+    return response.data;
   }
 }

@@ -8,21 +8,17 @@ class SplashApiService {
   SplashApiService(this._apiClient);
 
   Future<AppConfigModel> getAppConfig() async {
-    try {
-      final response = await _apiClient.get(ApiEndpoints.appInit);
-      return AppConfigModel.fromJson(response.data['data']);
-    } catch (e) {
-      rethrow;
-    }
+    final responseData = await _apiClient.get(ApiEndpoints.appInit);
+    return AppConfigModel.fromJson(responseData);
   }
 
   Future<bool> verifySession(String token) async {
     try {
-      final response = await _apiClient.post(
+      await _apiClient.post(
         ApiEndpoints.verifyToken,
         data: {'token': token},
       );
-      return response.statusCode == 200;
+      return true;
     } catch (e) {
       return false;
     }
