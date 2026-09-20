@@ -1,14 +1,51 @@
 /// ============================================================
-/// TOURNAMENT MODEL
+/// TOURNAMENT MODEL (v2 - command center fields)
 /// ============================================================
-/// Data structure for Live Tournaments screen.
-/// Contains:
-///  - TournamentModel : top level tournament info (shown on cards)
-///  - TeamModel       : team info (shown inside detail screen)
-///  - MatchModel      : specific match info (shown inside detail screen)
+/// All new fields have defaults, so existing mock data and
+/// JSON keep working unchanged.
 /// ============================================================
 
 enum TournamentStatus { live, upcoming, completed }
+
+class PrizeTier {
+  final String label; // "1st", "2nd", "4th-10th"
+  final double amount;
+  const PrizeTier({required this.label, required this.amount});
+
+  factory PrizeTier.fromJson(Map<String, dynamic> j) => PrizeTier(
+    label: j['label'] as String? ?? '',
+    amount: (j['amount'] as num?)?.toDouble() ?? 0,
+  );
+  Map<String, dynamic> toJson() => {'label': label, 'amount': amount};
+}
+
+class PointsRow {
+  final String label; // "1st", "Per Kill"
+  final String points; // "12", "+1"
+  const PointsRow({required this.label, required this.points});
+
+  factory PointsRow.fromJson(Map<String, dynamic> j) => PointsRow(
+    label: j['label'] as String? ?? '',
+    points: j['points'] as String? ?? '',
+  );
+  Map<String, dynamic> toJson() => {'label': label, 'points': points};
+}
+
+class ScheduleStep {
+  final String title; // "Registration Opens"
+  final String time; // "20 Sep, 10:00 AM"
+  final bool done;
+  const ScheduleStep(
+      {required this.title, required this.time, this.done = false});
+
+  factory ScheduleStep.fromJson(Map<String, dynamic> j) => ScheduleStep(
+    title: j['title'] as String? ?? '',
+    time: j['time'] as String? ?? '',
+    done: j['done'] as bool? ?? false,
+  );
+  Map<String, dynamic> toJson() =>
+      {'title': title, 'time': time, 'done': done};
+}
 
 class TournamentModel {
   final String id;
@@ -24,10 +61,24 @@ class TournamentModel {
   final String organizer;
   final List<TeamModel> teams;
   final List<MatchModel> matches;
-
-  /// Accent color hex used for the card's neon border (e.g "#9B5CFF").
-  /// Lets each game/tournament have a slightly different glow on its card.
   final String accentColorHex;
+
+  // ---- New fields ----
+  final String tournamentCode; // e.g. "BX-2049"
+  final int maxTeams;
+  final String mode; // Solo / Duo / Squad
+  final String mapName; // Bermuda
+  final String matchType; // BR Ranked / CS
+  final double entryFee; // 0 = free
+  final bool organizerVerified;
+  final double perKillReward;
+  final double booyahBonus;
+  final List<PrizeTier> prizeDistribution;
+  final List<PointsRow> pointsSystem;
+  final List<ScheduleStep> schedule;
+  final List<String> rules;
+  final List<String> announcements;
+  final String? streamUrl;
 
   const TournamentModel({
     required this.id,
@@ -44,11 +95,26 @@ class TournamentModel {
     this.teams = const [],
     this.matches = const [],
     this.accentColorHex = '#9B5CFF',
+    this.tournamentCode = '',
+    this.maxTeams = 0,
+    this.mode = '',
+    this.mapName = '',
+    this.matchType = '',
+    this.entryFee = 0,
+    this.organizerVerified = false,
+    this.perKillReward = 0,
+    this.booyahBonus = 0,
+    this.prizeDistribution = const [],
+    this.pointsSystem = const [],
+    this.schedule = const [],
+    this.rules = const [],
+    this.announcements = const [],
+    this.streamUrl,
   });
 
   bool get isLive => status == TournamentStatus.live;
+  bool get isFree => entryFee <= 0;
 
-  /// Formatted viewer count e.g 1200 -> "1.2K", 15000 -> "15K"
   String get formattedViewers {
     if (viewersCount >= 1000000) {
       return '${(viewersCount / 1000000).toStringAsFixed(1)}M';
@@ -58,13 +124,19 @@ class TournamentModel {
     return viewersCount.toString();
   }
 
-  /// Formatted prize pool e.g 500000 -> "₹5,00,000" (kept simple here)
-  String get formattedPrizePool {
-    final str = prizePool.toInt().toString();
-    return '$currency$str';
-  }
+  String money(double v) => '$currency${v.toInt()}';
+  String get formattedPrizePool => money(prizePool);
+  String get formattedEntryFee => isFree ? 'FREE' : money(entryFee);
+  String get teamsFilled =>
+      maxTeams > 0 ? '${teams.length}/$maxTeams' : '${teams.length}';
 
   factory TournamentModel.fromJson(Map<String, dynamic> json) {
+    List<T> list<T>(String key, T Function(Map<String, dynamic>) f) =>
+        (json[key] as List<dynamic>?)
+            ?.map((e) => f(e as Map<String, dynamic>))
+            .toList() ??
+            <T>[];
+
     return TournamentModel(
       id: json['id'] as String,
       name: json['name'] as String,
@@ -82,69 +154,59 @@ class TournamentModel {
           DateTime.now(),
       organizer: json['organizer'] as String? ?? '',
       accentColorHex: json['accentColorHex'] as String? ?? '#9B5CFF',
-      teams: (json['teams'] as List<dynamic>?)
-          ?.map((e) => TeamModel.fromJson(e as Map<String, dynamic>))
-          .toList() ??
+      teams: list('teams', TeamModel.fromJson),
+      matches: list('matches', MatchModel.fromJson),
+      tournamentCode: json['tournamentCode'] as String? ?? '',
+      maxTeams: json['maxTeams'] as int? ?? 0,
+      mode: json['mode'] as String? ?? '',
+      mapName: json['mapName'] as String? ?? '',
+      matchType: json['matchType'] as String? ?? '',
+      entryFee: (json['entryFee'] as num?)?.toDouble() ?? 0,
+      organizerVerified: json['organizerVerified'] as bool? ?? false,
+      perKillReward: (json['perKillReward'] as num?)?.toDouble() ?? 0,
+      booyahBonus: (json['booyahBonus'] as num?)?.toDouble() ?? 0,
+      prizeDistribution: list('prizeDistribution', PrizeTier.fromJson),
+      pointsSystem: list('pointsSystem', PointsRow.fromJson),
+      schedule: list('schedule', ScheduleStep.fromJson),
+      rules: (json['rules'] as List<dynamic>?)?.cast<String>() ?? const [],
+      announcements:
+      (json['announcements'] as List<dynamic>?)?.cast<String>() ??
           const [],
-      matches: (json['matches'] as List<dynamic>?)
-          ?.map((e) => MatchModel.fromJson(e as Map<String, dynamic>))
-          .toList() ??
-          const [],
+      streamUrl: json['streamUrl'] as String?,
     );
   }
 
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'name': name,
-      'game': game,
-      'bannerImageUrl': bannerImageUrl,
-      'gameLogoUrl': gameLogoUrl,
-      'prizePool': prizePool,
-      'currency': currency,
-      'viewersCount': viewersCount,
-      'status': status.name,
-      'startTime': startTime.toIso8601String(),
-      'organizer': organizer,
-      'accentColorHex': accentColorHex,
-      'teams': teams.map((e) => e.toJson()).toList(),
-      'matches': matches.map((e) => e.toJson()).toList(),
-    };
-  }
-
-  TournamentModel copyWith({
-    String? id,
-    String? name,
-    String? game,
-    String? bannerImageUrl,
-    String? gameLogoUrl,
-    double? prizePool,
-    String? currency,
-    int? viewersCount,
-    TournamentStatus? status,
-    DateTime? startTime,
-    String? organizer,
-    String? accentColorHex,
-    List<TeamModel>? teams,
-    List<MatchModel>? matches,
-  }) {
-    return TournamentModel(
-      id: id ?? this.id,
-      name: name ?? this.name,
-      game: game ?? this.game,
-      bannerImageUrl: bannerImageUrl ?? this.bannerImageUrl,
-      gameLogoUrl: gameLogoUrl ?? this.gameLogoUrl,
-      prizePool: prizePool ?? this.prizePool,
-      currency: currency ?? this.currency,
-      viewersCount: viewersCount ?? this.viewersCount,
-      status: status ?? this.status,
-      startTime: startTime ?? this.startTime,
-      organizer: organizer ?? this.organizer,
-      accentColorHex: accentColorHex ?? this.accentColorHex,
-      teams: teams ?? this.teams,
-      matches: matches ?? this.matches,
-    );
-  }
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'name': name,
+    'game': game,
+    'bannerImageUrl': bannerImageUrl,
+    'gameLogoUrl': gameLogoUrl,
+    'prizePool': prizePool,
+    'currency': currency,
+    'viewersCount': viewersCount,
+    'status': status.name,
+    'startTime': startTime.toIso8601String(),
+    'organizer': organizer,
+    'accentColorHex': accentColorHex,
+    'teams': teams.map((e) => e.toJson()).toList(),
+    'matches': matches.map((e) => e.toJson()).toList(),
+    'tournamentCode': tournamentCode,
+    'maxTeams': maxTeams,
+    'mode': mode,
+    'mapName': mapName,
+    'matchType': matchType,
+    'entryFee': entryFee,
+    'organizerVerified': organizerVerified,
+    'perKillReward': perKillReward,
+    'booyahBonus': booyahBonus,
+    'prizeDistribution': prizeDistribution.map((e) => e.toJson()).toList(),
+    'pointsSystem': pointsSystem.map((e) => e.toJson()).toList(),
+    'schedule': schedule.map((e) => e.toJson()).toList(),
+    'rules': rules,
+    'announcements': announcements,
+    'streamUrl': streamUrl,
+  };
 }
 
 /// ------------------------------------------------------------
@@ -158,6 +220,8 @@ class TeamModel {
   final String logoUrl;
   final int score;
   final TeamStatus status;
+  final String captain; // new
+  final int playersCount; // new
 
   const TeamModel({
     required this.id,
@@ -165,46 +229,48 @@ class TeamModel {
     required this.logoUrl,
     this.score = 0,
     this.status = TeamStatus.playing,
+    this.captain = '',
+    this.playersCount = 0,
   });
 
-  factory TeamModel.fromJson(Map<String, dynamic> json) {
-    return TeamModel(
-      id: json['id'] as String,
-      name: json['name'] as String,
-      logoUrl: json['logoUrl'] as String? ?? '',
-      score: json['score'] as int? ?? 0,
-      status: TeamStatus.values.firstWhere(
-            (e) => e.name == (json['status'] as String? ?? 'playing'),
-        orElse: () => TeamStatus.playing,
-      ),
-    );
-  }
+  factory TeamModel.fromJson(Map<String, dynamic> json) => TeamModel(
+    id: json['id'] as String,
+    name: json['name'] as String,
+    logoUrl: json['logoUrl'] as String? ?? '',
+    score: json['score'] as int? ?? 0,
+    status: TeamStatus.values.firstWhere(
+          (e) => e.name == (json['status'] as String? ?? 'playing'),
+      orElse: () => TeamStatus.playing,
+    ),
+    captain: json['captain'] as String? ?? '',
+    playersCount: json['playersCount'] as int? ?? 0,
+  );
 
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'name': name,
-      'logoUrl': logoUrl,
-      'score': score,
-      'status': status.name,
-    };
-  }
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'name': name,
+    'logoUrl': logoUrl,
+    'score': score,
+    'status': status.name,
+    'captain': captain,
+    'playersCount': playersCount,
+  };
 }
 
 /// ------------------------------------------------------------
-/// MATCH MODEL
+/// MATCH MODEL (unchanged)
 /// ------------------------------------------------------------
 enum MatchStatus { live, upcoming, completed }
 
 class MatchModel {
   final String id;
   final String tournamentId;
-  final String round; // e.g "Quarter Final", "Group Stage - Day 2"
+  final String round;
   final TeamModel teamA;
   final TeamModel teamB;
   final DateTime matchTime;
   final MatchStatus status;
-  final String? mapOrMode; // e.g "Erangel", "Bo3"
+  final String? mapOrMode;
 
   const MatchModel({
     required this.id,
@@ -219,33 +285,29 @@ class MatchModel {
 
   bool get isLive => status == MatchStatus.live;
 
-  factory MatchModel.fromJson(Map<String, dynamic> json) {
-    return MatchModel(
-      id: json['id'] as String,
-      tournamentId: json['tournamentId'] as String,
-      round: json['round'] as String? ?? '',
-      teamA: TeamModel.fromJson(json['teamA'] as Map<String, dynamic>),
-      teamB: TeamModel.fromJson(json['teamB'] as Map<String, dynamic>),
-      matchTime: DateTime.tryParse(json['matchTime'] as String? ?? '') ??
-          DateTime.now(),
-      status: MatchStatus.values.firstWhere(
-            (e) => e.name == (json['status'] as String? ?? 'upcoming'),
-        orElse: () => MatchStatus.upcoming,
-      ),
-      mapOrMode: json['mapOrMode'] as String?,
-    );
-  }
+  factory MatchModel.fromJson(Map<String, dynamic> json) => MatchModel(
+    id: json['id'] as String,
+    tournamentId: json['tournamentId'] as String,
+    round: json['round'] as String? ?? '',
+    teamA: TeamModel.fromJson(json['teamA'] as Map<String, dynamic>),
+    teamB: TeamModel.fromJson(json['teamB'] as Map<String, dynamic>),
+    matchTime: DateTime.tryParse(json['matchTime'] as String? ?? '') ??
+        DateTime.now(),
+    status: MatchStatus.values.firstWhere(
+          (e) => e.name == (json['status'] as String? ?? 'upcoming'),
+      orElse: () => MatchStatus.upcoming,
+    ),
+    mapOrMode: json['mapOrMode'] as String?,
+  );
 
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'tournamentId': tournamentId,
-      'round': round,
-      'teamA': teamA.toJson(),
-      'teamB': teamB.toJson(),
-      'matchTime': matchTime.toIso8601String(),
-      'status': status.name,
-      'mapOrMode': mapOrMode,
-    };
-  }
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'tournamentId': tournamentId,
+    'round': round,
+    'teamA': teamA.toJson(),
+    'teamB': teamB.toJson(),
+    'matchTime': matchTime.toIso8601String(),
+    'status': status.name,
+    'mapOrMode': mapOrMode,
+  };
 }

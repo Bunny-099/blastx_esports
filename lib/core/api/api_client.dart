@@ -28,6 +28,10 @@ class ApiClient {
         return handler.next(options);
       },
       onError: (DioException e, handler) async {
+        print('Dio Error: ${e.type} -> ${e.message}');
+        if (e.error != null) print('Dio Error Detail: ${e.error}');
+        if (e.response != null) print('Dio Error Data: ${e.response?.data}');
+
         if (e.response?.statusCode == 401) {
           // Auto logout on token expiry
           await _storageService.deleteToken();
