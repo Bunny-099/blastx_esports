@@ -464,6 +464,12 @@ class _BottomCta extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = tournament;
+
+    // Hide bottom CTA for live tournaments as per user request
+    if (t.status == TournamentStatus.live) {
+      return const SizedBox.shrink();
+    }
+
     late final String label;
     late final IconData icon;
     switch (t.status) {
