@@ -207,7 +207,7 @@ class TeamLobbyScreen extends ConsumerWidget {
             if (isCaptain && canEdit && team.isMainFull)
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
-                activeColor: AppColors.primary,
+                activeThumbColor: AppColors.primaryNeon,
                 title: Text('Accept substitutes', style: AppTextStyles.bodyLg),
                 subtitle: Text('Players joining with your code become substitutes.',
                     style: AppTextStyles.bodySm),
@@ -328,9 +328,9 @@ class TeamLobbyScreen extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.35)),
+        border: Border.all(color: color.withValues(alpha: 0.35)),
       ),
       child: Row(
         children: [

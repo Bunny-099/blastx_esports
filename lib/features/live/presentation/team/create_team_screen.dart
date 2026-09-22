@@ -88,14 +88,14 @@ class _CreateTeamScreenState extends ConsumerState<CreateTeamScreen> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: AppColors.gold.withOpacity(0.08),
+                color: AppColors.glowLight.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.gold.withOpacity(0.3)),
+                border: Border.all(color: AppColors.glowLight.withValues(alpha: 0.3)),
               ),
               child: Row(
                 children: [
                   const Icon(Icons.workspace_premium_rounded,
-                      color: AppColors.gold, size: 20),
+                      color: AppColors.glowLight, size: 20),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
