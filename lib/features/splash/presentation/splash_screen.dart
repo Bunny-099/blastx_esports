@@ -28,7 +28,6 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       duration: const Duration(milliseconds: 2000),
     );
 
-    // ... (rest of animations remains same)
     _logoScale = Tween<double>(begin: 0.5, end: 1.0).animate(
       CurvedAnimation(
         parent: _controller,
@@ -69,7 +68,6 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       final config = await repository.getAppConfig();
 
       if (config.isMaintenance) {
-        // TODO: Show Maintenance Screen
         debugPrint('Maintenance Mode: ${config.maintenanceMessage}');
       }
 
@@ -106,13 +104,13 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.bgDeep,
       body: AnimatedBuilder(
         animation: _controller,
         builder: (context, child) {
           return Stack(
             children: [
-              // Center glow effect — MLBB jaisa energy radiate feel, subtle version
+              // Center glow effect — neon cyan energy radiate
               Center(
                 child: Transform.scale(
                   scale: _glowPulse.value,
@@ -123,8 +121,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                       shape: BoxShape.circle,
                       gradient: RadialGradient(
                         colors: [
-                          AppColors.primary.withValues(alpha: 0.25),
-                          AppColors.secondary.withValues(alpha: 0.10),
+                          AppColors.glowSoft.withValues(alpha: 0.25),
+                          AppColors.glowLight.withValues(alpha: 0.10),
                           Colors.transparent,
                         ],
                         stops: const [0.0, 0.5, 1.0],
@@ -134,7 +132,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                 ),
               ),
 
-              // Logo + text center me
+              // Logo + text center
               Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -144,9 +142,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                       child: Transform.scale(
                         scale: _logoScale.value,
                         child: ShaderMask(
-                          shaderCallback: (bounds) => LinearGradient(
-                            colors: AppColors.primaryGradient,
-                          ).createShader(bounds),
+                          shaderCallback: (bounds) => AppColors.blastixCoreGradient
+                              .createShader(bounds),
                           child: const Icon(
                             Icons.sports_esports_rounded,
                             size: 84,
@@ -159,9 +156,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                     Opacity(
                       opacity: _textFade.value,
                       child: ShaderMask(
-                        shaderCallback: (bounds) => LinearGradient(
-                          colors: AppColors.primaryGradient,
-                        ).createShader(bounds),
+                        shaderCallback: (bounds) => AppColors.blastixCoreGradient
+                            .createShader(bounds),
                         child: const Text(
                           'BlastIXEsports',
                           style: TextStyle(
@@ -202,10 +198,10 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                       height: 4,
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(10),
-                        child: LinearProgressIndicator(
-                          backgroundColor: AppColors.surfaceMuted,
+                        child: const LinearProgressIndicator(
+                          backgroundColor: AppColors.surfaceNavy,
                           valueColor: AlwaysStoppedAnimation<Color>(
-                            AppColors.primary,
+                            AppColors.primaryNeon,
                           ),
                         ),
                       ),
