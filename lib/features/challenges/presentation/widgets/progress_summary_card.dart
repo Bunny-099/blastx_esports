@@ -51,7 +51,7 @@ class ProgressSummaryCard extends StatelessWidget {
                 const SizedBox(height: 12),
                 Row(
                   children: [
-                    _BonusBadge(text: '500 Coins'),
+                    _BonusBadge(text: '500 XP'),
                     const SizedBox(width: 8),
                     _BonusBadge(text: 'XP Boost'),
                   ],

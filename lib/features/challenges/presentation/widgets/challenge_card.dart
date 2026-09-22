@@ -83,7 +83,7 @@ class ChallengeCard extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      _RewardBadge(coins: challenge.rewardCoins),
+                      _RewardBadge(xp: challenge.rewardXP),
                     ],
                   ),
                   const SizedBox(height: 20),
@@ -143,8 +143,8 @@ class ChallengeCard extends StatelessWidget {
 }
 
 class _RewardBadge extends StatelessWidget {
-  final int coins;
-  const _RewardBadge({required this.coins});
+  final int xp;
+  const _RewardBadge({required this.xp});
 
   @override
   Widget build(BuildContext context) {
@@ -158,10 +158,10 @@ class _RewardBadge extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.monetization_on, color: AppColors.gold, size: 14),
+          const Icon(Icons.star_rounded, color: AppColors.gold, size: 14),
           const SizedBox(width: 4),
           Text(
-            '+$coins',
+            '+$xp XP',
             style: AppTextStyles.caption.copyWith(
               color: AppColors.gold,
               fontWeight: FontWeight.bold,

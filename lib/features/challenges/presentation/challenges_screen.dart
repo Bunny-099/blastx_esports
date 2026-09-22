@@ -96,7 +96,7 @@ class ChallengesScreen extends ConsumerWidget {
                               SnackBar(
                                 backgroundColor: AppColors.surface,
                                 content: Text(
-                                  'Claimed ${challenge.rewardCoins} Coins! 🪙',
+                                  'Claimed ${challenge.rewardXP} XP! ⭐',
                                   style: AppTextStyles.bodyMd.copyWith(color: AppColors.gold),
                                 ),
                                 duration: const Duration(seconds: 2),

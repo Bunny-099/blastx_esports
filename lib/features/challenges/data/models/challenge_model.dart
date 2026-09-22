@@ -8,7 +8,7 @@ class ChallengeModel {
   final String id;
   final String title;
   final String description;
-  final int rewardCoins;
+  final int rewardXP;
   final double currentProgress;
   final double targetProgress;
   final String game;
@@ -21,7 +21,7 @@ class ChallengeModel {
     required this.id,
     required this.title,
     required this.description,
-    required this.rewardCoins,
+    required this.rewardXP,
     required this.currentProgress,
     required this.targetProgress,
     this.game = 'Free Fire',
@@ -37,7 +37,7 @@ class ChallengeModel {
     String? id,
     String? title,
     String? description,
-    int? rewardCoins,
+    int? rewardXP,
     double? currentProgress,
     double? targetProgress,
     String? game,
@@ -50,7 +50,7 @@ class ChallengeModel {
       id: id ?? this.id,
       title: title ?? this.title,
       description: description ?? this.description,
-      rewardCoins: rewardCoins ?? this.rewardCoins,
+      rewardXP: rewardXP ?? this.rewardXP,
       currentProgress: currentProgress ?? this.currentProgress,
       targetProgress: targetProgress ?? this.targetProgress,
       game: game ?? this.game,
