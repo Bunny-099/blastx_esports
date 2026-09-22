@@ -88,7 +88,6 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                     controller: _emailController,
                     hintText: 'you@example.com',
                     keyboardType: TextInputType.emailAddress,
-                    // OTP step pe email field disable kar sakte hain ya read-only
                   ),
 
                   if (authState.errorMessage != null)
@@ -96,7 +95,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                       padding: const EdgeInsets.only(top: 8),
                       child: Text(
                         authState.errorMessage!,
-                        style: GoogleFonts.poppins(color: AppColors.error, fontSize: 13),
+                        style: GoogleFonts.poppins(color: AppColors.primaryNeon, fontSize: 13),
                       ),
                     ),
 
@@ -127,7 +126,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                                 'Change email',
                                 style: GoogleFonts.poppins(
                                   fontSize: 12,
-                                  color: AppColors.secondaryDark,
+                                  color: AppColors.primaryNeon,
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
@@ -137,7 +136,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                         const SizedBox(height: 16),
                         Row(
                           children: [
-                            Expanded(child: Divider(color: AppColors.surfaceMuted)),
+                            const Expanded(child: Divider(color: AppColors.surfaceNavy)),
                             Padding(
                               padding: const EdgeInsets.symmetric(horizontal: 10),
                               child: Text(
@@ -149,7 +148,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                                 ),
                               ),
                             ),
-                            Expanded(child: Divider(color: AppColors.surfaceMuted)),
+                            const Expanded(child: Divider(color: AppColors.surfaceNavy)),
                           ],
                         ),
                         const SizedBox(height: 8),
@@ -170,12 +169,12 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                           isLoading: authState.isLoading,
                           showArrow: true,
                           onPressed: () async {
+                            final navigator = Navigator.of(context);
                             final success = await authNotifier.verifySignupOtp(_otpController.text.trim());
                             if (!mounted) return;
 
                             if (success) {
-                              Navigator.pushNamedAndRemoveUntil(
-                                context,
+                              navigator.pushNamedAndRemoveUntil(
                                 '/home',
                                 (route) => false,
                               );
@@ -192,25 +191,25 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
 
                   Row(
                     children: [
-                      Expanded(child: Divider(color: AppColors.surfaceMuted)),
+                      const Expanded(child: Divider(color: AppColors.surfaceNavy)),
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 12),
                         child: Text('OR',
                             style: GoogleFonts.poppins(fontSize: 12, color: AppColors.textMuted)),
                       ),
-                      Expanded(child: Divider(color: AppColors.surfaceMuted)),
+                      const Expanded(child: Divider(color: AppColors.surfaceNavy)),
                     ],
                   ),
 
                   const SizedBox(height: 24),
 
                   _GoogleButton(onTap: () async {
+                    final navigator = Navigator.of(context);
                     final success = await authNotifier.continueWithGoogle();
                     if (!mounted) return;
 
                     if (success) {
-                      Navigator.pushNamedAndRemoveUntil(
-                        context,
+                      navigator.pushNamedAndRemoveUntil(
                         '/home',
                         (route) => false,
                       );
@@ -233,7 +232,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                           child: Text(
                             'Login',
                             style: GoogleFonts.poppins(
-                              color: AppColors.primaryDark,
+                              color: AppColors.primaryNeon,
                               fontWeight: FontWeight.bold,
                               fontSize: 13,
                             ),
@@ -254,7 +253,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
   }
 }
 
-// ── Glowing green gradient button (Same as LoginScreen) ──
+// ── Glowing neon button ──
 class _GlowButton extends StatelessWidget {
   final String text;
   final bool isLoading;
@@ -272,7 +271,7 @@ class _GlowButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return PushableButton(
       onPressed: isLoading ? null : onPressed,
-      hslColor: HSLColor.fromColor(AppColors.primary),
+      hslColor: HSLColor.fromColor(AppColors.primaryNeon),
       height: 54,
       elevation: 6,
       child: Center(
@@ -281,7 +280,7 @@ class _GlowButton extends StatelessWidget {
                 width: 22,
                 height: 22,
                 child: CircularProgressIndicator(
-                    strokeWidth: 2.2, color: Colors.white),
+                    strokeWidth: 2.2, color: AppColors.bgNavy),
               )
             : Row(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -289,7 +288,7 @@ class _GlowButton extends StatelessWidget {
                   Text(
                     text,
                     style: GoogleFonts.poppins(
-                      color: Colors.white,
+                      color: AppColors.bgNavy,
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
                     ),
@@ -300,10 +299,10 @@ class _GlowButton extends StatelessWidget {
                       padding: const EdgeInsets.all(4),
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: Colors.white.withValues(alpha: 0.2),
+                        color: AppColors.bgNavy.withValues(alpha: 0.2),
                       ),
                       child: const Icon(Icons.arrow_forward,
-                          size: 16, color: Colors.white),
+                          size: 16, color: AppColors.bgNavy),
                     ),
                   ],
                 ],
@@ -313,7 +312,7 @@ class _GlowButton extends StatelessWidget {
   }
 }
 
-// ── Google Sign-In button (Same as LoginScreen) ──
+// ── Google Sign-In button ──
 class _GoogleButton extends StatelessWidget {
   final VoidCallback onTap;
   const _GoogleButton({required this.onTap});
@@ -322,7 +321,7 @@ class _GoogleButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return PushableButton(
       onPressed: onTap,
-      hslColor: HSLColor.fromColor(AppColors.surface).withLightness(0.2),
+      hslColor: HSLColor.fromColor(AppColors.surfaceElevated).withLightness(0.2),
       height: 54,
       elevation: 4,
       shadow: BoxShadow(
