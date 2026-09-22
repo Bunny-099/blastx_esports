@@ -21,11 +21,11 @@ class ProgressSummaryCard extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+        border: Border.all(color: AppColors.primaryNeon.withValues(alpha: 0.3)),
         gradient: LinearGradient(
           colors: [
-            AppColors.primary.withValues(alpha: 0.15),
-            AppColors.secondary.withValues(alpha: 0.05),
+            AppColors.primaryNeon.withValues(alpha: 0.15),
+            AppColors.primaryDeep.withValues(alpha: 0.05),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -41,7 +41,7 @@ class ProgressSummaryCard extends StatelessWidget {
               children: [
                 Text(
                   'Daily Mission',
-                  style: AppTextStyles.headingMd.copyWith(color: AppColors.primaryLight),
+                  style: AppTextStyles.headingMd.copyWith(color: AppColors.glowLight),
                 ),
                 const SizedBox(height: 4),
                 Text(
@@ -51,9 +51,9 @@ class ProgressSummaryCard extends StatelessWidget {
                 const SizedBox(height: 12),
                 Row(
                   children: [
-                    _BonusBadge(text: '500 XP'),
+                    const _BonusBadge(text: '500 XP'),
                     const SizedBox(width: 8),
-                    _BonusBadge(text: 'XP Boost'),
+                    const _BonusBadge(text: 'XP Boost'),
                   ],
                 ),
               ],
@@ -77,10 +77,10 @@ class _CircularProgress extends StatelessWidget {
       child: Stack(
         alignment: Alignment.center,
         children: [
-          CircularProgressIndicator(
+          const CircularProgressIndicator(
             value: 1.0,
             strokeWidth: 6,
-            color: AppColors.surfaceMuted,
+            color: AppColors.surfaceNavy,
           ),
           TweenAnimationBuilder<double>(
             tween: Tween<double>(begin: 0, end: progress),
@@ -90,7 +90,7 @@ class _CircularProgress extends StatelessWidget {
               return CircularProgressIndicator(
                 value: value,
                 strokeWidth: 6,
-                color: AppColors.primary,
+                color: AppColors.primaryNeon,
                 backgroundColor: Colors.transparent,
               );
             },
@@ -119,14 +119,14 @@ class _BonusBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: AppColors.surfaceElevated,
         borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: AppColors.borderSubtle),
       ),
       child: Text(
         text,
         style: AppTextStyles.caption.copyWith(
-          color: AppColors.gold,
+          color: AppColors.glowLight,
           fontSize: 10,
         ),
       ),

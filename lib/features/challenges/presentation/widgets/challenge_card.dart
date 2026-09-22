@@ -22,7 +22,7 @@ class ChallengeCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: AppColors.borderSubtle),
         gradient: AppColors.glassFill,
       ),
       child: ClipRRect(
@@ -39,7 +39,7 @@ class ChallengeCard extends StatelessWidget {
                   height: 100,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: AppColors.primary.withValues(alpha: 0.15),
+                    color: AppColors.primaryNeon.withValues(alpha: 0.15),
                   ),
                 ),
               ).animate(onPlay: (controller) => controller.repeat(reverse: true))
@@ -55,13 +55,13 @@ class ChallengeCard extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
-                          color: AppColors.surfaceMuted,
+                          color: AppColors.surfaceNavy,
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: AppColors.border),
+                          border: Border.all(color: AppColors.borderSubtle),
                         ),
                         child: Icon(
                           _getIconData(challenge.title),
-                          color: challenge.isCompleted ? AppColors.gold : AppColors.primary,
+                          color: challenge.isCompleted ? AppColors.glowLight : AppColors.primaryNeon,
                           size: 24,
                         ),
                       ),
@@ -151,19 +151,19 @@ class _RewardBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: AppColors.gold.withValues(alpha: 0.1),
+        color: AppColors.glowLight.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.gold.withValues(alpha: 0.3)),
+        border: Border.all(color: AppColors.glowLight.withValues(alpha: 0.3)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.star_rounded, color: AppColors.gold, size: 14),
+          const Icon(Icons.star_rounded, color: AppColors.glowLight, size: 14),
           const SizedBox(width: 4),
           Text(
             '+$xp XP',
             style: AppTextStyles.caption.copyWith(
-              color: AppColors.gold,
+              color: AppColors.glowLight,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -185,7 +185,7 @@ class _ProgressBar extends StatelessWidget {
           height: 6,
           width: double.infinity,
           decoration: BoxDecoration(
-            color: AppColors.surfaceMuted,
+            color: AppColors.surfaceNavy,
             borderRadius: BorderRadius.circular(3),
           ),
         ),
@@ -194,11 +194,11 @@ class _ProgressBar extends StatelessWidget {
           child: Container(
             height: 6,
             decoration: BoxDecoration(
-              gradient: AppColors.fireGradient,
+              gradient: AppColors.blastixCoreGradient,
               borderRadius: BorderRadius.circular(3),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.primary.withValues(alpha: 0.3),
+                  color: AppColors.primaryNeon.withValues(alpha: 0.3),
                   blurRadius: 4,
                   spreadRadius: 1,
                 ),
@@ -239,11 +239,11 @@ class _ActionButton extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
           decoration: BoxDecoration(
-            gradient: AppColors.goldGradient,
+            gradient: AppColors.cyanIceGradient,
             borderRadius: BorderRadius.circular(8),
             boxShadow: [
               BoxShadow(
-                color: AppColors.gold.withValues(alpha: 0.3),
+                color: AppColors.glowSoft.withValues(alpha: 0.3),
                 blurRadius: 8,
                 offset: const Offset(0, 2),
               ),
@@ -251,7 +251,7 @@ class _ActionButton extends StatelessWidget {
           ),
           child: Text(
             'CLAIM',
-            style: AppTextStyles.button.copyWith(color: Colors.black),
+            style: AppTextStyles.button.copyWith(color: AppColors.bgNavy),
           ),
         ).animate(onPlay: (c) => c.repeat())
          .shimmer(duration: 2.seconds, color: Colors.white24),
@@ -265,11 +265,11 @@ class _ActionButton extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.transparent,
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: AppColors.primary),
+          border: Border.all(color: AppColors.primaryNeon),
         ),
         child: Text(
           'GO',
-          style: AppTextStyles.button.copyWith(color: AppColors.primary),
+          style: AppTextStyles.button.copyWith(color: AppColors.primaryNeon),
         ),
       ),
     );

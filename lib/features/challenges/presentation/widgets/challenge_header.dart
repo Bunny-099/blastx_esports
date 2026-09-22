@@ -58,7 +58,7 @@ class _ChallengeHeaderState extends State<ChallengeHeader> {
             children: [
               Text(
                 'DAILY',
-                style: AppTextStyles.overline.copyWith(color: AppColors.primary),
+                style: AppTextStyles.overline.copyWith(color: AppColors.primaryNeon),
               ),
               Text(
                 'CHALLENGES',
@@ -69,9 +69,9 @@ class _ChallengeHeaderState extends State<ChallengeHeader> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: AppColors.surfaceMuted,
+              color: AppColors.surfaceNavy,
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: AppColors.border),
+              border: Border.all(color: AppColors.borderSubtle),
             ),
             child: Column(
               children: [
@@ -82,8 +82,8 @@ class _ChallengeHeaderState extends State<ChallengeHeader> {
                 Text(
                   _formatDuration(_timeLeft),
                   style: AppTextStyles.headingMd.copyWith(
-                    color: AppColors.gold,
-                    fontFamily: 'Courier', // Monospace for timer
+                    color: AppColors.glowLight,
+                    fontFamily: 'Courier',
                   ),
                 ),
               ],
