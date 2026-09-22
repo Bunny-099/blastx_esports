@@ -163,7 +163,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                           colors: AppColors.primaryGradient,
                         ).createShader(bounds),
                         child: const Text(
-                          'BlastXEsports',
+                          'BlastIXEsports',
                           style: TextStyle(
                             fontSize: 30,
                             fontWeight: FontWeight.bold,
