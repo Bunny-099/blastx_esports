@@ -28,23 +28,23 @@ class CustomTextField extends StatelessWidget {
       style: GoogleFonts.poppins(color: AppColors.textPrimary),
       decoration: InputDecoration(
         hintText: hintText,
-        counterText: '', // maxLength ka counter hide karne ke liye
+        counterText: '',
         hintStyle: GoogleFonts.poppins(color: AppColors.textMuted),
         filled: true,
-        fillColor: AppColors.surface,
+        fillColor: AppColors.surfaceNavy,
         contentPadding:
         const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(color: AppColors.surfaceMuted),
+          borderSide: const BorderSide(color: AppColors.borderSubtle),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(color: AppColors.surfaceMuted),
+          borderSide: const BorderSide(color: AppColors.borderSubtle),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(color: AppColors.primary, width: 1.5),
+          borderSide: const BorderSide(color: AppColors.primaryNeon, width: 1.5),
         ),
       ),
     );

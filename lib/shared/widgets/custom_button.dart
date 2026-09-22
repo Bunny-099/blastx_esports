@@ -26,23 +26,24 @@ class CustomButton extends StatelessWidget {
           ? OutlinedButton(
         onPressed: isLoading ? null : onPressed,
         style: OutlinedButton.styleFrom(
-          side: BorderSide(color: AppColors.surfaceMuted),
+          side: const BorderSide(color: AppColors.borderSubtle),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
           ),
         ),
-        child: _buildChild(AppColors.textPrimary),
+        child: _buildChild(AppColors.primaryNeon),
       )
           : ElevatedButton(
         onPressed: isLoading ? null : onPressed,
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.primary,
+          backgroundColor: AppColors.primaryNeon,
+          foregroundColor: AppColors.bgNavy,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
           ),
           elevation: 0,
         ),
-        child: _buildChild(Colors.white),
+        child: _buildChild(AppColors.bgNavy),
       ),
     );
   }
@@ -69,7 +70,7 @@ class CustomButton extends StatelessWidget {
             text,
             style: TextStyle(
               color: textColor,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w700,
               fontSize: 15,
             ),
           ),
@@ -81,7 +82,7 @@ class CustomButton extends StatelessWidget {
       text,
       style: TextStyle(
         color: textColor,
-        fontWeight: FontWeight.w600,
+        fontWeight: FontWeight.w700,
         fontSize: 15,
       ),
     );
