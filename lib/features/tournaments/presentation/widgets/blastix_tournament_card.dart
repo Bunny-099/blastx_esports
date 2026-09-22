@@ -3,8 +3,8 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../live/data/models/tournament_model.dart';
 
-class BlastXTournamentCard extends StatelessWidget {
-  const BlastXTournamentCard({
+class BlastIXTournamentCard extends StatelessWidget {
+  const BlastIXTournamentCard({
     super.key,
     required this.tournament,
     required this.onTap,

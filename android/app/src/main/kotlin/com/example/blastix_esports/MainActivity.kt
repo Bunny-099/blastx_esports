@@ -1,4 +1,4 @@
-package com.example.blastx_esports
+package com.example.blastix_esports
 
 import io.flutter.embedding.android.FlutterActivity
 
