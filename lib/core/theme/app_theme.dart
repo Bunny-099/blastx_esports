@@ -19,14 +19,14 @@ class AppTheme {
       brightness: Brightness.dark,
       useMaterial3: true,
       scaffoldBackgroundColor: AppColors.background,
-      primaryColor: AppColors.primary,
+      primaryColor: AppColors.primaryNeon,
       fontFamily: AppTextStyles.bodyMd.fontFamily,
       colorScheme: const ColorScheme.dark(
-        primary: AppColors.primary,
-        secondary: AppColors.secondary,
-        surface: AppColors.surface,
-        error: AppColors.error,
-        onPrimary: Colors.white,
+        primary: AppColors.primaryNeon,
+        secondary: AppColors.primaryDeep,
+        surface: AppColors.surfaceElevated,
+        error: AppColors.primaryDeep,
+        onPrimary: AppColors.bgNavy,
         onSecondary: Colors.white,
         onSurface: AppColors.textPrimary,
         onError: Colors.white,
@@ -49,17 +49,17 @@ class AppTheme {
         labelLarge: AppTextStyles.button,
       ),
       cardTheme: CardThemeData(
-        color: AppColors.surface,
+        color: AppColors.surfaceElevated,
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(18),
-          side: const BorderSide(color: AppColors.border, width: 1),
+          side: const BorderSide(color: AppColors.borderSubtle, width: 1),
         ),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.primary,
-          foregroundColor: Colors.white,
+          backgroundColor: AppColors.primaryNeon,
+          foregroundColor: AppColors.bgNavy,
           padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
@@ -70,8 +70,8 @@ class AppTheme {
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          foregroundColor: AppColors.primary,
-          side: const BorderSide(color: AppColors.primary, width: 1.2),
+          foregroundColor: AppColors.primaryNeon,
+          side: const BorderSide(color: AppColors.primaryNeon, width: 1.2),
           padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
@@ -81,26 +81,26 @@ class AppTheme {
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: AppColors.surfaceMuted,
+        fillColor: AppColors.surfaceNavy,
         hintStyle: AppTextStyles.bodyMd,
         contentPadding:
         const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: AppColors.border),
+          borderSide: const BorderSide(color: AppColors.borderSubtle),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: AppColors.border),
+          borderSide: const BorderSide(color: AppColors.borderSubtle),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: AppColors.primary, width: 1.4),
+          borderSide: const BorderSide(color: AppColors.primaryNeon, width: 1.4),
         ),
       ),
       dividerTheme:
-      const DividerThemeData(color: AppColors.border, thickness: 1),
-      splashColor: AppColors.primary.withOpacity(0.08),
+      const DividerThemeData(color: AppColors.borderSubtle, thickness: 1),
+      splashColor: AppColors.primaryNeon.withValues(alpha: 0.08),
       highlightColor: Colors.transparent,
     );
   }
