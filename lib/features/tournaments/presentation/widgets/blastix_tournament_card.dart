@@ -34,8 +34,8 @@ class BlastIXTournamentCard extends StatelessWidget {
               begin: Alignment.bottomCenter,
               end: Alignment.topCenter,
               colors: [
-                Colors.black.withOpacity(0.9),
-                Colors.black.withOpacity(0.3),
+                Colors.black.withValues(alpha: 0.9),
+                Colors.black.withValues(alpha: 0.3),
                 Colors.transparent,
               ],
             ),
@@ -49,7 +49,7 @@ class BlastIXTournamentCard extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: Colors.red,
+                    color: AppColors.primaryDeep,
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: const Text(
@@ -69,12 +69,12 @@ class BlastIXTournamentCard extends StatelessWidget {
               const SizedBox(height: 4),
               Row(
                 children: [
-                  const Icon(Icons.emoji_events, color: AppColors.primary, size: 16),
+                  const Icon(Icons.emoji_events, color: AppColors.primaryNeon, size: 16),
                   const SizedBox(width: 4),
                   Text(
                     tournament.formattedPrizePool,
                     style: AppTextStyles.bodySm.copyWith(
-                      color: AppColors.primary,
+                      color: AppColors.glowLight,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -82,8 +82,8 @@ class BlastIXTournamentCard extends StatelessWidget {
                   ElevatedButton(
                     onPressed: onTap,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: Colors.black,
+                      backgroundColor: AppColors.primaryNeon,
+                      foregroundColor: AppColors.bgNavy,
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
                       minimumSize: const Size(80, 32),
                       shape: RoundedRectangleBorder(

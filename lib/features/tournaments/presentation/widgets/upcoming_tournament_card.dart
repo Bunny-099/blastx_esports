@@ -81,7 +81,7 @@ class UpcomingTournamentCard extends StatelessWidget {
                     gradient: LinearGradient(
                       colors: [
                         Colors.transparent,
-                        Color(0xF2080A12),
+                        Color(0xF2061A2B),
                       ],
                       stops: [0.25, 1.0],
                       begin: Alignment.topCenter,
