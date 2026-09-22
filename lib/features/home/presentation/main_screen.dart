@@ -10,6 +10,7 @@ import '../../live/presentation/live_screen.dart';
 import '../../profile/presentation/profile_screen.dart';
 import '../../tournaments/presentation/tournaments_screen.dart';
 import '../providers/navigation_provider.dart';
+import 'home_screen.dart';
 
 class MainScreen extends ConsumerWidget {
   const MainScreen({super.key});
@@ -19,6 +20,7 @@ class MainScreen extends ConsumerWidget {
     final selectedIndex = ref.watch(navigationIndexProvider);
 
     final List<Widget> screens = [
+      const HomeScreen(),
       const LiveScreen(),
       const TournamentsScreen(),
       const ChallengesScreen(),
@@ -40,50 +42,62 @@ class MainScreen extends ConsumerWidget {
         items: [
           CurvedNavigationBarItem(
             child: Icon(
-              Icons.live_tv,
+              Icons.home_rounded,
               color: selectedIndex == 0 ? Colors.white : AppColors.textSecondary,
+            ),
+            label: 'Home',
+            labelStyle: GoogleFonts.poppins(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: selectedIndex == 0 ? AppColors.primaryLight : AppColors.textSecondary,
+            ),
+          ),
+          CurvedNavigationBarItem(
+            child: Icon(
+              Icons.live_tv_rounded,
+              color: selectedIndex == 1 ? Colors.white : AppColors.textSecondary,
             ),
             label: 'Live',
             labelStyle: GoogleFonts.poppins(
-              fontSize: 12,
+              fontSize: 11,
               fontWeight: FontWeight.w600,
-              color: AppColors.textSecondary,
+              color: selectedIndex == 1 ? AppColors.primaryLight : AppColors.textSecondary,
             ),
           ),
           CurvedNavigationBarItem(
             child: Icon(
-              Icons.emoji_events,
-              color: selectedIndex == 1 ? Colors.white : AppColors.textSecondary,
+              Icons.emoji_events_rounded,
+              color: selectedIndex == 2 ? Colors.white : AppColors.textSecondary,
             ),
             label: 'Tournaments',
             labelStyle: GoogleFonts.poppins(
-              fontSize: 12,
+              fontSize: 11,
               fontWeight: FontWeight.w600,
-              color: AppColors.textSecondary,
+              color: selectedIndex == 2 ? AppColors.primaryLight : AppColors.textSecondary,
             ),
           ),
           CurvedNavigationBarItem(
             child: Icon(
-              Icons.extension,
-              color: selectedIndex == 2 ? Colors.white : AppColors.textSecondary,
+              Icons.extension_rounded,
+              color: selectedIndex == 3 ? Colors.white : AppColors.textSecondary,
             ),
             label: 'Challenges',
             labelStyle: GoogleFonts.poppins(
-              fontSize: 12,
+              fontSize: 11,
               fontWeight: FontWeight.w600,
-              color: AppColors.textSecondary,
+              color: selectedIndex == 3 ? AppColors.primaryLight : AppColors.textSecondary,
             ),
           ),
           CurvedNavigationBarItem(
             child: Icon(
-              Icons.person,
-              color: selectedIndex == 3 ? Colors.white : AppColors.textSecondary,
+              Icons.person_rounded,
+              color: selectedIndex == 4 ? Colors.white : AppColors.textSecondary,
             ),
             label: 'Profile',
             labelStyle: GoogleFonts.poppins(
-              fontSize: 12,
+              fontSize: 11,
               fontWeight: FontWeight.w600,
-              color: AppColors.textSecondary,
+              color: selectedIndex == 4 ? AppColors.primaryLight : AppColors.textSecondary,
             ),
           ),
         ],
