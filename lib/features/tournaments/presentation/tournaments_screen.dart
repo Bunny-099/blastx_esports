@@ -5,7 +5,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../live/providers/live_provider.dart';
 import '../../live/presentation/widgets/capsule_search_bar.dart';
-import 'widgets/blastx_tournament_card.dart';
+import 'widgets/blastix_tournament_card.dart';
 import 'widgets/upcoming_tournament_card.dart';
 
 class TournamentsScreen extends ConsumerStatefulWidget {
@@ -55,7 +55,7 @@ class _TournamentsScreenState extends ConsumerState<TournamentsScreen> with Tick
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('BlastX Tournaments', style: AppTextStyles.headingLg),
+                      Text('BlastIX Tournaments', style: AppTextStyles.headingLg),
                       CircleAvatar(
                         radius: 18,
                         backgroundColor: AppColors.surface,
@@ -140,7 +140,7 @@ class _TournamentsList extends ConsumerWidget {
       itemBuilder: (context, index) {
         final tournament = tournaments[index];
         return isLive 
-            ? BlastXTournamentCard(
+            ? BlastIXTournamentCard(
                 tournament: tournament,
                 onTap: () {
                   Navigator.of(context).pushNamed(
