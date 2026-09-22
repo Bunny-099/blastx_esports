@@ -52,7 +52,7 @@ class SettingsScreen extends StatelessWidget {
                 trailing: Switch(
                   value: true,
                   onChanged: (val) {},
-                  activeColor: AppColors.primary,
+                  activeThumbColor: AppColors.primaryNeon,
                 ),
                 onTap: () {},
               ),
@@ -81,7 +81,7 @@ class SettingsScreen extends StatelessWidget {
                 child: ElevatedButton(
                   onPressed: () {},
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.error,
+                    backgroundColor: AppColors.primaryDeep,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
@@ -127,7 +127,7 @@ class SettingsScreen extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: AppColors.surfaceElevated,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -142,7 +142,7 @@ class SettingsScreen extends StatelessWidget {
         leading: Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: AppColors.surfaceMuted,
+            color: AppColors.surfaceNavy,
             borderRadius: BorderRadius.circular(12),
           ),
           child: Icon(icon, color: AppColors.textPrimary, size: 22),
