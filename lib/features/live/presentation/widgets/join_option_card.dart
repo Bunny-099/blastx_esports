@@ -26,14 +26,14 @@ class JoinOptionCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          gradient: highlighted ? AppColors.fireGradient : null,
-          color: highlighted ? null : AppColors.surface,
+          gradient: highlighted ? AppColors.blastixCoreGradient : null,
+          color: highlighted ? null : AppColors.surfaceElevated,
           borderRadius: BorderRadius.circular(20),
-          border: highlighted ? null : Border.all(color: AppColors.border),
+          border: highlighted ? null : Border.all(color: AppColors.borderSubtle),
           boxShadow: highlighted
               ? [
             BoxShadow(
-                color: AppColors.secondary.withOpacity(0.35),
+                color: AppColors.primaryNeon.withValues(alpha: 0.35),
                 blurRadius: 18)
           ]
               : null,
@@ -45,12 +45,12 @@ class JoinOptionCard extends StatelessWidget {
               width: 52,
               decoration: BoxDecoration(
                 color: highlighted
-                    ? Colors.white.withOpacity(0.18)
-                    : AppColors.primary.withOpacity(0.12),
+                    ? Colors.white.withValues(alpha: 0.18)
+                    : AppColors.primaryNeon.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(14),
               ),
               child: Icon(icon,
-                  color: highlighted ? Colors.white : AppColors.primary,
+                  color: highlighted ? Colors.white : AppColors.primaryNeon,
                   size: 28),
             ),
             const SizedBox(width: 16),
@@ -60,12 +60,12 @@ class JoinOptionCard extends StatelessWidget {
                 children: [
                   Text(title,
                       style: AppTextStyles.headingLg
-                          .copyWith(color: Colors.white)),
+                          .copyWith(color: AppColors.textPrimary)),
                   const SizedBox(height: 2),
                   Text(subtitle,
                       style: AppTextStyles.bodySm.copyWith(
                           color: highlighted
-                              ? Colors.white.withOpacity(0.85)
+                              ? Colors.white.withValues(alpha: 0.85)
                               : AppColors.textSecondary)),
                 ],
               ),

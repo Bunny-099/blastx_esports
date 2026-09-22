@@ -26,9 +26,9 @@ class TeamCodeCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: AppColors.surfaceElevated,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.primary.withOpacity(0.5)),
+        border: Border.all(color: AppColors.primaryNeon.withValues(alpha: 0.5)),
       ),
       child: Column(
         children: [
@@ -36,7 +36,7 @@ class TeamCodeCard extends StatelessWidget {
           const SizedBox(height: 6),
           Text(code,
               style: AppTextStyles.display
-                  .copyWith(color: AppColors.gold, letterSpacing: 4)),
+                  .copyWith(color: AppColors.glowLight, letterSpacing: 4)),
           const SizedBox(height: 14),
           Row(
             children: [
@@ -45,7 +45,7 @@ class TeamCodeCard extends StatelessWidget {
                   text: 'COPY CODE',
                   isOutlined: true,
                   icon: const Icon(Icons.copy_rounded,
-                      size: 18, color: Colors.white),
+                      size: 18, color: AppColors.primaryNeon),
                   onPressed: () => _copy(context),
                 ),
               ),
@@ -54,7 +54,7 @@ class TeamCodeCard extends StatelessWidget {
                 child: CustomButton(
                   text: 'SHARE',
                   icon: const Icon(Icons.share_rounded,
-                      size: 18, color: Colors.white),
+                      size: 18, color: AppColors.bgNavy),
                   onPressed: () => Share.share(shareText),
                 ),
               ),

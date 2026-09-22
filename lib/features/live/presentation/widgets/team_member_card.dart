@@ -32,18 +32,18 @@ class TeamMemberCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: AppColors.surfaceElevated,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
             color: m.isCaptain
-                ? AppColors.gold.withOpacity(0.5)
-                : AppColors.border),
+                ? AppColors.glowLight.withValues(alpha: 0.5)
+                : AppColors.borderSubtle),
       ),
       child: Row(
         children: [
           CircleAvatar(
             radius: 20,
-            backgroundColor: AppColors.surfaceMuted,
+            backgroundColor: AppColors.surfaceNavy,
             backgroundImage:
             m.avatarUrl.isNotEmpty ? NetworkImage(m.avatarUrl) : null,
             child: m.avatarUrl.isEmpty
@@ -67,9 +67,9 @@ class TeamMemberCard extends StatelessWidget {
                         style: AppTextStyles.bodyLg
                             .copyWith(fontWeight: FontWeight.w700)),
                     if (m.isCaptain)
-                      _Badge('CAPTAIN', AppColors.gold),
+                      const _Badge('CAPTAIN', AppColors.glowLight),
                     _Badge(m.isSubstitute ? 'SUB' : 'MAIN',
-                        m.isSubstitute ? AppColors.warning : AppColors.success),
+                        m.isSubstitute ? AppColors.glowSoft : AppColors.primaryNeon),
                   ],
                 ),
                 if (details.isNotEmpty)
@@ -85,7 +85,7 @@ class TeamMemberCard extends StatelessWidget {
               tooltip: 'Remove',
               onPressed: onRemove,
               icon: const Icon(Icons.person_remove_rounded,
-                  color: AppColors.error, size: 20),
+                  color: AppColors.primaryDeep, size: 20),
             ),
         ],
       ),
@@ -96,15 +96,15 @@ class TeamMemberCard extends StatelessWidget {
     margin: const EdgeInsets.only(bottom: 10),
     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
     decoration: BoxDecoration(
-      color: AppColors.surface.withOpacity(0.5),
+      color: AppColors.surfaceElevated.withValues(alpha: 0.5),
       borderRadius: BorderRadius.circular(14),
-      border: Border.all(color: AppColors.border),
+      border: Border.all(color: AppColors.borderSubtle),
     ),
     child: Row(
       children: [
         CircleAvatar(
           radius: 20,
-          backgroundColor: AppColors.surfaceMuted,
+          backgroundColor: AppColors.surfaceNavy,
           child: Text(slotLabel, style: AppTextStyles.caption),
         ),
         const SizedBox(width: 12),
@@ -123,7 +123,7 @@ class _Badge extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
     decoration: BoxDecoration(
-      color: color.withOpacity(0.15),
+      color: color.withValues(alpha: 0.15),
       borderRadius: BorderRadius.circular(10),
     ),
     child: Text(text,

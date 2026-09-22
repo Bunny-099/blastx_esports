@@ -20,12 +20,12 @@ class CapsuleSearchBar extends StatelessWidget {
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
         child: Container(
-          height: 52, // Same as _kSearchBarHeight
+          height: 52,
           decoration: BoxDecoration(
             gradient: AppColors.glassFill,
             borderRadius: BorderRadius.circular(32),
             border: Border.all(
-              color: Colors.white.withOpacity(0.12),
+              color: AppColors.borderCyan,
               width: 1,
             ),
           ),
@@ -34,7 +34,7 @@ class CapsuleSearchBar extends StatelessWidget {
               const SizedBox(width: 18),
               ShaderMask(
                 shaderCallback: (bounds) =>
-                    AppColors.fireGradient.createShader(bounds),
+                    AppColors.blastixCoreGradient.createShader(bounds),
                 child: const Icon(Icons.search_rounded,
                     color: Colors.white, size: 20),
               ),

@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_colors.dart';
@@ -38,7 +36,7 @@ class _TournamentCardState extends State<TournamentCard> {
       final hex = widget.tournament.accentColorHex.replaceFirst('#', '');
       return Color(int.parse('FF$hex', radix: 16));
     } catch (_) {
-      return AppColors.primary;
+      return AppColors.primaryNeon;
     }
   }
 
@@ -69,7 +67,7 @@ class _TournamentCardState extends State<TournamentCard> {
             gradient: AppColors.glassBorder(accent),
             boxShadow: [
               BoxShadow(
-                color: accent.withOpacity(0.28),
+                color: accent.withValues(alpha: 0.28),
                 blurRadius: 30,
                 spreadRadius: -6,
                 offset: const Offset(0, 14),
@@ -90,7 +88,7 @@ class _TournamentCardState extends State<TournamentCard> {
                       tournament.bannerImageUrl,
                       fit: BoxFit.cover,
                       errorBuilder: (context, error, stackTrace) =>
-                          Container(color: AppColors.surface),
+                          Container(color: AppColors.surfaceElevated),
                     ),
                   ),
 
@@ -99,8 +97,8 @@ class _TournamentCardState extends State<TournamentCard> {
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: [
-                          Colors.black.withOpacity(0.12),
-                          AppColors.background.withOpacity(0.92),
+                          Colors.black.withValues(alpha: 0.12),
+                          AppColors.background.withValues(alpha: 0.92),
                         ],
                         stops: const [0.2, 1.0],
                         begin: Alignment.topCenter,
@@ -127,10 +125,10 @@ class _TournamentCardState extends State<TournamentCard> {
                         vertical: 5,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.45),
+                        color: Colors.black.withValues(alpha: 0.45),
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
-                          color: accent.withOpacity(0.6),
+                          color: accent.withValues(alpha: 0.6),
                           width: 1,
                         ),
                       ),
@@ -166,7 +164,7 @@ class _TournamentCardState extends State<TournamentCard> {
                           children: [
                             ShaderMask(
                               shaderCallback: (b) =>
-                                  AppColors.goldGradient.createShader(b),
+                                  AppColors.cyanIceGradient.createShader(b),
                               child: const Icon(Icons.emoji_events_rounded,
                                   color: Colors.white, size: 15),
                             ),
@@ -174,7 +172,7 @@ class _TournamentCardState extends State<TournamentCard> {
                             Text(
                               tournament.formattedPrizePool,
                               style: AppTextStyles.bodySm.copyWith(
-                                color: AppColors.gold,
+                                color: AppColors.glowLight,
                                 fontWeight: FontWeight.w700,
                               ),
                             ),
@@ -193,11 +191,11 @@ class _TournamentCardState extends State<TournamentCard> {
                           height: 3,
                           width: 62,
                           decoration: BoxDecoration(
-                            gradient: AppColors.fireGradient,
+                            gradient: AppColors.blastixCoreGradient,
                             borderRadius: BorderRadius.circular(2),
                             boxShadow: [
                               BoxShadow(
-                                color: accent.withOpacity(0.7),
+                                color: accent.withValues(alpha: 0.7),
                                 blurRadius: 8,
                                 spreadRadius: 1,
                               ),
@@ -218,7 +216,7 @@ class _TournamentCardState extends State<TournamentCard> {
 }
 
 /// ------------------------------------------------------------
-/// LIVE pulse badge — soft breathing glow, fire gradient fill
+/// LIVE pulse badge — soft breathing glow, neon core gradient fill
 /// ------------------------------------------------------------
 
 class _LivePulseBadge extends StatefulWidget {
@@ -250,11 +248,11 @@ class _LivePulseBadgeState extends State<_LivePulseBadge>
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
           decoration: BoxDecoration(
-            gradient: AppColors.fireGradient,
+            gradient: AppColors.blastixCoreGradient,
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: AppColors.secondary.withOpacity(glow),
+                color: AppColors.primaryDeep.withValues(alpha: glow),
                 blurRadius: 12,
                 spreadRadius: 1,
               ),
