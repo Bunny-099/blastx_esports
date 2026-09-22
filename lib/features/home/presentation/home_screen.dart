@@ -15,7 +15,7 @@ import '../providers/home_provider.dart';
 import '../providers/navigation_provider.dart';
 
 /// ============================================================
-/// HOME SCREEN — BLASTX ESPORTS LANDING PAGE
+/// HOME SCREEN — BLASTIX ESPORTS LANDING PAGE
 /// ============================================================
 /// Modern esports landing hub featuring:
 /// - Custom Header with user stats & notification bell
@@ -372,7 +372,7 @@ class _AmbientBackground extends StatelessWidget {
 }
 
 /// ------------------------------------------------------------
-/// Header Bar with BlastX Branding, User Greeting & Stats
+/// Header Bar with BlastIX Branding, User Greeting & Stats
 /// ------------------------------------------------------------
 class _HeaderBar extends StatelessWidget {
   const _HeaderBar({
@@ -400,7 +400,7 @@ class _HeaderBar extends StatelessWidget {
                     shaderCallback: (bounds) => AppColors.fireGradient
                         .createShader(Offset.zero & bounds.size),
                     child: Text(
-                      'BLASTX',
+                      'BLASTIX',
                       style: GoogleFonts.rajdhani(
                         fontSize: 26,
                         fontWeight: FontWeight.w900,
