@@ -141,7 +141,7 @@ class _TournamentDetailScreenState
                   end: Alignment.bottomCenter,
                   colors: [
                     Colors.transparent,
-                    AppColors.background.withOpacity(0.4),
+                    AppColors.background.withValues(alpha: 0.4),
                     AppColors.background,
                   ],
                   stops: const [0.0, 0.65, 1.0],
@@ -151,7 +151,7 @@ class _TournamentDetailScreenState
             Container(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [accent.withOpacity(0.22), Colors.transparent],
+                  colors: [accent.withValues(alpha: 0.22), Colors.transparent],
                   begin: Alignment.bottomLeft,
                   end: Alignment.topRight,
                 ),
@@ -430,7 +430,7 @@ class _TabsDelegate extends SliverPersistentHeaderDelegate {
                 margin: const EdgeInsets.only(right: 6),
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: active ? accent.withOpacity(0.18) : Colors.transparent,
+                  color: active ? accent.withValues(alpha: 0.18) : Colors.transparent,
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
                       color: active ? accent : AppColors.border, width: 1),
@@ -514,18 +514,18 @@ class _BottomCta extends StatelessWidget {
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
-                    color: AppColors.secondary.withOpacity(0.4),
+                    color: AppColors.secondary.withValues(alpha: 0.4),
                     blurRadius: 16),
               ],
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(icon, color: Colors.white, size: 20),
+                Icon(icon, color: AppColors.bgNavy, size: 20),
                 const SizedBox(width: 8),
                 Text(label,
                     style: const TextStyle(
-                        color: Colors.white,
+                        color: AppColors.bgNavy,
                         fontWeight: FontWeight.w800,
                         letterSpacing: 0.5)),
               ],
@@ -676,9 +676,9 @@ class _AnnouncementTile extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.gold.withOpacity(0.08),
+        color: AppColors.gold.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.gold.withOpacity(0.3)),
+        border: Border.all(color: AppColors.gold.withValues(alpha: 0.3)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -754,7 +754,7 @@ class _Chip extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
     decoration: BoxDecoration(
-      color: color.withOpacity(0.15),
+      color: color.withValues(alpha: 0.15),
       borderRadius: BorderRadius.circular(20),
       border: Border.all(color: color, width: 1),
     ),
@@ -808,9 +808,9 @@ class _GlassIconButton extends StatelessWidget {
               height: 38,
               width: 38,
               decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.35),
+                color: Colors.black.withValues(alpha: 0.35),
                 shape: BoxShape.circle,
-                border: Border.all(color: Colors.white.withOpacity(0.15)),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
               ),
               child: Icon(icon, color: Colors.white, size: 17),
             ),
@@ -837,11 +837,11 @@ class _StatusPill extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
         gradient: live ? AppColors.fireGradient : null,
-        color: live ? null : Colors.black.withOpacity(0.5),
+        color: live ? null : Colors.black.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(20),
         border: live ? null : Border.all(color: Colors.white24),
         boxShadow: live
-            ? [BoxShadow(color: AppColors.secondary.withOpacity(0.5), blurRadius: 12)]
+            ? [BoxShadow(color: AppColors.secondary.withValues(alpha: 0.5), blurRadius: 12)]
             : null,
       ),
       child: Row(
@@ -937,7 +937,7 @@ class _MatchTile extends StatelessWidget {
                   padding:
                   const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
-                    color: AppColors.error.withOpacity(0.15),
+                    color: AppColors.error.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text('LIVE',
@@ -1038,7 +1038,7 @@ class _TeamTile extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
-              color: _statusColor.withOpacity(0.15),
+              color: _statusColor.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(_statusLabel,
