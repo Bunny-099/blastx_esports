@@ -4,6 +4,8 @@ import 'package:blastix_esports/core/theme/app_colors.dart';
 import 'package:blastix_esports/core/theme/app_theme.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   group('Blastix Theme & AppColors Tokens Test', () {
     test('Verify Base Color Tokens', () {
       expect(AppColors.bgBlack, equals(const Color(0xFF000000)));
