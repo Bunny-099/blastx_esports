@@ -59,14 +59,12 @@ class NoticeItem {
 
 /// Model representing featured quick stats
 class UserHomeStats {
-  final int coins;
   final int xp;
   final int rank;
   final int matchesPlayed;
   final int totalWins;
 
   const UserHomeStats({
-    required this.coins,
     required this.xp,
     required this.rank,
     required this.matchesPlayed,

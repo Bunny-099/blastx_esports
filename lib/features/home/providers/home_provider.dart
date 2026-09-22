@@ -25,7 +25,7 @@ final homeBannersProvider = Provider<List<BannerItem>>((ref) {
     const BannerItem(
       id: 'b3',
       title: 'COMPLETE DAILY QUESTS',
-      subtitle: 'Earn 500+ B-Coins daily by completing challenges',
+      subtitle: 'Earn XP daily by completing challenges',
       badgeText: 'REWARDS PASS',
       imageUrl: 'assets/images/top_banner.jpg',
       buttonText: 'View Quests',
@@ -91,7 +91,6 @@ final homeNoticesProvider = Provider<List<NoticeItem>>((ref) {
 
 final userHomeStatsProvider = Provider<UserHomeStats>((ref) {
   return const UserHomeStats(
-    coins: 1450,
     xp: 3200,
     rank: 12,
     matchesPlayed: 48,

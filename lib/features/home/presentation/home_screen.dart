@@ -394,41 +394,18 @@ class _HeaderBar extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  ShaderMask(
-                    shaderCallback: (bounds) => AppColors.fireGradient
-                        .createShader(Offset.zero & bounds.size),
-                    child: Text(
-                      'BLASTIX',
-                      style: GoogleFonts.rajdhani(
-                        fontSize: 26,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 1.5,
-                        color: Colors.white,
-                      ),
-                    ),
+              ShaderMask(
+                shaderCallback: (bounds) => AppColors.fireGradient
+                    .createShader(Offset.zero & bounds.size),
+                child: Text(
+                  'BLASTIX',
+                  style: GoogleFonts.rajdhani(
+                    fontSize: 26,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 1.5,
+                    color: Colors.white,
                   ),
-                  const SizedBox(width: 6),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(4),
-                      border: Border.all(
-                          color: AppColors.primary.withValues(alpha: 0.5), width: 0.8),
-                    ),
-                    child: Text(
-                      'PRO',
-                      style: AppTextStyles.caption.copyWith(
-                        color: AppColors.primaryLight,
-                        fontSize: 9,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ),
-                ],
+                ),
               ),
               const SizedBox(height: 2),
               Text(
@@ -438,89 +415,45 @@ class _HeaderBar extends StatelessWidget {
             ],
           ),
 
-          // Coins Chip & Notification Icon
-          Row(
-            children: [
-              // Coins Chip
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: AppColors.gold.withValues(alpha: 0.4),
-                    width: 1,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.gold.withValues(alpha: 0.12),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
+          // Notification Bell
+          GestureDetector(
+            onTap: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('No new notifications right now!'),
+                  duration: Duration(seconds: 2),
                 ),
-                child: Row(
-                  children: [
-                    const Icon(
-                      Icons.monetization_on_rounded,
-                      color: AppColors.gold,
-                      size: 16,
-                    ),
-                    const SizedBox(width: 5),
-                    Text(
-                      '${userStats.coins}',
-                      style: GoogleFonts.rajdhani(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.gold,
-                      ),
-                    ),
-                  ],
-                ),
+              );
+            },
+            child: Container(
+              padding: const EdgeInsets.all(9),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                shape: BoxShape.circle,
+                border: Border.all(color: AppColors.border),
               ),
-              const SizedBox(width: 10),
-
-              // Notification Bell
-              GestureDetector(
-                onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('No new notifications right now!'),
-                      duration: Duration(seconds: 2),
+              child: Stack(
+                children: [
+                  const Icon(
+                    Icons.notifications_none_rounded,
+                    color: AppColors.textPrimary,
+                    size: 20,
+                  ),
+                  Positioned(
+                    right: 0,
+                    top: 0,
+                    child: Container(
+                      width: 8,
+                      height: 8,
+                      decoration: const BoxDecoration(
+                        color: AppColors.secondary,
+                        shape: BoxShape.circle,
+                      ),
                     ),
-                  );
-                },
-                child: Container(
-                  padding: const EdgeInsets.all(9),
-                  decoration: BoxDecoration(
-                    color: AppColors.surface,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: AppColors.border),
                   ),
-                  child: Stack(
-                    children: [
-                      const Icon(
-                        Icons.notifications_none_rounded,
-                        color: AppColors.textPrimary,
-                        size: 20,
-                      ),
-                      Positioned(
-                        right: 0,
-                        top: 0,
-                        child: Container(
-                          width: 8,
-                          height: 8,
-                          decoration: const BoxDecoration(
-                            color: AppColors.secondary,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                ],
               ),
-            ],
+            ),
           ),
         ],
       ),
@@ -822,7 +755,7 @@ class _QuickActionGrid extends ConsumerWidget {
       ),
       _QuickActionData(
         title: 'Daily Quests',
-        subtitle: 'Earn B-Coins',
+        subtitle: 'Earn Rewards',
         icon: Icons.extension_rounded,
         color: const Color(0xFF3DDC84),
         onTap: () => ref.read(navigationIndexProvider.notifier).state = 3,
@@ -956,7 +889,7 @@ class _QuickActionGrid extends ConsumerWidget {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text('🎁 Redeem Rewards', style: AppTextStyles.headingLg),
         content: Text(
-          'Use your B-Coins to claim exclusive game passes, Google Play gift cards, and custom emotes!',
+          'Claim exclusive game passes, Google Play gift cards, and custom emotes!',
           style: AppTextStyles.bodyMd,
         ),
         actions: [
