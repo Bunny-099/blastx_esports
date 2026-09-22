@@ -1,5 +1,5 @@
-import 'package:blastx_esports/core/theme/app_colors.dart';
-import 'package:blastx_esports/core/theme/app_text_styles.dart';
+import 'package:blastix_esports/core/theme/app_colors.dart';
+import 'package:blastix_esports/core/theme/app_text_styles.dart';
 import 'package:flutter/material.dart';
 
 /// Big tappable card used for "Create a Team" / "Join a Team".

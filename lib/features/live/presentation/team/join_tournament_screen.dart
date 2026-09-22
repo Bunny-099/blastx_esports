@@ -1,12 +1,12 @@
-import 'package:blastx_esports/core/theme/app_colors.dart';
-import 'package:blastx_esports/core/theme/app_text_styles.dart';
-import 'package:blastx_esports/core/transitions/fire_page_route.dart';
-import 'package:blastx_esports/features/live/presentation/team/create_team_screen.dart';
-import 'package:blastx_esports/features/live/presentation/team/join_team_screen.dart';
-import 'package:blastx_esports/features/live/presentation/team/team_lobby_screen.dart';
-import 'package:blastx_esports/features/live/presentation/widgets/join_option_card.dart';
-import 'package:blastx_esports/features/live/providers/live_provider.dart';
-import 'package:blastx_esports/features/live/providers/team_provider.dart';
+import 'package:blastix_esports/core/theme/app_colors.dart';
+import 'package:blastix_esports/core/theme/app_text_styles.dart';
+import 'package:blastix_esports/core/transitions/fire_page_route.dart';
+import 'package:blastix_esports/features/live/presentation/team/create_team_screen.dart';
+import 'package:blastix_esports/features/live/presentation/team/join_team_screen.dart';
+import 'package:blastix_esports/features/live/presentation/team/team_lobby_screen.dart';
+import 'package:blastix_esports/features/live/presentation/widgets/join_option_card.dart';
+import 'package:blastix_esports/features/live/providers/live_provider.dart';
+import 'package:blastix_esports/features/live/providers/team_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 

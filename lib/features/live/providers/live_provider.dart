@@ -1,4 +1,4 @@
-import 'package:blastx_esports/features/live/data/models/tournament_model.dart';
+import 'package:blastix_esports/features/live/data/models/tournament_model.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// ============================================================
@@ -30,22 +30,22 @@ final officialTournamentsProvider = Provider<List<TournamentModel>>((ref) {
   ).toList();
 });
 
-/// BlastX (App) tournaments
+/// BlastIX (App) tournaments
 final appTournamentsProvider = Provider<List<TournamentModel>>((ref) {
   final all = ref.watch(liveTournamentsProvider);
   return all.where((t) => 
-    t.organizer.toLowerCase() == 'blastx' && 
+    t.organizer.toLowerCase() == 'blastix' && 
     t.game.toLowerCase().contains('free fire')
   ).toList();
 });
 
-/// BlastX Live tournaments
+/// BlastIX Live tournaments
 final appLiveTournamentsProvider = Provider<List<TournamentModel>>((ref) {
   final appTournaments = ref.watch(appTournamentsProvider);
   return appTournaments.where((t) => t.isLive).toList();
 });
 
-/// BlastX Upcoming tournaments
+/// BlastIX Upcoming tournaments
 final appUpcomingTournamentsProvider = Provider<List<TournamentModel>>((ref) {
   final appTournaments = ref.watch(appTournamentsProvider);
   return appTournaments.where((t) => t.status == TournamentStatus.upcoming).toList();
@@ -222,7 +222,7 @@ final List<TournamentModel> _dummyTournaments = [
     viewersCount: 45000,
     status: TournamentStatus.upcoming,
     startTime: DateTime.now().add(const Duration(hours: 24)),
-    organizer: 'BlastX',
+    organizer: 'BlastIX',
     accentColorHex: '#FFC93C',
   ),
   TournamentModel(

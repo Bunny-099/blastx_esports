@@ -1,5 +1,5 @@
-import 'package:blastx_esports/core/theme/app_text_styles.dart';
-import 'package:blastx_esports/shared/widgets/custom_textfield.dart';
+import 'package:blastix_esports/core/theme/app_text_styles.dart';
+import 'package:blastix_esports/shared/widgets/custom_textfield.dart';
 import 'package:flutter/material.dart';
 
 /// Free Fire player details (not stored on the user account yet).

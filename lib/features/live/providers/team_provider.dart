@@ -1,6 +1,6 @@
-import 'package:blastx_esports/core/api/api_client.dart';
-import 'package:blastx_esports/core/api/api_endpoints.dart';
-import 'package:blastx_esports/features/splash/providers/splash_providers.dart';
+import 'package:blastix_esports/core/api/api_client.dart';
+import 'package:blastix_esports/core/api/api_endpoints.dart';
+import 'package:blastix_esports/features/splash/providers/splash_providers.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 

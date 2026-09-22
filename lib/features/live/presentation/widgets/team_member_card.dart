@@ -1,6 +1,6 @@
-import 'package:blastx_esports/core/theme/app_colors.dart';
-import 'package:blastx_esports/core/theme/app_text_styles.dart';
-import 'package:blastx_esports/features/live/data/models/team_member_model.dart';
+import 'package:blastix_esports/core/theme/app_colors.dart';
+import 'package:blastix_esports/core/theme/app_text_styles.dart';
+import 'package:blastix_esports/features/live/data/models/team_member_model.dart';
 import 'package:flutter/material.dart';
 
 /// Player row for the roster. Pass `member: null` for an empty slot.

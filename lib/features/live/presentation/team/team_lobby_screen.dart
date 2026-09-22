@@ -1,12 +1,12 @@
-import 'package:blastx_esports/core/theme/app_colors.dart';
-import 'package:blastx_esports/core/theme/app_text_styles.dart';
-import 'package:blastx_esports/features/live/data/models/team_member_model.dart';
-import 'package:blastx_esports/features/live/data/models/team_model.dart';
-import 'package:blastx_esports/features/live/presentation/widgets/team_code_card.dart';
-import 'package:blastx_esports/features/live/presentation/widgets/team_member_card.dart';
-import 'package:blastx_esports/features/live/providers/live_provider.dart';
-import 'package:blastx_esports/features/live/providers/team_provider.dart';
-import 'package:blastx_esports/shared/widgets/custom_button.dart';
+import 'package:blastix_esports/core/theme/app_colors.dart';
+import 'package:blastix_esports/core/theme/app_text_styles.dart';
+import 'package:blastix_esports/features/live/data/models/team_member_model.dart';
+import 'package:blastix_esports/features/live/data/models/team_model.dart';
+import 'package:blastix_esports/features/live/presentation/widgets/team_code_card.dart';
+import 'package:blastix_esports/features/live/presentation/widgets/team_member_card.dart';
+import 'package:blastix_esports/features/live/providers/live_provider.dart';
+import 'package:blastix_esports/features/live/providers/team_provider.dart';
+import 'package:blastix_esports/shared/widgets/custom_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
