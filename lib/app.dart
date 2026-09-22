@@ -1,3 +1,4 @@
+import 'package:blastix_esports/core/theme/app_theme.dart';
 import 'package:blastix_esports/features/auth/presentation/login_screen.dart';
 import 'package:blastix_esports/features/home/presentation/main_screen.dart';
 import 'package:blastix_esports/features/live/presentation/tournament_detail_screen.dart';
@@ -13,10 +14,7 @@ class MyApp extends ConsumerWidget {
     return MaterialApp(
       title: 'BlastIX Esports',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        useMaterial3: true,
-      ),
+      theme: AppTheme.dark,
       home: const SplashScreen(),
       routes: {
         '/login': (context) => const LoginScreen(),
