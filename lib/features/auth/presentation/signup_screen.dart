@@ -4,7 +4,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:pushable_button/pushable_button.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/custom_textfield.dart';
-import '../../home/presentation/main_screen.dart';
 import '../providers/auth_provider.dart';
 
 class SignupScreen extends ConsumerStatefulWidget {
