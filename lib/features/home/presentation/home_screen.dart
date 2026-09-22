@@ -710,13 +710,13 @@ class _BannerCard extends StatelessWidget {
                           banner.buttonText,
                           style: AppTextStyles.button.copyWith(
                             fontSize: 12,
-                            color: Colors.white,
+                            color: AppColors.bgNavy,
                           ),
                         ),
                         const SizedBox(width: 4),
                         const Icon(
                           Icons.arrow_forward_rounded,
-                          color: Colors.white,
+                          color: AppColors.bgNavy,
                           size: 14,
                         ),
                       ],
@@ -743,43 +743,29 @@ class _QuickActionGrid extends ConsumerWidget {
         title: 'Live Matches',
         subtitle: 'Watch Streams',
         icon: Icons.live_tv_rounded,
-        color: const Color(0xFFFF2E2E),
+        color: AppColors.primaryNeon,
         onTap: () => ref.read(navigationIndexProvider.notifier).state = 1,
       ),
       _QuickActionData(
         title: 'Tournaments',
         subtitle: 'Join & Win',
         icon: Icons.emoji_events_rounded,
-        color: const Color(0xFFFF6B00),
+        color: AppColors.glowSoft,
         onTap: () => ref.read(navigationIndexProvider.notifier).state = 2,
       ),
       _QuickActionData(
         title: 'Daily Quests',
         subtitle: 'Earn Rewards',
         icon: Icons.extension_rounded,
-        color: const Color(0xFF3DDC84),
+        color: AppColors.primaryDark,
         onTap: () => ref.read(navigationIndexProvider.notifier).state = 3,
       ),
       _QuickActionData(
         title: 'My Squad',
         subtitle: 'Manage Roster',
         icon: Icons.groups_rounded,
-        color: const Color(0xFF00B2FF),
+        color: AppColors.glowLight,
         onTap: () => ref.read(navigationIndexProvider.notifier).state = 4,
-      ),
-      _QuickActionData(
-        title: 'Leaderboard',
-        subtitle: 'Top Players',
-        icon: Icons.leaderboard_rounded,
-        color: const Color(0xFFFFC93C),
-        onTap: () => _showLeaderboardSheet(context),
-      ),
-      _QuickActionData(
-        title: 'Redeem Shop',
-        subtitle: 'Claim Prizes',
-        icon: Icons.card_giftcard_rounded,
-        color: const Color(0xFFA855F7),
-        onTap: () => _showRedeemDialog(context),
       ),
     ];
 
@@ -788,8 +774,8 @@ class _QuickActionGrid extends ConsumerWidget {
       physics: const NeverScrollableScrollPhysics(),
       itemCount: actions.length,
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
-        childAspectRatio: 0.95,
+        crossAxisCount: 2,
+        childAspectRatio: 2.2,
         crossAxisSpacing: 10,
         mainAxisSpacing: 10,
       ),
@@ -798,44 +784,48 @@ class _QuickActionGrid extends ConsumerWidget {
         return GestureDetector(
           onTap: item.onTap,
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(
               color: AppColors.surface,
               borderRadius: BorderRadius.circular(16),
               border: Border.all(color: AppColors.border),
             ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              mainAxisSize: MainAxisSize.min,
+            child: Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(7),
+                  padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
                     color: item.color.withValues(alpha: 0.15),
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(item.icon, color: item.color, size: 18),
+                  child: Icon(item.icon, color: item.color, size: 20),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  item.title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.rajdhani(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-                Text(
-                  item.subtitle,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.center,
-                  style: AppTextStyles.caption.copyWith(
-                    fontSize: 9,
-                    color: AppColors.textMuted,
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        item.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.rajdhani(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      Text(
+                        item.subtitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTextStyles.caption.copyWith(
+                          fontSize: 10,
+                          color: AppColors.textMuted,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -843,62 +833,6 @@ class _QuickActionGrid extends ConsumerWidget {
           ),
         );
       },
-    );
-  }
-
-  static void _showLeaderboardSheet(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: AppColors.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (context) => Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text('🏆 Season 4 Leaderboard', style: AppTextStyles.headingLg),
-                IconButton(
-                  icon: const Icon(Icons.close_rounded, color: Colors.white),
-                  onPressed: () => Navigator.pop(context),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            _LeaderboardRow(rank: '1', name: 'Team Soul', points: '240 pts', isTop: true),
-            _LeaderboardRow(rank: '2', name: 'GodLike Esports', points: '215 pts', isTop: true),
-            _LeaderboardRow(rank: '3', name: 'Blind Esports', points: '198 pts', isTop: true),
-            _LeaderboardRow(rank: '4', name: 'Entity Gaming', points: '175 pts', isTop: false),
-            const SizedBox(height: 16),
-          ],
-        ),
-      ),
-    );
-  }
-
-  static void _showRedeemDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text('🎁 Redeem Rewards', style: AppTextStyles.headingLg),
-        content: Text(
-          'Claim exclusive game passes, Google Play gift cards, and custom emotes!',
-          style: AppTextStyles.bodyMd,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('Close', style: AppTextStyles.button.copyWith(color: AppColors.primaryLight)),
-          ),
-        ],
-      ),
     );
   }
 }
@@ -917,59 +851,6 @@ class _QuickActionData {
     required this.color,
     required this.onTap,
   });
-}
-
-class _LeaderboardRow extends StatelessWidget {
-  const _LeaderboardRow({
-    required this.rank,
-    required this.name,
-    required this.points,
-    required this.isTop,
-  });
-
-  final String rank;
-  final String name;
-  final String points;
-  final bool isTop;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
-        children: [
-          Container(
-            width: 28,
-            height: 28,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: isTop ? AppColors.gold.withValues(alpha: 0.2) : AppColors.surfaceMuted,
-              shape: BoxShape.circle,
-            ),
-            child: Text(
-              '#$rank',
-              style: AppTextStyles.caption.copyWith(
-                color: isTop ? AppColors.gold : AppColors.textSecondary,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(name, style: AppTextStyles.bodyLg.copyWith(fontSize: 14)),
-          ),
-          Text(
-            points,
-            style: GoogleFonts.rajdhani(
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
-              color: AppColors.primaryLight,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 /// ------------------------------------------------------------
@@ -1046,7 +927,7 @@ class _FeaturedTournamentCard extends StatelessWidget {
                     child: Text(
                       isLive ? '🔴 LIVE' : 'REGISTRATION OPEN',
                       style: AppTextStyles.caption.copyWith(
-                        color: Colors.white,
+                        color: isLive ? Colors.white : AppColors.bgNavy,
                         fontSize: 9,
                         fontWeight: FontWeight.w800,
                       ),
