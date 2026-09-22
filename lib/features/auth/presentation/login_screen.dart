@@ -51,7 +51,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 children: [
                   const SizedBox(height: 24),
                   Text(
-                    'Login to continue to BlastXEsports',
+                    'Login to continue to BlastIXEsports',
                     style: GoogleFonts.poppins(fontSize: 14, color: AppColors.textSecondary),
                   ),
                   const SizedBox(height: 24),
