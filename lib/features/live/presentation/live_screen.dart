@@ -320,8 +320,8 @@ class _CollapsingHeaderDelegate extends SliverPersistentHeaderDelegate {
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
                             colors: [
-                              AppColors.background.withOpacity(0.15),
-                              AppColors.background.withOpacity(0.9),
+                              AppColors.background.withValues(alpha: 0.15),
+                              AppColors.background.withValues(alpha: 0.9),
                             ],
                             begin: Alignment.topCenter,
                             end: Alignment.bottomCenter,
@@ -332,7 +332,7 @@ class _CollapsingHeaderDelegate extends SliverPersistentHeaderDelegate {
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
                             colors: [
-                              AppColors.primary.withOpacity(0.18),
+                              AppColors.primary.withValues(alpha: 0.18),
                               Colors.transparent,
                             ],
                             begin: Alignment.bottomLeft,
