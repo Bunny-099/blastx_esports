@@ -22,11 +22,7 @@ class ProfileScreen extends StatelessWidget {
                   height: 180,
                   width: double.infinity,
                   decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: AppColors.primaryGradient,
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
+                    gradient: AppColors.blastixCoreGradient,
                     borderRadius: BorderRadius.only(
                       bottomLeft: Radius.circular(32),
                       bottomRight: Radius.circular(32),
@@ -57,7 +53,7 @@ class ProfileScreen extends StatelessWidget {
                     ),
                     child: const CircleAvatar(
                       radius: 55,
-                      backgroundColor: AppColors.surfaceMuted,
+                      backgroundColor: AppColors.surfaceNavy,
                       child: Icon(
                         Icons.person,
                         size: 70,
@@ -85,7 +81,7 @@ class ProfileScreen extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
               decoration: BoxDecoration(
-                color: AppColors.surfaceMuted,
+                color: AppColors.surfaceNavy,
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(
@@ -110,7 +106,7 @@ class ProfileScreen extends StatelessWidget {
                       'Matches',
                       '1,240',
                       Icons.sports_esports_rounded,
-                      AppColors.primary,
+                      AppColors.primaryNeon,
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -119,7 +115,7 @@ class ProfileScreen extends StatelessWidget {
                       'Wins',
                       '856',
                       Icons.emoji_events_rounded,
-                      AppColors.secondary,
+                      AppColors.glowSoft,
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -128,7 +124,7 @@ class ProfileScreen extends StatelessWidget {
                       'Rank',
                       'Elite',
                       Icons.stars_rounded,
-                      AppColors.warning,
+                      AppColors.glowLight,
                     ),
                   ),
                 ],
@@ -144,7 +140,7 @@ class ProfileScreen extends StatelessWidget {
                 width: double.infinity,
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: AppColors.surface,
+                  color: AppColors.surfaceElevated,
                   borderRadius: BorderRadius.circular(24),
                   boxShadow: [
                     BoxShadow(
@@ -157,9 +153,9 @@ class ProfileScreen extends StatelessWidget {
                 child: Column(
                   children: [
                     _buildDetailRow('Tournaments Won', '12', Icons.workspace_premium_rounded),
-                    const Divider(height: 32, color: AppColors.surfaceMuted),
+                    const Divider(height: 32, color: AppColors.surfaceNavy),
                     _buildDetailRow('K/D Ratio', '2.45', Icons.query_stats_rounded),
-                    const Divider(height: 32, color: AppColors.surfaceMuted),
+                    const Divider(height: 32, color: AppColors.surfaceNavy),
                     _buildDetailRow('Global Rank', '#452', Icons.public_rounded),
                   ],
                 ),
@@ -176,7 +172,7 @@ class ProfileScreen extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 20),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: AppColors.surfaceElevated,
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
@@ -224,7 +220,7 @@ class ProfileScreen extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
-            color: AppColors.surfaceMuted,
+            color: AppColors.surfaceNavy,
             borderRadius: BorderRadius.circular(12),
           ),
           child: Icon(icon, color: AppColors.textPrimary, size: 20),
@@ -244,7 +240,7 @@ class ProfileScreen extends StatelessWidget {
           style: GoogleFonts.poppins(
             fontSize: 15,
             fontWeight: FontWeight.w700,
-            color: AppColors.secondaryDark,
+            color: AppColors.primaryNeon,
           ),
         ),
       ],
