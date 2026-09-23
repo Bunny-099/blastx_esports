@@ -1,5 +1,5 @@
-import '../../../../core/api/api_client.dart';
-import '../../../../core/api/api_endpoints.dart';
+import 'package:blastix_esports/core/api/api_client.dart';
+import 'package:blastix_esports/core/api/api_endpoints.dart';
 
 class TournamentApiService {
   final ApiClient _apiClient;

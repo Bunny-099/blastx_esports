@@ -1,6 +1,6 @@
+import 'package:blastix_esports/features/live/data/models/tournament_model.dart';
+import 'package:blastix_esports/features/splash/providers/splash_providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../splash/providers/splash_providers.dart';
-import '../../../live/data/models/tournament_model.dart';
 import '../services/tournament_api_service.dart';
 
 final tournamentApiServiceProvider = Provider<TournamentApiService>((ref) {
