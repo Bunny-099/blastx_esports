@@ -1,5 +1,5 @@
+import 'package:blastix_esports/features/splash/providers/splash_providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../splash/providers/splash_providers.dart';
 import '../models/game_profile_model.dart';
 import '../models/user_profile_model.dart';
 import '../services/user_api_service.dart';
