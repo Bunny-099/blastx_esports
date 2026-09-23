@@ -9,14 +9,7 @@ import '../data/models/team_model.dart';
 /// ============================================================
 /// TEAM PROVIDER
 /// ============================================================
-/// Per-tournament team state (family keyed by tournamentId).
-/// All rules (one team per tournament, 4/2 caps, captain
-/// transfer, roster lock) are enforced by the backend; the
-/// client only maps backend error codes to friendly messages.
-/// ============================================================
 
-/// TODO: return your app's existing ApiClient provider here
-/// (e.g. `ref.watch(apiClientProvider)`).
 final teamApiClientProvider = Provider<ApiClient>((ref) {
   return ref.watch(apiClientProvider);
 });
@@ -58,13 +51,17 @@ class TeamRepository {
       _team(await _api.post(ApiEndpoints.removeTeamMember(teamId, userId)));
 
   Future<TournamentTeamModel> transferCaptain(String teamId, String userId) async =>
-      _team(await _api.post(ApiEndpoints.transferCaptain(teamId),
-          data: {'userId': userId}));
+      _team(await _api.post(
+        ApiEndpoints.transferCaptain(teamId),
+        data: {'new_captain_id': userId, 'userId': userId},
+      ));
 
   Future<TournamentTeamModel> setAcceptingSubstitutes(
       String teamId, bool value) async =>
-      _team(await _api.patch(ApiEndpoints.teamSubstitutes(teamId),
-          data: {'acceptingSubstitutes': value}));
+      _team(await _api.patch(
+        ApiEndpoints.teamSubstitutes(teamId),
+        data: {'accepting_substitutes': value, 'acceptingSubstitutes': value},
+      ));
 }
 
 class _TeamException implements Exception {
@@ -73,8 +70,8 @@ class _TeamException implements Exception {
 }
 
 class TeamState {
-  final TournamentTeamModel? team; // the user's team in this tournament
-  final TournamentTeamModel? previewTeam; // team found by code
+  final TournamentTeamModel? team;
+  final TournamentTeamModel? previewTeam;
   final bool isLoading;
   final String? error;
 
@@ -153,7 +150,6 @@ class TeamNotifier extends FamilyNotifier<TeamState, String> {
   void clearError() => state = state.copyWith(clearError: true);
   void clearPreview() => state = state.copyWith(clearPreview: true);
 
-  /// Loads the user's existing team for this tournament (if any).
   Future<void> loadMyTeam() => _guard(() async {
     final t = await _repo.myTeam(_tid);
     state = t == null ? state.copyWith(clearTeam: true) : state.copyWith(team: t);
@@ -174,11 +170,15 @@ class TeamNotifier extends FamilyNotifier<TeamState, String> {
     required String playerName,
     required String ign,
     required String uid,
+    String? logoUrl,
+    bool acceptingSubstitutes = true,
   }) =>
       _guard(() async {
         final t = await _repo.create(_tid, {
           'name': teamName,
           'tag': tag,
+          'logo_url': logoUrl ?? '',
+          'accepting_substitutes': acceptingSubstitutes,
           'player': {'name': playerName, 'ign': ign, 'uid': uid},
         });
         state = state.copyWith(team: t);
@@ -204,8 +204,11 @@ class TeamNotifier extends FamilyNotifier<TeamState, String> {
   }) =>
       _guard(() async {
         final preview = state.previewTeam!;
+        final isSub = preview.isMainFull;
         final t = await _repo.join(preview.id, {
-          'rosterType': preview.isMainFull ? 'SUBSTITUTE' : 'MAIN',
+          'invite_code': preview.code,
+          'as_substitute': isSub,
+          'rosterType': isSub ? 'SUBSTITUTE' : 'MAIN',
           'player': {'name': playerName, 'ign': ign, 'uid': uid},
         });
         state = state.copyWith(team: t, clearPreview: true);

@@ -3,10 +3,6 @@ import 'team_member_model.dart';
 /// ============================================================
 /// TOURNAMENT TEAM MODEL
 /// ============================================================
-/// A roster team that exists for ONE tournament only.
-/// NOTE: named TournamentTeamModel because tournament_model.dart
-/// already defines TeamModel (live match / leaderboard team).
-/// ============================================================
 
 enum TeamRegistrationStatus { forming, ready, registered, locked }
 
@@ -19,13 +15,13 @@ class TournamentTeamModel {
   final String tag;
   final String logoUrl;
   final String captainId;
-  final String viewerUserId; // id of the logged-in user, sent by backend
+  final String viewerUserId;
   final List<TeamMemberModel> members;
   final int maxMainPlayers;
   final int maxSubstitutes;
   final TeamRegistrationStatus status;
   final bool registrationOpen;
-  final bool acceptingSubstitutes; // captain opened substitute slots
+  final bool acceptingSubstitutes;
 
   const TournamentTeamModel({
     required this.id,
@@ -80,29 +76,39 @@ class TournamentTeamModel {
           'on BLASTX Esports! 🔥\nTeam Code: $code';
 
   factory TournamentTeamModel.fromJson(Map<String, dynamic> json) {
-    final statusRaw = (json['status'] as String? ?? 'forming').toLowerCase();
+    final statusRaw = ((json['registration_status'] ?? json['status']) as String? ?? 'forming').toLowerCase();
+    TeamRegistrationStatus parsedStatus;
+    if (statusRaw == 'confirmed' || statusRaw == 'registered') {
+      parsedStatus = TeamRegistrationStatus.registered;
+    } else if (statusRaw == 'locked') {
+      parsedStatus = TeamRegistrationStatus.locked;
+    } else if (statusRaw == 'ready') {
+      parsedStatus = TeamRegistrationStatus.ready;
+    } else {
+      parsedStatus = TeamRegistrationStatus.forming;
+    }
+
+    final rosterInfo = json['roster_info'] is Map ? json['roster_info'] as Map<String, dynamic> : null;
+
     return TournamentTeamModel(
-      id: json['id'] as String,
-      tournamentId: json['tournamentId'] as String? ?? '',
-      tournamentName: json['tournamentName'] as String? ?? '',
-      code: json['code'] as String? ?? '',
-      name: json['name'] as String? ?? '',
-      tag: json['tag'] as String? ?? '',
-      logoUrl: json['logoUrl'] as String? ?? '',
-      captainId: json['captainId'] as String? ?? '',
-      viewerUserId: json['viewerUserId'] as String? ?? '',
+      id: (json['id'] ?? '') as String,
+      tournamentId: (json['tournament_id'] ?? json['tournamentId'] ?? '') as String,
+      tournamentName: (json['tournamentName'] ?? '') as String,
+      code: (json['invite_code'] ?? json['code'] ?? '') as String,
+      name: (json['name'] ?? '') as String,
+      tag: (json['tag'] ?? '') as String,
+      logoUrl: (json['logo_url'] ?? json['logoUrl'] ?? '') as String,
+      captainId: (json['captain_id'] ?? json['captainId'] ?? '') as String,
+      viewerUserId: (json['viewerUserId'] ?? '') as String,
       members: (json['members'] as List<dynamic>?)
           ?.map((e) => TeamMemberModel.fromJson(e as Map<String, dynamic>))
           .toList() ??
           const [],
-      maxMainPlayers: json['maxMainPlayers'] as int? ?? 4,
-      maxSubstitutes: json['maxSubstitutes'] as int? ?? 2,
-      status: TeamRegistrationStatus.values.firstWhere(
-            (e) => e.name == statusRaw,
-        orElse: () => TeamRegistrationStatus.forming,
-      ),
-      registrationOpen: json['registrationOpen'] as bool? ?? true,
-      acceptingSubstitutes: json['acceptingSubstitutes'] as bool? ?? false,
+      maxMainPlayers: (rosterInfo?['max_main_players'] ?? json['maxMainPlayers'] as num?)?.toInt() ?? 4,
+      maxSubstitutes: (rosterInfo?['max_substitutes'] ?? json['maxSubstitutes'] as num?)?.toInt() ?? 2,
+      status: parsedStatus,
+      registrationOpen: (json['registrationOpen'] as bool?) ?? true,
+      acceptingSubstitutes: (json['accepting_substitutes'] ?? json['acceptingSubstitutes'] as bool?) ?? false,
     );
   }
 

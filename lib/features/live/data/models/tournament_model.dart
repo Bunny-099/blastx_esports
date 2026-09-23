@@ -1,9 +1,6 @@
-/// ============================================================
-/// TOURNAMENT MODEL (v2 - command center fields)
-/// ============================================================
-/// All new fields have defaults, so existing mock data and
-/// JSON keep working unchanged.
-/// ============================================================
+// ============================================================
+// TOURNAMENT MODEL
+// ============================================================
 
 enum TournamentStatus { live, upcoming, completed }
 
@@ -63,12 +60,12 @@ class TournamentModel {
   final List<MatchModel> matches;
   final String accentColorHex;
 
-  // ---- New fields ----
+  // Command Center & Backend Fields
   final String tournamentCode; // e.g. "BX-2049"
   final int maxTeams;
-  final String mode; // Solo / Duo / Squad
-  final String mapName; // Bermuda
-  final String matchType; // BR Ranked / CS
+  final String mode; // SOLO / DUO / SQUAD
+  final String mapName; // BERMUDA
+  final String matchType; // BATTLE_ROYALE / CLASH_SQUAD
   final double entryFee; // 0 = free
   final bool organizerVerified;
   final double perKillReward;
@@ -79,6 +76,9 @@ class TournamentModel {
   final List<String> rules;
   final List<String> announcements;
   final String? streamUrl;
+  final bool isRegistered;
+  final int registeredCount;
+  final int slotsLeft;
 
   const TournamentModel({
     required this.id,
@@ -110,6 +110,9 @@ class TournamentModel {
     this.rules = const [],
     this.announcements = const [],
     this.streamUrl,
+    this.isRegistered = false,
+    this.registeredCount = 0,
+    this.slotsLeft = 0,
   });
 
   bool get isLive => status == TournamentStatus.live;
@@ -128,51 +131,80 @@ class TournamentModel {
   String get formattedPrizePool => money(prizePool);
   String get formattedEntryFee => isFree ? 'FREE' : money(entryFee);
   String get teamsFilled =>
-      maxTeams > 0 ? '${teams.length}/$maxTeams' : '${teams.length}';
+      maxTeams > 0 ? '${registeredCount > 0 ? registeredCount : teams.length}/$maxTeams' : '${teams.length}';
 
   factory TournamentModel.fromJson(Map<String, dynamic> json) {
-    List<T> list<T>(String key, T Function(Map<String, dynamic>) f) =>
+    List<T> parseList<T>(String key, T Function(Map<String, dynamic>) f) =>
         (json[key] as List<dynamic>?)
             ?.map((e) => f(e as Map<String, dynamic>))
             .toList() ??
             <T>[];
 
+    // Status parsing mapping
+    final rawStatus = (json['status'] as String? ?? 'UPCOMING').toUpperCase();
+    TournamentStatus parsedStatus;
+    if (rawStatus == 'LIVE') {
+      parsedStatus = TournamentStatus.live;
+    } else if (rawStatus == 'COMPLETED') {
+      parsedStatus = TournamentStatus.completed;
+    } else {
+      parsedStatus = TournamentStatus.upcoming;
+    }
+
+    // Prize distribution map or list parser
+    List<PrizeTier> parsedPrizes = [];
+    if (json['prize_distribution'] is List) {
+      parsedPrizes = parseList('prize_distribution', PrizeTier.fromJson);
+    } else if (json['prize_distribution'] is Map) {
+      final map = json['prize_distribution'] as Map;
+      parsedPrizes = map.entries.map((e) {
+        final rankStr = e.key.toString();
+        final suffix = rankStr == '1' ? 'st' : rankStr == '2' ? 'nd' : rankStr == '3' ? 'rd' : 'th';
+        return PrizeTier(
+          label: '$rankStr$suffix Place',
+          amount: (e.value as num?)?.toDouble() ?? 0,
+        );
+      }).toList();
+    } else {
+      parsedPrizes = parseList('prizeDistribution', PrizeTier.fromJson);
+    }
+
     return TournamentModel(
-      id: json['id'] as String,
-      name: json['name'] as String,
-      game: json['game'] as String,
-      bannerImageUrl: json['bannerImageUrl'] as String? ?? '',
-      gameLogoUrl: json['gameLogoUrl'] as String? ?? '',
-      prizePool: (json['prizePool'] as num?)?.toDouble() ?? 0,
-      currency: json['currency'] as String? ?? '₹',
-      viewersCount: json['viewersCount'] as int? ?? 0,
-      status: TournamentStatus.values.firstWhere(
-            (e) => e.name == (json['status'] as String? ?? 'upcoming'),
-        orElse: () => TournamentStatus.upcoming,
-      ),
-      startTime: DateTime.tryParse(json['startTime'] as String? ?? '') ??
-          DateTime.now(),
-      organizer: json['organizer'] as String? ?? '',
-      accentColorHex: json['accentColorHex'] as String? ?? '#9B5CFF',
-      teams: list('teams', TeamModel.fromJson),
-      matches: list('matches', MatchModel.fromJson),
-      tournamentCode: json['tournamentCode'] as String? ?? '',
-      maxTeams: json['maxTeams'] as int? ?? 0,
-      mode: json['mode'] as String? ?? '',
-      mapName: json['mapName'] as String? ?? '',
-      matchType: json['matchType'] as String? ?? '',
-      entryFee: (json['entryFee'] as num?)?.toDouble() ?? 0,
-      organizerVerified: json['organizerVerified'] as bool? ?? false,
+      id: (json['id'] ?? '') as String,
+      name: (json['title'] ?? json['name'] ?? 'Tournament') as String,
+      game: (json['game'] ?? 'Free Fire') as String,
+      bannerImageUrl: (json['banner_url'] ?? json['bannerImageUrl'] ?? '') as String,
+      gameLogoUrl: (json['gameLogoUrl'] ?? '') as String,
+      prizePool: (json['prize_pool'] ?? json['prizePool'] as num?)?.toDouble() ?? 0,
+      currency: (json['currency'] ?? '₹') as String,
+      viewersCount: (json['viewersCount'] as num?)?.toInt() ?? 0,
+      status: parsedStatus,
+      startTime: DateTime.tryParse((json['starts_at'] ?? json['startTime'] ?? '') as String) ?? DateTime.now(),
+      organizer: (json['organizer'] ?? 'BlastX Esports') as String,
+      accentColorHex: (json['accentColorHex'] ?? '#9B5CFF') as String,
+      teams: parseList('teams', TeamModel.fromJson),
+      matches: parseList('matches', MatchModel.fromJson),
+      tournamentCode: (json['tournamentCode'] ?? '') as String,
+      maxTeams: (json['max_slots'] ?? json['maxTeams'] as num?)?.toInt() ?? 0,
+      mode: (json['team_mode'] ?? json['mode'] ?? '') as String,
+      mapName: (json['map'] ?? json['mapName'] ?? '') as String,
+      matchType: (json['format'] ?? json['matchType'] ?? '') as String,
+      entryFee: (json['entry_fee'] ?? json['entryFee'] as num?)?.toDouble() ?? 0,
+      organizerVerified: (json['organizerVerified'] as bool?) ?? false,
       perKillReward: (json['perKillReward'] as num?)?.toDouble() ?? 0,
       booyahBonus: (json['booyahBonus'] as num?)?.toDouble() ?? 0,
-      prizeDistribution: list('prizeDistribution', PrizeTier.fromJson),
-      pointsSystem: list('pointsSystem', PointsRow.fromJson),
-      schedule: list('schedule', ScheduleStep.fromJson),
-      rules: (json['rules'] as List<dynamic>?)?.cast<String>() ?? const [],
-      announcements:
-      (json['announcements'] as List<dynamic>?)?.cast<String>() ??
-          const [],
+      prizeDistribution: parsedPrizes,
+      pointsSystem: parseList('pointsSystem', PointsRow.fromJson),
+      schedule: parseList('schedule', ScheduleStep.fromJson),
+      rules: (json['rules'] as List<dynamic>?)?.cast<String>() ??
+          ((json['description'] is String && (json['description'] as String).isNotEmpty)
+              ? [(json['description'] as String)]
+              : const []),
+      announcements: (json['announcements'] as List<dynamic>?)?.cast<String>() ?? const [],
       streamUrl: json['streamUrl'] as String?,
+      isRegistered: (json['is_registered'] as bool?) ?? false,
+      registeredCount: (json['registered_count'] as num?)?.toInt() ?? 0,
+      slotsLeft: (json['slots_left'] as num?)?.toInt() ?? 0,
     );
   }
 
@@ -206,6 +238,9 @@ class TournamentModel {
     'rules': rules,
     'announcements': announcements,
     'streamUrl': streamUrl,
+    'is_registered': isRegistered,
+    'registered_count': registeredCount,
+    'slots_left': slotsLeft,
   };
 }
 
@@ -220,8 +255,8 @@ class TeamModel {
   final String logoUrl;
   final int score;
   final TeamStatus status;
-  final String captain; // new
-  final int playersCount; // new
+  final String captain;
+  final int playersCount;
 
   const TeamModel({
     required this.id,
@@ -234,16 +269,16 @@ class TeamModel {
   });
 
   factory TeamModel.fromJson(Map<String, dynamic> json) => TeamModel(
-    id: json['id'] as String,
-    name: json['name'] as String,
-    logoUrl: json['logoUrl'] as String? ?? '',
-    score: json['score'] as int? ?? 0,
+    id: (json['id'] ?? '') as String,
+    name: (json['team_name'] ?? json['name'] ?? '') as String,
+    logoUrl: (json['logo_url'] ?? json['logoUrl'] ?? '') as String,
+    score: (json['total_points'] ?? json['score'] as num?)?.toInt() ?? 0,
     status: TeamStatus.values.firstWhere(
-          (e) => e.name == (json['status'] as String? ?? 'playing'),
+          (e) => e.name == (json['status'] as String? ?? 'playing').toLowerCase(),
       orElse: () => TeamStatus.playing,
     ),
-    captain: json['captain'] as String? ?? '',
-    playersCount: json['playersCount'] as int? ?? 0,
+    captain: (json['captain'] ?? '') as String,
+    playersCount: (json['playersCount'] as num?)?.toInt() ?? 0,
   );
 
   Map<String, dynamic> toJson() => {
@@ -258,7 +293,7 @@ class TeamModel {
 }
 
 /// ------------------------------------------------------------
-/// MATCH MODEL (unchanged)
+/// MATCH MODEL
 /// ------------------------------------------------------------
 enum MatchStatus { live, upcoming, completed }
 
@@ -286,18 +321,22 @@ class MatchModel {
   bool get isLive => status == MatchStatus.live;
 
   factory MatchModel.fromJson(Map<String, dynamic> json) => MatchModel(
-    id: json['id'] as String,
-    tournamentId: json['tournamentId'] as String,
-    round: json['round'] as String? ?? '',
-    teamA: TeamModel.fromJson(json['teamA'] as Map<String, dynamic>),
-    teamB: TeamModel.fromJson(json['teamB'] as Map<String, dynamic>),
-    matchTime: DateTime.tryParse(json['matchTime'] as String? ?? '') ??
+    id: (json['id'] ?? '') as String,
+    tournamentId: (json['tournament_id'] ?? json['tournamentId'] ?? '') as String,
+    round: (json['round'] ?? '') as String,
+    teamA: json['teamA'] != null
+        ? TeamModel.fromJson(json['teamA'] as Map<String, dynamic>)
+        : const TeamModel(id: '', name: 'Team A', logoUrl: ''),
+    teamB: json['teamB'] != null
+        ? TeamModel.fromJson(json['teamB'] as Map<String, dynamic>)
+        : const TeamModel(id: '', name: 'Team B', logoUrl: ''),
+    matchTime: DateTime.tryParse((json['match_time'] ?? json['matchTime'] ?? '') as String) ??
         DateTime.now(),
     status: MatchStatus.values.firstWhere(
-          (e) => e.name == (json['status'] as String? ?? 'upcoming'),
+          (e) => e.name == (json['status'] as String? ?? 'upcoming').toLowerCase(),
       orElse: () => MatchStatus.upcoming,
     ),
-    mapOrMode: json['mapOrMode'] as String?,
+    mapOrMode: (json['map_or_mode'] ?? json['mapOrMode']) as String?,
   );
 
   Map<String, dynamic> toJson() => {

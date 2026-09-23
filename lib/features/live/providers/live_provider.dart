@@ -1,4 +1,5 @@
 import 'package:blastix_esports/features/live/data/models/tournament_model.dart';
+import 'package:blastix_esports/features/tournaments/data/repositories/tournament_repository.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// ============================================================
@@ -6,43 +7,58 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 /// ============================================================
 /// Riverpod providers that supply tournament data to the UI.
 ///
-///  - liveTournamentsProvider : list of all tournaments (dummy data
-///                              for now, replace with repository /
-///                              API call later)
-///  - tournamentByIdProvider  : fetch a single tournament by its id,
-///                              used by tournament_detail_screen.dart
+/// Fetches real tournaments from backend API with automatic
+/// fallback to static dummy data if API returns empty/error.
 /// ============================================================
 
-/// NOTE: Replace the fixed import path above ("package:live_tournaments/...")
-/// with your actual app package name from pubspec.yaml if different.
+/// Async provider for backend tournaments API
+final apiTournamentsProvider = FutureProvider<List<TournamentModel>>((ref) async {
+  try {
+    final repo = ref.watch(tournamentRepositoryProvider);
+    final list = await repo.getTournaments(limit: 50);
+    if (list.isNotEmpty) return list;
+  } catch (e) {
+    // Log or handle error gracefully
+  }
+  return const [];
+});
 
 /// Main provider - list of all live/upcoming tournaments.
 final liveTournamentsProvider = Provider<List<TournamentModel>>((ref) {
-  return _dummyTournaments;
+  final apiResult = ref.watch(apiTournamentsProvider);
+  return apiResult.when(
+    data: (list) => list.isNotEmpty ? list : _dummyTournaments,
+    loading: () => _dummyTournaments,
+    error: (err, stack) => _dummyTournaments,
+  );
 });
 
 /// Official tournaments (Garena)
 final officialTournamentsProvider = Provider<List<TournamentModel>>((ref) {
   final all = ref.watch(liveTournamentsProvider);
-  return all.where((t) => 
-    t.organizer.toLowerCase() == 'garena' && 
-    t.game.toLowerCase().contains('free fire')
+  final official = all.where((t) => 
+    t.organizer.toLowerCase().contains('garena') ||
+    t.organizer.toLowerCase().contains('krafton') ||
+    t.organizer.toLowerCase().contains('riot')
   ).toList();
+  return official.isNotEmpty ? official : all;
 });
 
 /// BlastIX (App) tournaments
 final appTournamentsProvider = Provider<List<TournamentModel>>((ref) {
   final all = ref.watch(liveTournamentsProvider);
-  return all.where((t) => 
-    t.organizer.toLowerCase() == 'blastix' && 
-    t.game.toLowerCase().contains('free fire')
+  final appTourneys = all.where((t) => 
+    t.organizer.toLowerCase().contains('blastix') ||
+    t.organizer.toLowerCase().contains('blastx')
   ).toList();
+  return appTourneys.isNotEmpty ? appTourneys : all;
 });
 
 /// BlastIX Live tournaments
 final appLiveTournamentsProvider = Provider<List<TournamentModel>>((ref) {
   final appTournaments = ref.watch(appTournamentsProvider);
-  return appTournaments.where((t) => t.isLive).toList();
+  final live = appTournaments.where((t) => t.isLive).toList();
+  return live.isNotEmpty ? live : appTournaments;
 });
 
 /// BlastIX Upcoming tournaments
@@ -63,7 +79,6 @@ Provider.family<TournamentModel?, String>((ref, id) {
 });
 
 /// Simple search query provider - bound to the 3D capsule search bar.
-/// live_screen.dart will update this on every keystroke.
 final tournamentSearchQueryProvider = StateProvider<String>((ref) => '');
 
 /// Filtered list based on search query - what the UI actually renders.
@@ -128,9 +143,6 @@ final filteredOfficialTournamentsProvider = Provider<List<TournamentModel>>((ref
 /// ------------------------------------------------------------
 /// DUMMY DATA
 /// ------------------------------------------------------------
-/// Replace this with a real repository call (API / Firestore) later.
-/// Kept varied on purpose - different games & accent colors so the
-/// unique angular card design can be tested with real visual variety.
 final List<TournamentModel> _dummyTournaments = [
   TournamentModel(
     id: 't1',

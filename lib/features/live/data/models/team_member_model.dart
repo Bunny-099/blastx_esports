@@ -1,9 +1,6 @@
-/// ============================================================
-/// TEAM MEMBER MODEL (tournament roster player)
-/// ============================================================
-/// Free Fire details (IGN / UID) are collected in the team flow;
-/// they are not part of the user account model.
-/// ============================================================
+// ============================================================
+// TEAM MEMBER MODEL (tournament roster player)
+// ============================================================
 
 enum TeamRole { captain, member }
 
@@ -36,17 +33,32 @@ class TeamMemberModel {
   bool get isCaptain => role == TeamRole.captain;
   bool get isSubstitute => rosterType == RosterType.substitute;
 
-  factory TeamMemberModel.fromJson(Map<String, dynamic> json) =>
-      TeamMemberModel(
-        userId: (json['userId'] ?? json['id'] ?? '') as String,
-        name: json['name'] as String? ?? '',
-        avatarUrl: json['avatarUrl'] as String? ?? '',
-        ign: json['ign'] as String? ?? '',
-        uid: json['uid'] as String? ?? '',
-        role: _enumFrom(TeamRole.values, json['role'], TeamRole.member),
-        rosterType:
-        _enumFrom(RosterType.values, json['rosterType'], RosterType.main),
-      );
+  factory TeamMemberModel.fromJson(Map<String, dynamic> json) {
+    final userMap = json['user'] is Map ? json['user'] as Map<String, dynamic> : null;
+    final gameProfile = userMap?['game_profile'] is Map
+        ? userMap!['game_profile'] as Map<String, dynamic>
+        : null;
+
+    final resolvedUserId = (json['user_id'] ?? json['userId'] ?? userMap?['id'] ?? json['id'] ?? '') as String;
+    final resolvedName = (userMap?['name'] ?? json['name'] ?? '') as String;
+    final resolvedAvatar = (userMap?['profile_pic'] ?? json['avatarUrl'] ?? json['profile_pic'] ?? '') as String;
+    final resolvedIgn = (gameProfile?['in_game_name'] ?? json['ign'] ?? json['in_game_name'] ?? '') as String;
+    final resolvedUid = (gameProfile?['in_game_uid'] ?? json['uid'] ?? json['in_game_uid'] ?? '') as String;
+
+    return TeamMemberModel(
+      userId: resolvedUserId,
+      name: resolvedName,
+      avatarUrl: resolvedAvatar,
+      ign: resolvedIgn,
+      uid: resolvedUid,
+      role: _enumFrom(TeamRole.values, json['role'], TeamRole.member),
+      rosterType: _enumFrom(
+        RosterType.values,
+        json['roster_type'] ?? json['rosterType'],
+        RosterType.main,
+      ),
+    );
+  }
 
   Map<String, dynamic> toJson() => {
     'userId': userId,
