@@ -248,11 +248,18 @@ class TeamLobbyScreen extends ConsumerWidget {
                 text: tournament == null
                     ? 'COMPLETE REGISTRATION'
                     : 'COMPLETE REGISTRATION • ${tournament.formattedEntryFee}',
-                onPressed: () {
-                  // TODO: hook into the existing tournament registration /
-                  // payment flow. Entry fee is paid once by the captain.
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                      content: Text('Registration & payment coming soon.')));
+                isLoading: s.isLoading,
+                onPressed: () async {
+                  final ok = await notifier.completeRegistration();
+                  if (ok && context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                            '🎉 Registration successful! Your roster is registered.'),
+                        backgroundColor: AppColors.success,
+                      ),
+                    );
+                  }
                 },
               ),
             if (!isCaptain && canEdit && team.isReady)

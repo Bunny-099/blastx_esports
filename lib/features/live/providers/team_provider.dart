@@ -62,6 +62,12 @@ class TeamRepository {
         ApiEndpoints.teamSubstitutes(teamId),
         data: {'accepting_substitutes': value, 'acceptingSubstitutes': value},
       ));
+
+  Future<dynamic> registerTournament(String tournamentId, String teamId) async =>
+      await _api.post(
+        ApiEndpoints.registerTournament(tournamentId),
+        data: {'team_id': teamId},
+      );
 }
 
 class _TeamException implements Exception {
@@ -233,6 +239,16 @@ class TeamNotifier extends FamilyNotifier<TeamState, String> {
     await _repo.leave(state.team!.id);
     state = state.copyWith(clearTeam: true);
   });
+
+  Future<bool> completeRegistration() => _guard(() async {
+        if (state.team == null) return;
+        final res = await _repo.registerTournament(_tid, state.team!.id);
+        if (res is Map && res['team'] != null) {
+          state = state.copyWith(team: _repo._team(res));
+        } else {
+          await refresh();
+        }
+      });
 }
 
 final teamProvider =
