@@ -75,6 +75,7 @@ class TournamentModel {
   final List<ScheduleStep> schedule;
   final List<String> rules;
   final List<String> announcements;
+  final List<BracketStageModel> stages;
   final String? streamUrl;
   final bool isRegistered;
   final int registeredCount;
@@ -109,6 +110,7 @@ class TournamentModel {
     this.schedule = const [],
     this.rules = const [],
     this.announcements = const [],
+    this.stages = const [],
     this.streamUrl,
     this.isRegistered = false,
     this.registeredCount = 0,
@@ -201,6 +203,7 @@ class TournamentModel {
               ? [(json['description'] as String)]
               : const []),
       announcements: (json['announcements'] as List<dynamic>?)?.cast<String>() ?? const [],
+      stages: parseList('stages', BracketStageModel.fromJson),
       streamUrl: json['streamUrl'] as String?,
       isRegistered: (json['is_registered'] as bool?) ?? false,
       registeredCount: (json['registered_count'] as num?)?.toInt() ?? 0,
@@ -237,11 +240,106 @@ class TournamentModel {
     'schedule': schedule.map((e) => e.toJson()).toList(),
     'rules': rules,
     'announcements': announcements,
+    'stages': stages.map((e) => e.toJson()).toList(),
     'streamUrl': streamUrl,
     'is_registered': isRegistered,
     'registered_count': registeredCount,
     'slots_left': slotsLeft,
   };
+
+  /// Fallback effective stages generator if stages list from API is empty
+  List<BracketStageModel> get effectiveStages {
+    if (stages.isNotEmpty) return stages;
+
+    // Build dynamic stages from tournament teams if API didn't supply 'stages'
+    final allTeams = teams.isNotEmpty
+        ? teams
+        : List.generate(
+            10,
+            (i) => TeamModel(
+              id: 'team_$i',
+              name: 'Team ${String.fromCharCode(65 + i)}',
+              logoUrl: '',
+              score: (10 - i) * 12 + 5,
+              status: i < 5 ? TeamStatus.qualified : TeamStatus.eliminated,
+            ),
+          );
+
+    final round1Teams = allTeams.map((t) {
+      final isElim = t.status == TeamStatus.eliminated || allTeams.indexOf(t) >= 5;
+      return BracketTeamModel(
+        id: t.id,
+        name: t.name,
+        logoUrl: t.logoUrl,
+        points: t.score > 0 ? t.score : (10 - allTeams.indexOf(t)) * 10,
+        kills: (allTeams.indexOf(t) + 1) * 3,
+        rank: allTeams.indexOf(t) + 1,
+        isEliminated: isElim,
+        isQualified: !isElim,
+      );
+    }).toList();
+
+    final semiTeams = round1Teams
+        .where((t) => t.isQualified)
+        .toList()
+        .asMap()
+        .entries
+        .map((e) {
+      final isElim = e.key >= 2;
+      return BracketTeamModel(
+        id: e.value.id,
+        name: e.value.name,
+        logoUrl: e.value.logoUrl,
+        points: e.value.points + 25,
+        kills: e.value.kills + 6,
+        rank: e.key + 1,
+        isEliminated: isElim,
+        isQualified: !isElim,
+      );
+    }).toList();
+
+    final finalTeams = semiTeams.where((t) => t.isQualified).toList().asMap().entries.map((e) {
+      final isWin = e.key == 0;
+      return BracketTeamModel(
+        id: e.value.id,
+        name: e.value.name,
+        logoUrl: e.value.logoUrl,
+        points: e.value.points + 40,
+        kills: e.value.kills + 10,
+        rank: e.key + 1,
+        isEliminated: !isWin,
+        isQualified: isWin,
+        isWinner: isWin,
+      );
+    }).toList();
+
+    return [
+      BracketStageModel(
+        stageId: 'stage_1',
+        stageName: 'Round 1 (Qualifiers)',
+        stageNumber: 1,
+        isCompleted: status != TournamentStatus.upcoming,
+        isCurrentStage: status == TournamentStatus.upcoming,
+        teams: round1Teams,
+      ),
+      BracketStageModel(
+        stageId: 'stage_2',
+        stageName: 'Semi Finals (Top 5)',
+        stageNumber: 2,
+        isCompleted: status == TournamentStatus.completed,
+        isCurrentStage: status == TournamentStatus.live,
+        teams: semiTeams,
+      ),
+      BracketStageModel(
+        stageId: 'stage_3',
+        stageName: 'Grand Finals',
+        stageNumber: 3,
+        isCompleted: status == TournamentStatus.completed,
+        isCurrentStage: false,
+        teams: finalTeams,
+      ),
+    ];
+  }
 }
 
 /// ------------------------------------------------------------
@@ -348,5 +446,98 @@ class MatchModel {
     'matchTime': matchTime.toIso8601String(),
     'status': status.name,
     'mapOrMode': mapOrMode,
+  };
+}
+
+/// ------------------------------------------------------------
+/// BRACKET / ROADMAP MODELS
+/// ------------------------------------------------------------
+
+class BracketTeamModel {
+  final String id;
+  final String name;
+  final String logoUrl;
+  final int points;
+  final int kills;
+  final int rank;
+  final bool isEliminated;
+  final bool isQualified;
+  final bool isWinner;
+
+  const BracketTeamModel({
+    required this.id,
+    required this.name,
+    this.logoUrl = '',
+    this.points = 0,
+    this.kills = 0,
+    this.rank = 0,
+    this.isEliminated = false,
+    this.isQualified = false,
+    this.isWinner = false,
+  });
+
+  factory BracketTeamModel.fromJson(Map<String, dynamic> json) => BracketTeamModel(
+    id: (json['id'] ?? json['team_id'] ?? '') as String,
+    name: (json['name'] ?? json['team_name'] ?? 'Team') as String,
+    logoUrl: (json['logo_url'] ?? json['logoUrl'] ?? '') as String,
+    points: (json['points'] ?? json['total_points'] as num?)?.toInt() ?? 0,
+    kills: (json['kills'] as num?)?.toInt() ?? 0,
+    rank: (json['rank'] as num?)?.toInt() ?? 0,
+    isEliminated: (json['is_eliminated'] ?? json['isEliminated'] as bool?) ?? false,
+    isQualified: (json['is_qualified'] ?? json['isQualified'] as bool?) ?? false,
+    isWinner: (json['is_winner'] ?? json['isWinner'] as bool?) ?? false,
+  );
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'name': name,
+    'logo_url': logoUrl,
+    'points': points,
+    'kills': kills,
+    'rank': rank,
+    'is_eliminated': isEliminated,
+    'is_qualified': isQualified,
+    'is_winner': isWinner,
+  };
+}
+
+class BracketStageModel {
+  final String stageId;
+  final String stageName; // e.g. "Round 1 (Qualifiers)", "Semi Finals", "Finals"
+  final int stageNumber;
+  final bool isCurrentStage;
+  final bool isCompleted;
+  final List<BracketTeamModel> teams;
+
+  const BracketStageModel({
+    required this.stageId,
+    required this.stageName,
+    required this.stageNumber,
+    this.isCurrentStage = false,
+    this.isCompleted = false,
+    this.teams = const [],
+  });
+
+  factory BracketStageModel.fromJson(Map<String, dynamic> json) {
+    return BracketStageModel(
+      stageId: (json['stage_id'] ?? json['id'] ?? '') as String,
+      stageName: (json['stage_name'] ?? json['name'] ?? '') as String,
+      stageNumber: (json['stage_number'] ?? json['number'] as num?)?.toInt() ?? 1,
+      isCurrentStage: (json['is_current'] ?? json['isCurrentStage'] as bool?) ?? false,
+      isCompleted: (json['is_completed'] ?? json['isCompleted'] as bool?) ?? false,
+      teams: (json['teams'] as List<dynamic>?)
+              ?.map((e) => BracketTeamModel.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'stage_id': stageId,
+    'stage_name': stageName,
+    'stage_number': stageNumber,
+    'is_current': isCurrentStage,
+    'is_completed': isCompleted,
+    'teams': teams.map((e) => e.toJson()).toList(),
   };
 }
