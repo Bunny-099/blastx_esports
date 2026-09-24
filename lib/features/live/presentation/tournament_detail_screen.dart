@@ -1,17 +1,17 @@
 import 'dart:ui';
-
-import 'package:blastix_esports/core/theme/app_colors.dart';
-import 'package:blastix_esports/core/theme/app_text_styles.dart';
-import 'package:blastix_esports/features/live/data/models/tournament_model.dart';
-import 'package:blastix_esports/features/live/providers/live_provider.dart';
-import 'package:blastix_esports/core/transitions/fire_page_route.dart';
-import 'package:blastix_esports/features/live/presentation/team/join_tournament_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:blastix_esports/core/theme/app_colors.dart';
+import 'package:blastix_esports/core/theme/app_text_styles.dart';
+import 'package:blastix_esports/core/transitions/fire_page_route.dart';
+import 'package:blastix_esports/features/live/data/models/tournament_model.dart';
+import 'package:blastix_esports/features/live/presentation/team/join_tournament_screen.dart';
+import 'package:blastix_esports/features/live/presentation/widgets/tournament_roadmap_widget.dart';
+import 'package:blastix_esports/features/live/providers/live_provider.dart';
 
 /// ============================================================
 /// TOURNAMENT DETAIL SCREEN — Command Center Edition
-/// Banner -> Quick stats -> Tabs (Overview | Matches | Teams | Rules)
+/// Banner -> Quick stats -> Tabs (Overview | Bracket | Matches | Teams | Rules)
 /// + sticky bottom CTA (Join / Watch Live / Results)
 /// ============================================================
 
@@ -27,7 +27,7 @@ class TournamentDetailScreen extends ConsumerStatefulWidget {
 class _TournamentDetailScreenState
     extends ConsumerState<TournamentDetailScreen> {
   int _tab = 0;
-  static const _tabs = ['Overview', 'Matches', 'Teams', 'Rules'];
+  static const _tabs = ['Overview', 'Bracket', 'Matches', 'Teams', 'Rules'];
 
   Color _accentColor(String hex) {
     try {
@@ -89,10 +89,12 @@ class _TournamentDetailScreenState
   Widget _tabBody(TournamentModel t, Color accent) {
     switch (_tab) {
       case 1:
-        return _MatchesTab(t: t, accent: accent);
+        return TournamentRoadmapWidget(tournament: t, accentColor: accent);
       case 2:
-        return _TeamsTab(t: t, accent: accent);
+        return _MatchesTab(t: t, accent: accent);
       case 3:
+        return _TeamsTab(t: t, accent: accent);
+      case 4:
         return _RulesTab(t: t, accent: accent);
       default:
         return _OverviewTab(t: t, accent: accent);
@@ -417,35 +419,37 @@ class _TabsDelegate extends SliverPersistentHeaderDelegate {
   Widget build(BuildContext context, double shrinkOffset, bool overlaps) {
     return Container(
       color: AppColors.background,
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-      child: Row(
-        children: List.generate(tabs.length, (i) {
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
+        itemCount: tabs.length,
+        itemBuilder: (context, i) {
           final active = i == selected;
-          return Expanded(
-            child: GestureDetector(
-              onTap: () => onSelect(i),
-              behavior: HitTestBehavior.opaque,
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 180),
-                margin: const EdgeInsets.only(right: 6),
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: active ? accent.withValues(alpha: 0.18) : Colors.transparent,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                      color: active ? accent : AppColors.border, width: 1),
-                ),
-                child: Text(
-                  tabs[i],
-                  style: AppTextStyles.caption.copyWith(
-                    color: active ? accent : AppColors.textSecondary,
-                    fontWeight: FontWeight.w700,
-                  ),
+          return GestureDetector(
+            onTap: () => onSelect(i),
+            behavior: HitTestBehavior.opaque,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
+              margin: const EdgeInsets.only(right: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: active ? accent.withValues(alpha: 0.18) : Colors.transparent,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                    color: active ? accent : AppColors.border, width: 1),
+              ),
+              child: Text(
+                tabs[i],
+                style: AppTextStyles.caption.copyWith(
+                  color: active ? accent : AppColors.textSecondary,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
             ),
           );
-        }),
+        },
       ),
     );
   }
