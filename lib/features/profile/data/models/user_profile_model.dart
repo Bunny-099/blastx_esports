@@ -23,18 +23,26 @@ class UserProfileModel {
 
   factory UserProfileModel.fromJson(Map<String, dynamic> json) {
     return UserProfileModel(
-      id: json['id'] as String? ?? '',
-      name: json['name'] as String? ?? '',
+      id: json['id']?.toString() ?? json['_id']?.toString() ?? '',
+      name: json['name'] as String? ?? json['username'] as String? ?? '',
       email: json['email'] as String? ?? '',
-      profilePic: json['profile_pic'] as String?,
+      profilePic: json['profile_pic'] as String? ??
+          json['profilePic'] as String? ??
+          json['avatar'] as String?,
       role: json['role'] as String? ?? 'USER',
-      isActive: json['is_active'] as bool? ?? true,
+      isActive: json['is_active'] as bool? ?? json['isActive'] as bool? ?? true,
       createdAt: json['created_at'] != null
-          ? DateTime.tryParse(json['created_at'] as String)
-          : null,
+          ? DateTime.tryParse(json['created_at'].toString())
+          : (json['createdAt'] != null
+              ? DateTime.tryParse(json['createdAt'].toString())
+              : null),
       gameProfile: json['game_profile'] != null
-          ? GameProfileModel.fromJson(json['game_profile'] as Map<String, dynamic>)
-          : null,
+          ? GameProfileModel.fromJson(
+              Map<String, dynamic>.from(json['game_profile'] as Map))
+          : (json['gameProfile'] != null
+              ? GameProfileModel.fromJson(
+                  Map<String, dynamic>.from(json['gameProfile'] as Map))
+              : null),
     );
   }
 

@@ -15,11 +15,11 @@ class GameProfileModel {
 
   factory GameProfileModel.fromJson(Map<String, dynamic> json) {
     return GameProfileModel(
-      id: json['id'] as String? ?? '',
-      gameSlug: json['game_slug'] as String? ?? 'free_fire',
-      gameName: json['game_name'] as String? ?? 'Free Fire',
-      inGameUid: (json['in_game_uid'] ?? json['uid'] ?? '') as String,
-      inGameName: (json['in_game_name'] ?? json['ign'] ?? '') as String,
+      id: json['id']?.toString() ?? json['_id']?.toString() ?? '',
+      gameSlug: json['game_slug'] as String? ?? json['gameSlug'] as String? ?? 'free_fire',
+      gameName: json['game_name'] as String? ?? json['gameName'] as String? ?? 'Free Fire',
+      inGameUid: (json['in_game_uid'] ?? json['inGameUid'] ?? json['uid'] ?? '')?.toString() ?? '',
+      inGameName: (json['in_game_name'] ?? json['inGameName'] ?? json['ign'] ?? '')?.toString() ?? '',
     );
   }
 
