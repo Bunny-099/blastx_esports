@@ -9,19 +9,14 @@ import '../../../core/theme/app_colors.dart';
 import '../../settings/presentation/settings_screen.dart';
 import '../providers/profile_provider.dart';
 
-/// Profile screen — "Hero Profile" concept (01)
-/// Hero banner + neon avatar ring + level/XP bar + stats + actions.
+/// Profile screen — "Hero Profile" concept (01) — Gamified redesign
+/// Hero banner + neon avatar ring + editable tagline + stats + actions.
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
 
   // ---- Static player data (replace with provider data when available) ----
   static const String _username = 'kushal';
-  static const String _handle = '@kushal';
   static const String _playerId = '529381047';
-  static const String _quote = 'Discipline creates champions.';
-  static const int _level = 12;
-  static const int _xp = 320;
-  static const int _xpMax = 500;
 
   // ---------------------------------------------------------------------
   // Image picking (logic unchanged)
@@ -236,7 +231,7 @@ class ProfileScreen extends ConsumerWidget {
             ),
 
             // ------------------------------------------------------------
-            // 2. NAME / HANDLE beside avatar
+            // 2. NAME + EDITABLE TAGLINE beside avatar
             // ------------------------------------------------------------
             Padding(
               padding: const EdgeInsets.fromLTRB(20 + 116 + 14, 12, 20, 0),
@@ -245,49 +240,20 @@ class ProfileScreen extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: [
-                        Flexible(
-                          child: Text(
-                            _username,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: GoogleFonts.poppins(
-                              fontSize: 26,
-                              fontWeight: FontWeight.w800,
-                              color: AppColors.textPrimary,
-                              letterSpacing: 0.3,
-                              height: 1.1,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        const Icon(Icons.verified_rounded,
-                            color: AppColors.primaryNeon, size: 20),
-                      ],
+                    Text(
+                      _username,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.poppins(
+                        fontSize: 26,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.textPrimary,
+                        letterSpacing: 0.3,
+                        height: 1.1,
+                      ),
                     ),
-                    const SizedBox(height: 4),
-                    Wrap(
-                      spacing: 8,
-                      children: [
-                        Text(
-                          _handle,
-                          style: GoogleFonts.poppins(
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.primaryNeon,
-                          ),
-                        ),
-                        Text(
-                          '#BlastixFamily',
-                          style: GoogleFonts.poppins(
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
-                      ],
-                    ),
+                    const SizedBox(height: 6),
+                    const _EditableTagline(initialText: ''),
                   ],
                 ),
               ),
@@ -296,37 +262,7 @@ class ProfileScreen extends ConsumerWidget {
             const SizedBox(height: 22),
 
             // ------------------------------------------------------------
-            // 3. QUOTE
-            // ------------------------------------------------------------
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: _buildQuoteCard(),
-            ),
-
-            const SizedBox(height: 14),
-
-            // ------------------------------------------------------------
-            // 4. INFO ROW (location / member since)
-            // ------------------------------------------------------------
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: _buildInfoRow(),
-            ),
-
-            const SizedBox(height: 14),
-
-            // ------------------------------------------------------------
-            // 5. LEVEL + XP
-            // ------------------------------------------------------------
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: _buildLevelBar(),
-            ),
-
-            const SizedBox(height: 16),
-
-            // ------------------------------------------------------------
-            // 6. STATS
+            // 3. STATS
             // ------------------------------------------------------------
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -336,9 +272,7 @@ class ProfileScreen extends ConsumerWidget {
                   const SizedBox(width: 10),
                   Expanded(child: _buildStatCard('Wins', '856', Icons.emoji_events_rounded, AppColors.glowSoft)),
                   const SizedBox(width: 10),
-                  Expanded(child: _buildStatCard('K/D', '2.45', Icons.query_stats_rounded, AppColors.glowLight)),
-                  const SizedBox(width: 10),
-                  Expanded(child: _buildStatCard('Global', '#452', Icons.public_rounded, AppColors.primaryNeon)),
+                  Expanded(child: _buildStatCard('Global', '#452', Icons.public_rounded, AppColors.glowLight)),
                 ],
               ),
             ),
@@ -346,7 +280,7 @@ class ProfileScreen extends ConsumerWidget {
             const SizedBox(height: 18),
 
             // ------------------------------------------------------------
-            // 7. ACTION BUTTONS
+            // 4. ACTION BUTTONS
             // ------------------------------------------------------------
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -381,7 +315,7 @@ class ProfileScreen extends ConsumerWidget {
             const SizedBox(height: 22),
 
             // ------------------------------------------------------------
-            // 8. DETAILS CARD
+            // 5. DETAILS CARD
             // ------------------------------------------------------------
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -442,6 +376,8 @@ class ProfileScreen extends ConsumerWidget {
             ),
             // Diagonal neon streaks
             CustomPaint(painter: _StreaksPainter(AppColors.primaryNeon)),
+            // Hex grid overlay for a gamer feel
+            CustomPaint(painter: _HexGridPainter(AppColors.primaryNeon)),
             // Big faded emblem
             Positioned(
               right: -30,
@@ -606,132 +542,21 @@ class ProfileScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildQuoteCard() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceNavy.withValues(alpha: 0.7),
-        borderRadius: BorderRadius.circular(16),
-        border: Border(
-          left: BorderSide(color: AppColors.primaryNeon, width: 3),
-        ),
-      ),
-      child: Text(
-        '“$_quote”',
-        style: GoogleFonts.poppins(
-          fontSize: 14,
-          fontStyle: FontStyle.italic,
-          fontWeight: FontWeight.w500,
-          color: AppColors.textPrimary,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildInfoRow() {
-    Widget item(IconData icon, String text) {
-      return Flexible(
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 16, color: AppColors.primaryNeon),
-            const SizedBox(width: 6),
-            Flexible(
-              child: Text(
-                text,
-                overflow: TextOverflow.ellipsis,
-                style: GoogleFonts.poppins(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.textSecondary,
-                ),
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: _cardDecoration(radius: 16),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          item(Icons.location_on_outlined, 'India'),
-          item(Icons.place_outlined, 'Bangalore, KA'),
-          item(Icons.calendar_month_outlined, 'Since Jan 2024'),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildLevelBar() {
-    final progress = (_xp / _xpMax).clamp(0.0, 1.0);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: _cardDecoration(radius: 16),
-      child: Row(
-        children: [
-          Text(
-            'Lv. $_level',
-            style: GoogleFonts.poppins(
-              fontSize: 17,
-              fontWeight: FontWeight.w800,
-              color: AppColors.primaryNeon,
-            ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Container(
-              height: 10,
-              decoration: BoxDecoration(
-                color: AppColors.surfaceNavy,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: FractionallySizedBox(
-                alignment: Alignment.centerLeft,
-                widthFactor: progress,
-                child: Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(10),
-                    gradient: const LinearGradient(
-                      colors: [AppColors.glowSoft, AppColors.primaryNeon],
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.primaryNeon.withValues(alpha: 0.6),
-                        blurRadius: 8,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 14),
-          Text(
-            '$_xp / $_xpMax XP',
-            style: GoogleFonts.poppins(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: AppColors.textSecondary,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildStatCard(String label, String value, IconData icon, Color color) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 4),
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 4),
       decoration: _cardDecoration(radius: 18),
       child: Column(
         children: [
-          Icon(icon, color: color, size: 20),
-          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: color.withValues(alpha: 0.12),
+            ),
+            child: Icon(icon, color: color, size: 18),
+          ),
+          const SizedBox(height: 10),
           FittedBox(
             fit: BoxFit.scaleDown,
             child: Text(
@@ -873,6 +698,113 @@ class ProfileScreen extends ConsumerWidget {
   }
 }
 
+/// Inline-editable tagline shown under the username.
+/// Tap the text to edit it; tap away or hit enter to save.
+class _EditableTagline extends StatefulWidget {
+  final String initialText;
+  const _EditableTagline({required this.initialText});
+
+  @override
+  State<_EditableTagline> createState() => _EditableTaglineState();
+}
+
+class _EditableTaglineState extends State<_EditableTagline> {
+  late final TextEditingController _controller;
+  late final FocusNode _focusNode;
+  bool _isEditing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.initialText);
+    _focusNode = FocusNode();
+    _focusNode.addListener(() {
+      if (!_focusNode.hasFocus && _isEditing) {
+        setState(() => _isEditing = false);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final baseStyle = GoogleFonts.poppins(
+      fontSize: 12.5,
+      fontWeight: FontWeight.w600,
+      color: AppColors.primaryNeon,
+    );
+
+    if (_isEditing) {
+      return SizedBox(
+        width: 220,
+        child: TextField(
+          controller: _controller,
+          focusNode: _focusNode,
+          autofocus: true,
+          maxLines: 1,
+          maxLength: 40,
+          style: baseStyle,
+          cursorColor: AppColors.primaryNeon,
+          decoration: InputDecoration(
+            isDense: true,
+            counterText: '',
+            hintText: 'Type your own line...',
+            hintStyle: baseStyle.copyWith(color: AppColors.textMuted),
+            contentPadding: EdgeInsets.zero,
+            enabledBorder: UnderlineInputBorder(
+              borderSide: BorderSide(color: AppColors.primaryNeon.withValues(alpha: 0.4)),
+            ),
+            focusedBorder: const UnderlineInputBorder(
+              borderSide: BorderSide(color: AppColors.primaryNeon),
+            ),
+          ),
+          onSubmitted: (_) {
+            _focusNode.unfocus();
+            setState(() => _isEditing = false);
+          },
+        ),
+      );
+    }
+
+    final hasText = _controller.text.trim().isNotEmpty;
+
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => setState(() => _isEditing = true),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Flexible(
+            child: Text(
+              hasText ? _controller.text : 'Add your tagline',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: hasText
+                  ? baseStyle
+                  : baseStyle.copyWith(
+                color: AppColors.textMuted,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ),
+          const SizedBox(width: 5),
+          Icon(
+            Icons.edit_rounded,
+            size: 12,
+            color: AppColors.primaryNeon.withValues(alpha: 0.7),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 /// Diagonal neon streaks for the hero banner background.
 class _StreaksPainter extends CustomPainter {
   final Color color;
@@ -898,4 +830,53 @@ class _StreaksPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _StreaksPainter oldDelegate) => oldDelegate.color != color;
+}
+
+/// Faint hex-grid overlay for an extra gamified texture on the banner.
+class _HexGridPainter extends CustomPainter {
+  final Color color;
+  _HexGridPainter(this.color);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color.withValues(alpha: 0.05)
+      ..strokeWidth = 1
+      ..style = PaintingStyle.stroke;
+
+    const double hexSize = 22;
+    final double hexWidth = math.sqrt(3) * hexSize;
+    final double hexHeight = 2 * hexSize;
+    final double vertSpacing = hexHeight * 0.75;
+
+    for (double row = -1; row * vertSpacing < size.height + hexHeight; row++) {
+      final bool offsetRow = row.toInt() % 2 != 0;
+      for (double col = -1; col * hexWidth < size.width + hexWidth; col++) {
+        final double cx = col * hexWidth + (offsetRow ? hexWidth / 2 : 0);
+        final double cy = row * vertSpacing;
+        _drawHex(canvas, paint, Offset(cx, cy), hexSize);
+      }
+    }
+  }
+
+  void _drawHex(Canvas canvas, Paint paint, Offset center, double size) {
+    final path = Path();
+    for (int i = 0; i < 6; i++) {
+      final angle = (math.pi / 3) * i - math.pi / 6;
+      final point = Offset(
+        center.dx + size * math.cos(angle),
+        center.dy + size * math.sin(angle),
+      );
+      if (i == 0) {
+        path.moveTo(point.dx, point.dy);
+      } else {
+        path.lineTo(point.dx, point.dy);
+      }
+    }
+    path.close();
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _HexGridPainter oldDelegate) => oldDelegate.color != color;
 }
