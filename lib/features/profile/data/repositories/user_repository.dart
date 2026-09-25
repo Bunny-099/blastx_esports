@@ -19,7 +19,16 @@ class UserRepository {
 
   UserRepository(this._apiService);
 
-  Future<UserProfileModel> getUserProfile() => _apiService.getUserProfile();
+  Future<UserProfileModel> getUserProfile() async {
+    var user = await _apiService.getUserProfile();
+    if (user.gameProfile == null) {
+      final gameProfile = await _apiService.getGameProfile();
+      if (gameProfile != null) {
+        user = user.copyWith(gameProfile: gameProfile);
+      }
+    }
+    return user;
+  }
 
   Future<UserProfileModel> updateProfile({String? name, String? profilePic}) =>
       _apiService.updateProfile(name: name, profilePic: profilePic);

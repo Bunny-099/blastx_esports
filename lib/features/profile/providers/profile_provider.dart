@@ -3,24 +3,34 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../splash/providers/splash_providers.dart';
+import '../data/models/user_profile_model.dart';
+import '../data/repositories/user_repository.dart';
 
 class ProfileState {
-  final String? imagePath;
+  final UserProfileModel? user;
+  final String? localImagePath;
   final bool isLoading;
+  final String? errorMessage;
 
   const ProfileState({
-    this.imagePath,
+    this.user,
+    this.localImagePath,
     this.isLoading = false,
+    this.errorMessage,
   });
 
   ProfileState copyWith({
-    String? imagePath,
+    UserProfileModel? user,
+    String? localImagePath,
     bool? isLoading,
-    bool clearImage = false,
+    String? errorMessage,
+    bool clearLocalImage = false,
   }) {
     return ProfileState(
-      imagePath: clearImage ? null : (imagePath ?? this.imagePath),
+      user: user ?? this.user,
+      localImagePath: clearLocalImage ? null : (localImagePath ?? this.localImagePath),
       isLoading: isLoading ?? this.isLoading,
+      errorMessage: errorMessage,
     );
   }
 }
@@ -35,13 +45,54 @@ class ProfileNotifier extends Notifier<ProfileState> {
   ProfileState build() {
     final storage = ref.watch(storageServiceProvider);
     final savedPath = storage.getString(_profileImageKey);
+    String? initialLocalPath;
     if (savedPath != null && savedPath.isNotEmpty) {
       final file = File(savedPath);
       if (file.existsSync()) {
-        return ProfileState(imagePath: savedPath);
+        initialLocalPath = savedPath;
       }
     }
-    return const ProfileState();
+
+    // Load profile from API on initial build
+    Future.microtask(() => loadProfile());
+
+    return ProfileState(
+      localImagePath: initialLocalPath,
+      isLoading: true,
+    );
+  }
+
+  /// Load user profile from Backend API
+  Future<void> loadProfile() async {
+    state = state.copyWith(isLoading: true, errorMessage: null);
+    try {
+      final repo = ref.read(userRepositoryProvider);
+      final user = await repo.getUserProfile();
+      state = state.copyWith(
+        user: user,
+        isLoading: false,
+      );
+    } catch (e, stackTrace) {
+      debugPrint('ProfileNotifier loadProfile error: $e');
+      debugPrint(stackTrace.toString());
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: 'Failed to load profile. Tap to retry.',
+      );
+    }
+  }
+
+  /// Update user name / tagline on API
+  Future<bool> updateName(String newName) async {
+    try {
+      final repo = ref.read(userRepositoryProvider);
+      final updatedUser = await repo.updateProfile(name: newName);
+      state = state.copyWith(user: updatedUser);
+      return true;
+    } catch (e) {
+      debugPrint('ProfileNotifier updateName error: $e');
+      return false;
+    }
   }
 
   /// Returns null on success or cancellation, or error message String on failure.
@@ -58,7 +109,21 @@ class ProfileNotifier extends Notifier<ProfileState> {
       if (pickedFile != null) {
         final storage = ref.read(storageServiceProvider);
         await storage.saveString(_profileImageKey, pickedFile.path);
-        state = ProfileState(imagePath: pickedFile.path, isLoading: false);
+
+        try {
+          final repo = ref.read(userRepositoryProvider);
+          final updatedUser = await repo.updateProfile(profilePic: pickedFile.path);
+          state = state.copyWith(
+            user: updatedUser,
+            localImagePath: pickedFile.path,
+            isLoading: false,
+          );
+        } catch (_) {
+          state = state.copyWith(
+            localImagePath: pickedFile.path,
+            isLoading: false,
+          );
+        }
         return null;
       } else {
         state = state.copyWith(isLoading: false);
@@ -75,6 +140,6 @@ class ProfileNotifier extends Notifier<ProfileState> {
   Future<void> removeImage() async {
     final storage = ref.read(storageServiceProvider);
     await storage.saveString(_profileImageKey, '');
-    state = const ProfileState(imagePath: null, isLoading: false);
+    state = state.copyWith(clearLocalImage: true, isLoading: false);
   }
 }
