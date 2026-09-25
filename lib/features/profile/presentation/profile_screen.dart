@@ -9,17 +9,12 @@ import '../../../core/theme/app_colors.dart';
 import '../../settings/presentation/settings_screen.dart';
 import '../providers/profile_provider.dart';
 
-/// Profile screen — "Hero Profile" concept (01) — Gamified redesign
-/// Hero banner + neon avatar ring + editable tagline + stats + actions.
+/// Profile screen — "Hero Profile" concept — Real-time API connected
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
 
-  // ---- Static player data (replace with provider data when available) ----
-  static const String _username = 'kushal';
-  static const String _playerId = '529381047';
-
   // ---------------------------------------------------------------------
-  // Image picking (logic unchanged)
+  // Image picking
   // ---------------------------------------------------------------------
   void _handleImagePick(BuildContext context, WidgetRef ref, ImageSource source) async {
     final error = await ref.read(profileProvider.notifier).pickImage(source);
@@ -59,8 +54,10 @@ class ProfileScreen extends ConsumerWidget {
 
   void _showImagePickerModal(BuildContext context, WidgetRef ref) {
     final profileState = ref.read(profileProvider);
-    final hasImage = profileState.imagePath != null &&
-        File(profileState.imagePath!).existsSync();
+    final localPath = profileState.localImagePath;
+    final userPic = profileState.user?.profilePic;
+    final hasImage = (localPath != null && File(localPath).existsSync()) ||
+        (userPic != null && userPic.isNotEmpty);
 
     showModalBottomSheet(
       context: context,
@@ -182,161 +179,219 @@ class ProfileScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final profileState = ref.watch(profileProvider);
+    final user = profileState.user;
     final topPad = MediaQuery.of(context).padding.top;
 
-    final hasImage = profileState.imagePath != null &&
-        File(profileState.imagePath!).existsSync();
+    final username = (user?.name != null && user!.name.isNotEmpty)
+        ? user.name
+        : 'Gamer';
+    final playerId = (user?.gameProfile?.inGameUid != null && user!.gameProfile!.inGameUid.isNotEmpty)
+        ? user.gameProfile!.inGameUid
+        : (user?.id != null && user!.id.isNotEmpty ? user.id : 'N/A');
+    final userEmail = user?.email ?? '';
+    final userRole = user?.role ?? 'Player';
+    final gameName = user?.gameProfile?.gameName ?? 'Free Fire';
 
     const double heroHeight = 250;
     const double avatarOverhang = 58;
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: SingleChildScrollView(
-        physics: const BouncingScrollPhysics(),
-        child: Column(
-          children: [
-            // ------------------------------------------------------------
-            // 1. HERO BANNER
-            // ------------------------------------------------------------
-            Stack(
-              clipBehavior: Clip.none,
-              children: [
-                _buildHeroBanner(heroHeight),
-
-                // Settings (glass button)
-                Positioned(
-                  top: topPad + 10,
-                  right: 16,
-                  child: _glassIconButton(
-                    icon: Icons.settings_rounded,
-                    onTap: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(builder: (context) => const SettingsScreen()),
-                      );
-                    },
-                  ),
-                ),
-
-                // Avatar (overlaps banner)
-                Positioned(
-                  left: 20,
-                  bottom: -avatarOverhang,
-                  child: GestureDetector(
-                    onTap: () => _showImagePickerModal(context, ref),
-                    child: _buildAvatar(hasImage, profileState.imagePath),
-                  ),
-                ),
-              ],
-            ),
-
-            // ------------------------------------------------------------
-            // 2. NAME + EDITABLE TAGLINE beside avatar
-            // ------------------------------------------------------------
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20 + 116 + 14, 12, 20, 0),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _username,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.poppins(
-                        fontSize: 26,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.textPrimary,
-                        letterSpacing: 0.3,
-                        height: 1.1,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    const _EditableTagline(initialText: ''),
-                  ],
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 22),
-
-            // ------------------------------------------------------------
-            // 3. STATS
-            // ------------------------------------------------------------
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Row(
+      body: RefreshIndicator(
+        color: AppColors.primaryNeon,
+        backgroundColor: AppColors.surfaceElevated,
+        onRefresh: () => ref.read(profileProvider.notifier).loadProfile(),
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+          child: Column(
+            children: [
+              // ------------------------------------------------------------
+              // 1. HERO BANNER
+              // ------------------------------------------------------------
+              Stack(
+                clipBehavior: Clip.none,
                 children: [
-                  Expanded(child: _buildStatCard('Matches', '1,240', Icons.sports_esports_rounded, AppColors.primaryNeon)),
-                  const SizedBox(width: 10),
-                  Expanded(child: _buildStatCard('Wins', '856', Icons.emoji_events_rounded, AppColors.glowSoft)),
-                  const SizedBox(width: 10),
-                  Expanded(child: _buildStatCard('Global', '#452', Icons.public_rounded, AppColors.glowLight)),
-                ],
-              ),
-            ),
+                  _buildHeroBanner(heroHeight),
 
-            const SizedBox(height: 18),
-
-            // ------------------------------------------------------------
-            // 4. ACTION BUTTONS
-            // ------------------------------------------------------------
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: _buildOutlineButton(
-                      label: 'Edit Profile',
-                      icon: Icons.edit_rounded,
-                      onTap: () => _showImagePickerModal(context, ref),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _buildNeonButton(
-                      label: 'Share Profile',
-                      icon: Icons.ios_share_rounded,
-                      onTap: () async {
-                        await Clipboard.setData(
-                          const ClipboardData(text: 'Blastix Arena • $_username • ID: $_playerId'),
+                  // Settings (glass button)
+                  Positioned(
+                    top: topPad + 10,
+                    right: 16,
+                    child: _glassIconButton(
+                      icon: Icons.settings_rounded,
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(builder: (context) => const SettingsScreen()),
                         );
-                        if (context.mounted) {
-                          _showSnack(context, 'Profile link copied to clipboard');
-                        }
                       },
                     ),
                   ),
+
+                  // Avatar (overlaps banner)
+                  Positioned(
+                    left: 20,
+                    bottom: -avatarOverhang,
+                    child: GestureDetector(
+                      onTap: () => _showImagePickerModal(context, ref),
+                      child: _buildAvatar(profileState),
+                    ),
+                  ),
                 ],
               ),
-            ),
 
-            const SizedBox(height: 22),
+              // ------------------------------------------------------------
+              // 2. NAME + EDITABLE TAGLINE beside avatar
+              // ------------------------------------------------------------
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20 + 116 + 14, 12, 20, 0),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        username,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.poppins(
+                          fontSize: 24,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.textPrimary,
+                          letterSpacing: 0.3,
+                          height: 1.1,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      _EditableTagline(
+                        initialText: username,
+                        onSave: (newName) async {
+                          if (newName.isNotEmpty) {
+                            await ref.read(profileProvider.notifier).updateName(newName);
+                          }
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
 
-            // ------------------------------------------------------------
-            // 5. DETAILS CARD
-            // ------------------------------------------------------------
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(20),
-                decoration: _cardDecoration(radius: 24),
-                child: Column(
+              const SizedBox(height: 22),
+
+              // Loading / Error Banner
+              if (profileState.isLoading && user == null)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 24),
+                  child: CircularProgressIndicator(color: AppColors.primaryNeon),
+                )
+              else if (profileState.errorMessage != null && user == null)
+                Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceElevated,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.redAccent.withValues(alpha: 0.4)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.error_outline_rounded, color: Colors.redAccent),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            profileState.errorMessage!,
+                            style: GoogleFonts.poppins(color: AppColors.textPrimary, fontSize: 12),
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () => ref.read(profileProvider.notifier).loadProfile(),
+                          child: Text(
+                            'Retry',
+                            style: GoogleFonts.poppins(color: AppColors.primaryNeon, fontWeight: FontWeight.bold),
+                          ),
+                        )
+                      ],
+                    ),
+                  ),
+                ),
+
+              // ------------------------------------------------------------
+              // 3. STATS
+              // ------------------------------------------------------------
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Row(
                   children: [
-                    _buildDetailRow('Tournaments Won', '12', Icons.workspace_premium_rounded),
-                    const Divider(height: 30, color: AppColors.surfaceNavy),
-                    _buildDetailRow('Rank', 'Elite', Icons.stars_rounded),
-                    const Divider(height: 30, color: AppColors.surfaceNavy),
-                    _buildDetailRow('Player ID', _playerId, Icons.badge_rounded),
+                    Expanded(child: _buildStatCard('Game', gameName, Icons.sports_esports_rounded, AppColors.primaryNeon)),
+                    const SizedBox(width: 10),
+                    Expanded(child: _buildStatCard('Role', userRole, Icons.emoji_events_rounded, AppColors.glowSoft)),
+                    const SizedBox(width: 10),
+                    Expanded(child: _buildStatCard('Status', user?.isActive == true ? 'Active' : 'Inactive', Icons.verified_user_rounded, AppColors.glowLight)),
                   ],
                 ),
               ),
-            ),
 
-            const SizedBox(height: 40),
-          ],
+              const SizedBox(height: 18),
+
+              // ------------------------------------------------------------
+              // 4. ACTION BUTTONS
+              // ------------------------------------------------------------
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: _buildOutlineButton(
+                        label: 'Edit Photo',
+                        icon: Icons.edit_rounded,
+                        onTap: () => _showImagePickerModal(context, ref),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _buildNeonButton(
+                        label: 'Share Profile',
+                        icon: Icons.ios_share_rounded,
+                        onTap: () async {
+                          await Clipboard.setData(
+                            ClipboardData(text: 'Blastix Arena • $username • ID: $playerId'),
+                          );
+                          if (context.mounted) {
+                            _showSnack(context, 'Profile details copied to clipboard!');
+                          }
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 22),
+
+              // ------------------------------------------------------------
+              // 5. DETAILS CARD
+              // ------------------------------------------------------------
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(20),
+                  decoration: _cardDecoration(radius: 24),
+                  child: Column(
+                    children: [
+                      _buildDetailRow('Email', userEmail.isNotEmpty ? userEmail : 'Not set', Icons.email_rounded),
+                      const Divider(height: 30, color: AppColors.surfaceNavy),
+                      _buildDetailRow('In-Game Name', user?.gameProfile?.inGameName ?? 'N/A', Icons.sports_esports_rounded),
+                      const Divider(height: 30, color: AppColors.surfaceNavy),
+                      _buildDetailRow('Player UID / ID', playerId, Icons.badge_rounded),
+                    ],
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 40),
+            ],
+          ),
         ),
       ),
     );
@@ -462,7 +517,21 @@ class ProfileScreen extends ConsumerWidget {
   // ---------------------------------------------------------------------
   // Avatar with neon ring
   // ---------------------------------------------------------------------
-  Widget _buildAvatar(bool hasImage, String? imagePath) {
+  Widget _buildAvatar(ProfileState profileState) {
+    final localPath = profileState.localImagePath;
+    final userPic = profileState.user?.profilePic;
+
+    ImageProvider? imageProvider;
+    if (localPath != null && File(localPath).existsSync()) {
+      imageProvider = FileImage(File(localPath));
+    } else if (userPic != null && userPic.isNotEmpty) {
+      if (userPic.startsWith('http://') || userPic.startsWith('https://')) {
+        imageProvider = NetworkImage(userPic);
+      } else if (File(userPic).existsSync()) {
+        imageProvider = FileImage(File(userPic));
+      }
+    }
+
     return Stack(
       children: [
         Container(
@@ -494,8 +563,8 @@ class ProfileScreen extends ConsumerWidget {
             child: CircleAvatar(
               radius: 50,
               backgroundColor: AppColors.surfaceNavy,
-              backgroundImage: hasImage ? FileImage(File(imagePath!)) : null,
-              child: !hasImage
+              backgroundImage: imageProvider,
+              child: imageProvider == null
                   ? const Icon(Icons.person, size: 64, color: AppColors.textMuted)
                   : null,
             ),
@@ -562,7 +631,7 @@ class ProfileScreen extends ConsumerWidget {
             child: Text(
               value,
               style: GoogleFonts.poppins(
-                fontSize: 17,
+                fontSize: 15,
                 fontWeight: FontWeight.w800,
                 color: AppColors.textPrimary,
               ),
@@ -679,18 +748,22 @@ class ProfileScreen extends ConsumerWidget {
         Text(
           label,
           style: GoogleFonts.poppins(
-            fontSize: 15,
+            fontSize: 14,
             fontWeight: FontWeight.w600,
             color: AppColors.textPrimary,
           ),
         ),
         const Spacer(),
-        Text(
-          value,
-          style: GoogleFonts.poppins(
-            fontSize: 15,
-            fontWeight: FontWeight.w700,
-            color: AppColors.primaryNeon,
+        Flexible(
+          child: Text(
+            value,
+            textAlign: TextAlign.end,
+            overflow: TextOverflow.ellipsis,
+            style: GoogleFonts.poppins(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: AppColors.primaryNeon,
+            ),
           ),
         ),
       ],
@@ -698,11 +771,12 @@ class ProfileScreen extends ConsumerWidget {
   }
 }
 
-/// Inline-editable tagline shown under the username.
+/// Inline-editable tagline/name shown under the avatar.
 /// Tap the text to edit it; tap away or hit enter to save.
 class _EditableTagline extends StatefulWidget {
   final String initialText;
-  const _EditableTagline({required this.initialText});
+  final ValueChanged<String>? onSave;
+  const _EditableTagline({required this.initialText, this.onSave});
 
   @override
   State<_EditableTagline> createState() => _EditableTaglineState();
@@ -720,9 +794,24 @@ class _EditableTaglineState extends State<_EditableTagline> {
     _focusNode = FocusNode();
     _focusNode.addListener(() {
       if (!_focusNode.hasFocus && _isEditing) {
-        setState(() => _isEditing = false);
+        _save();
       }
     });
+  }
+
+  @override
+  void didUpdateWidget(covariant _EditableTagline oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!_isEditing && widget.initialText != oldWidget.initialText) {
+      _controller.text = widget.initialText;
+    }
+  }
+
+  void _save() {
+    setState(() => _isEditing = false);
+    if (widget.onSave != null) {
+      widget.onSave!(_controller.text.trim());
+    }
   }
 
   @override
@@ -754,7 +843,7 @@ class _EditableTaglineState extends State<_EditableTagline> {
           decoration: InputDecoration(
             isDense: true,
             counterText: '',
-            hintText: 'Type your own line...',
+            hintText: 'Type your name...',
             hintStyle: baseStyle.copyWith(color: AppColors.textMuted),
             contentPadding: EdgeInsets.zero,
             enabledBorder: UnderlineInputBorder(
@@ -766,7 +855,7 @@ class _EditableTaglineState extends State<_EditableTagline> {
           ),
           onSubmitted: (_) {
             _focusNode.unfocus();
-            setState(() => _isEditing = false);
+            _save();
           },
         ),
       );
@@ -782,15 +871,15 @@ class _EditableTaglineState extends State<_EditableTagline> {
         children: [
           Flexible(
             child: Text(
-              hasText ? _controller.text : 'Add your tagline',
+              hasText ? _controller.text : 'Edit name',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: hasText
                   ? baseStyle
                   : baseStyle.copyWith(
-                color: AppColors.textMuted,
-                fontStyle: FontStyle.italic,
-              ),
+                      color: AppColors.textMuted,
+                      fontStyle: FontStyle.italic,
+                    ),
             ),
           ),
           const SizedBox(width: 5),
