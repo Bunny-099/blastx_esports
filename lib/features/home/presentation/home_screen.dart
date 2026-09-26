@@ -79,7 +79,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final banners = ref.watch(homeBannersProvider);
     final announcements = ref.watch(homeAnnouncementsProvider);
     final notices = ref.watch(homeNoticesProvider);
-    final userStats = ref.watch(userHomeStatsProvider);
     final tournaments = ref.watch(filteredOfficialTournamentsProvider);
 
     return Scaffold(
@@ -100,7 +99,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 SliverToBoxAdapter(
                   child: _HeaderBar(
                     username: widget.username,
-                    userStats: userStats,
                   ),
                 ),
 
@@ -364,88 +362,39 @@ class _AmbientBackground extends StatelessWidget {
 }
 
 /// ------------------------------------------------------------
-/// Header Bar with BlastIX Branding, User Greeting & Stats
+/// Header Bar with BlastIX Branding & User Greeting
 /// ------------------------------------------------------------
 class _HeaderBar extends StatelessWidget {
   const _HeaderBar({
     required this.username,
-    required this.userStats,
   });
 
   final String username;
-  final UserHomeStats userStats;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Branding & Greeting
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              ShaderMask(
-                shaderCallback: (bounds) => AppColors.fireGradient
-                    .createShader(Offset.zero & bounds.size),
-                child: Text(
-                  'BLASTIX',
-                  style: GoogleFonts.rajdhani(
-                    fontSize: 26,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 1.5,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                'Welcome back, $username 🎮',
-                style: AppTextStyles.bodySm.copyWith(color: AppColors.textSecondary),
-              ),
-            ],
-          ),
-
-          // Notification Bell
-          GestureDetector(
-            onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('No new notifications right now!'),
-                  duration: Duration(seconds: 2),
-                ),
-              );
-            },
-            child: Container(
-              padding: const EdgeInsets.all(9),
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                shape: BoxShape.circle,
-                border: Border.all(color: AppColors.border),
-              ),
-              child: Stack(
-                children: [
-                  const Icon(
-                    Icons.notifications_none_rounded,
-                    color: AppColors.textPrimary,
-                    size: 20,
-                  ),
-                  Positioned(
-                    right: 0,
-                    top: 0,
-                    child: Container(
-                      width: 8,
-                      height: 8,
-                      decoration: const BoxDecoration(
-                        color: AppColors.secondary,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                  ),
-                ],
+          ShaderMask(
+            shaderCallback: (bounds) => AppColors.fireGradient
+                .createShader(Offset.zero & bounds.size),
+            child: Text(
+              'BLASTIX',
+              style: GoogleFonts.rajdhani(
+                fontSize: 26,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 1.5,
+                color: Colors.white,
               ),
             ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            'Welcome back, $username 🎮',
+            style: AppTextStyles.bodySm.copyWith(color: AppColors.textSecondary),
           ),
         ],
       ),
