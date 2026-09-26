@@ -1,12 +1,10 @@
 import 'dart:async';
 import 'dart:io';
-import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 
 class ScreenRecordingService {
   bool _isRecording = false;
   File? _currentVideoFile;
-  DateTime? _startTime;
   Timer? _timer;
   int _elapsedSeconds = 0;
 
@@ -28,7 +26,6 @@ class ScreenRecordingService {
       await _currentVideoFile!.create(recursive: true);
 
       _isRecording = true;
-      _startTime = DateTime.now();
       _elapsedSeconds = 0;
 
       _timer?.cancel();

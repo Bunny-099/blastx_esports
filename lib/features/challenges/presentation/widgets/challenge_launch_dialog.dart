@@ -304,7 +304,7 @@ class _ChallengeLaunchDialogState extends ConsumerState<ChallengeLaunchDialog> {
                 onPressed: () => Navigator.of(context).pop(),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.surfaceElevated,
-                  padding: const EdgeInsets.vertical(14),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                     side: const BorderSide(color: AppColors.borderSubtle),
@@ -341,7 +341,7 @@ class _ChallengeLaunchDialogState extends ConsumerState<ChallengeLaunchDialog> {
               child: GestureDetector(
                 onTap: _isStartingRecording ? null : _handleStartChallenge,
                 child: Container(
-                  padding: const EdgeInsets.vertical(16),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
                   decoration: BoxDecoration(
                     gradient: AppColors.fireGradient,
                     borderRadius: BorderRadius.circular(14),
