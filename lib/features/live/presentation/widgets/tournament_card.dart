@@ -5,13 +5,12 @@ import '../../../../core/theme/app_text_styles.dart';
 import '../../data/models/tournament_model.dart';
 
 /// ============================================================
-/// TOURNAMENT CARD — Premium Glass Edition
+/// TOURNAMENT CARD — Free Fire Premium Glass Edition
 /// ============================================================
-/// - Thin gradient "neon edge" border (accent → transparent)
-/// - Frosted glass tint over the banner image
-/// - Hero tags on banner image + title for seamless flight
-///   into the detail screen
-/// - Tap-down/up scale bounce for tactile feedback
+/// - Thin gradient "neon edge" border (fire accent)
+/// - Glass tint over the banner image
+/// - Free Fire specific metadata badges (Map, Mode, Viewers)
+/// - Tap-down scale bounce for tactile feedback
 /// ============================================================
 
 class TournamentCard extends StatefulWidget {
@@ -52,6 +51,9 @@ class _TournamentCardState extends State<TournamentCard> {
     final accent = _accentColor;
     final tournament = widget.tournament;
 
+    final mapDisplay = tournament.mapName.isNotEmpty ? tournament.mapName : 'Bermuda';
+    final modeDisplay = tournament.mode.isNotEmpty ? tournament.mode : 'SQUAD';
+
     return GestureDetector(
       onTapDown: _onTapDown,
       onTapCancel: _onTapCancel,
@@ -77,7 +79,7 @@ class _TournamentCardState extends State<TournamentCard> {
           child: ClipRRect(
             borderRadius: BorderRadius.circular(23),
             child: SizedBox(
-              height: 168,
+              height: 178,
               child: Stack(
                 fit: StackFit.expand,
                 children: [
@@ -97,10 +99,10 @@ class _TournamentCardState extends State<TournamentCard> {
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: [
-                          Colors.black.withValues(alpha: 0.12),
-                          AppColors.background.withValues(alpha: 0.92),
+                          Colors.black.withValues(alpha: 0.2),
+                          AppColors.background.withValues(alpha: 0.94),
                         ],
-                        stops: const [0.2, 1.0],
+                        stops: const [0.15, 1.0],
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
                       ),
@@ -115,7 +117,7 @@ class _TournamentCardState extends State<TournamentCard> {
                       child: _LivePulseBadge(),
                     ),
 
-                  // -------- Game badge --------
+                  // -------- Free Fire Game badge --------
                   Positioned(
                     top: 14,
                     right: 14,
@@ -125,16 +127,28 @@ class _TournamentCardState extends State<TournamentCard> {
                         vertical: 5,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.45),
+                        color: Colors.black.withValues(alpha: 0.65),
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
-                          color: accent.withValues(alpha: 0.6),
+                          color: AppColors.primary.withValues(alpha: 0.8),
                           width: 1,
                         ),
                       ),
-                      child: Text(
-                        tournament.game,
-                        style: AppTextStyles.caption.copyWith(color: accent),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.local_fire_department_rounded,
+                              color: AppColors.primary, size: 14),
+                          const SizedBox(width: 4),
+                          Text(
+                            'FREE FIRE',
+                            style: AppTextStyles.caption.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w800,
+                              fontSize: 10,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -143,10 +157,50 @@ class _TournamentCardState extends State<TournamentCard> {
                   Positioned(
                     left: 20,
                     right: 20,
-                    bottom: 16,
+                    bottom: 14,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        // Map & Mode tags
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: AppColors.primary.withValues(alpha: 0.2),
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(
+                                  color: AppColors.primary.withValues(alpha: 0.4),
+                                  width: 0.8,
+                                ),
+                              ),
+                              child: Text(
+                                modeDisplay,
+                                style: AppTextStyles.caption.copyWith(
+                                  color: AppColors.primaryLight,
+                                  fontSize: 9.5,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: AppColors.surfaceMuted,
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                mapDisplay,
+                                style: AppTextStyles.caption.copyWith(
+                                  color: AppColors.textSecondary,
+                                  fontSize: 9.5,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
                         Hero(
                           tag: 'tournament-title-${tournament.id}',
                           child: Material(
@@ -164,16 +218,16 @@ class _TournamentCardState extends State<TournamentCard> {
                           children: [
                             ShaderMask(
                               shaderCallback: (b) =>
-                                  AppColors.cyanIceGradient.createShader(b),
+                                  AppColors.goldGradient.createShader(b),
                               child: const Icon(Icons.emoji_events_rounded,
-                                  color: Colors.white, size: 15),
+                                  color: Colors.white, size: 16),
                             ),
                             const SizedBox(width: 4),
                             Text(
                               tournament.formattedPrizePool,
                               style: AppTextStyles.bodySm.copyWith(
                                 color: AppColors.glowLight,
-                                fontWeight: FontWeight.w700,
+                                fontWeight: FontWeight.w800,
                               ),
                             ),
                             const SizedBox(width: 14),
@@ -186,12 +240,12 @@ class _TournamentCardState extends State<TournamentCard> {
                             ),
                           ],
                         ),
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 8),
                         Container(
                           height: 3,
                           width: 62,
                           decoration: BoxDecoration(
-                            gradient: AppColors.blastixCoreGradient,
+                            gradient: AppColors.fireGradient,
                             borderRadius: BorderRadius.circular(2),
                             boxShadow: [
                               BoxShadow(
@@ -248,11 +302,11 @@ class _LivePulseBadgeState extends State<_LivePulseBadge>
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
           decoration: BoxDecoration(
-            gradient: AppColors.blastixCoreGradient,
+            gradient: AppColors.fireGradient,
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: AppColors.primaryDeep.withValues(alpha: glow),
+                color: AppColors.primary.withValues(alpha: glow),
                 blurRadius: 12,
                 spreadRadius: 1,
               ),
