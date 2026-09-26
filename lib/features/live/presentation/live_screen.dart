@@ -6,18 +6,20 @@ import 'package:shimmer/shimmer.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/transitions/fire_page_route.dart';
+import '../../profile/providers/profile_provider.dart';
 import '../providers/live_provider.dart';
 import 'tournament_detail_screen.dart';
 import 'widgets/tournament_card.dart';
 
 /// ============================================================
-/// PREMIUM LIVE SCREEN — "Sexy" Free Fire Theme
+/// PREMIUM LIVE SCREEN — Free Fire Exclusive Edition
 /// ============================================================
 /// - Ambient breathing gradient background (orange/red glow blobs)
-/// - Glassmorphism collapsing header + frosted search bar
+/// - Glassmorphism collapsing header + dynamic user profile name
+/// - Real-time Free Fire Live API data stream
 /// - Staggered fade+slide entrance for each tournament card
-/// - Shimmer skeleton while the list "loads"
-/// - Cinematic push transition into the detail screen (FirePageRoute)
+/// - Shimmer skeleton while fetching from backend API
+/// - Pull-to-refresh support
 /// ============================================================
 
 const double _kExpandedHeaderHeight = 150;
@@ -36,7 +38,6 @@ class _LiveScreenState extends ConsumerState<LiveScreen>
   final ScrollController _scrollController = ScrollController();
 
   double _collapseFraction = 0;
-  bool _isLoading = true;
 
   late final AnimationController _ambientController = AnimationController(
     vsync: this,
@@ -52,7 +53,7 @@ class _LiveScreenState extends ConsumerState<LiveScreen>
   ];
 
   late final String _quote =
-  _motivationalQuotes[DateTime.now().second % _motivationalQuotes.length];
+      _motivationalQuotes[DateTime.now().second % _motivationalQuotes.length];
 
   String get _greetingText {
     final hour = DateTime.now().hour;
@@ -65,12 +66,6 @@ class _LiveScreenState extends ConsumerState<LiveScreen>
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
-    // Brief simulated load so the shimmer skeleton gets a moment to show.
-    // Safe to remove once tournaments come from a real async source
-    // (the provider itself should expose its own loading state then).
-    Future.delayed(const Duration(milliseconds: 700), ( ) {
-      if (mounted) setState(() => _isLoading = false);
-    });
   }
 
   void _onScroll() {
@@ -90,9 +85,25 @@ class _LiveScreenState extends ConsumerState<LiveScreen>
     super.dispose();
   }
 
+  Future<void> _onRefresh() async {
+    ref.invalidate(apiTournamentsProvider);
+    await ref.read(apiTournamentsProvider.future);
+  }
+
   @override
   Widget build(BuildContext context) {
+    // Watch User Profile for real dynamic name
+    final profileState = ref.watch(profileProvider);
+    final profileName = profileState.user?.name;
+    final displayName = (profileName != null && profileName.trim().isNotEmpty)
+        ? profileName.trim()
+        : (widget.username != 'Player' ? widget.username : 'Player');
+
+    // Watch API Async Value and filtered tournaments
+    final apiAsync = ref.watch(apiTournamentsProvider);
     final tournaments = ref.watch(filteredOfficialTournamentsProvider);
+
+    final isLoading = apiAsync.isLoading;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -102,106 +113,121 @@ class _LiveScreenState extends ConsumerState<LiveScreen>
           SafeArea(
             top: false,
             bottom: false,
-            child: CustomScrollView(
-              controller: _scrollController,
-              physics: const BouncingScrollPhysics(
-                parent: AlwaysScrollableScrollPhysics(),
-              ),
-              slivers: [
-                SliverPersistentHeader(
-                  pinned: true,
-                  delegate: _CollapsingHeaderDelegate(
-                    collapseFraction: _collapseFraction,
-                    username: widget.username,
-                    greetingText: _greetingText,
-                    quote: _quote,
-                  ),
+            child: RefreshIndicator(
+              onRefresh: _onRefresh,
+              color: AppColors.primary,
+              backgroundColor: AppColors.surface,
+              child: CustomScrollView(
+                controller: _scrollController,
+                physics: const BouncingScrollPhysics(
+                  parent: AlwaysScrollableScrollPhysics(),
                 ),
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text('Free Fire Live', style: AppTextStyles.headingLg),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 5),
-                          decoration: BoxDecoration(
-                            gradient: AppColors.fireGradient,
-                            borderRadius: BorderRadius.circular(20),
-                            boxShadow: [
-                              BoxShadow(
-                                color: AppColors.primary.withValues(alpha: 0.35),
-                                blurRadius: 14,
-                                offset: const Offset(0, 4),
+                slivers: [
+                  SliverPersistentHeader(
+                    pinned: true,
+                    delegate: _CollapsingHeaderDelegate(
+                      collapseFraction: _collapseFraction,
+                      username: displayName,
+                      greetingText: _greetingText,
+                      quote: _quote,
+                    ),
+                  ),
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(
+                                Icons.local_fire_department_rounded,
+                                color: AppColors.primary,
+                                size: 22,
                               ),
+                              const SizedBox(width: 6),
+                              Text('Free Fire Live', style: AppTextStyles.headingLg),
                             ],
                           ),
-                          child: Text(
-                            '${tournaments.where((t) => t.isLive).length} LIVE',
-                            style: AppTextStyles.caption
-                                .copyWith(color: Colors.white, letterSpacing: 0.6),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                if (_isLoading)
-                  SliverPadding(
-                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-                    sliver: SliverList(
-                      delegate: SliverChildBuilderDelegate(
-                            (context, index) => const Padding(
-                          padding: EdgeInsets.only(bottom: 18),
-                          child: _CardShimmer(),
-                        ),
-                        childCount: 3,
-                      ),
-                    ),
-                  )
-                else if (tournaments.isEmpty)
-                  const SliverFillRemaining(
-                    hasScrollBody: false,
-                    child: _EmptyState(),
-                  )
-                else
-                  SliverPadding(
-                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-                    sliver: SliverList(
-                      delegate: SliverChildBuilderDelegate(
-                            (context, index) {
-                          final tournament = tournaments[index];
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 18),
-                            child: TournamentCard(
-                              tournament: tournament,
-                              onTap: () {
-                                Navigator.of(context).push(
-                                  FirePageRoute(
-                                    page: TournamentDetailScreen(
-                                      tournamentId: tournament.id,
-                                    ),
-                                  ),
-                                );
-                              },
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 5),
+                            decoration: BoxDecoration(
+                              gradient: AppColors.fireGradient,
+                              borderRadius: BorderRadius.circular(20),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: AppColors.primary.withValues(alpha: 0.35),
+                                  blurRadius: 14,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
                             ),
-                          )
-                              .animate(delay: (60 * index).ms)
-                              .fadeIn(duration: 420.ms, curve: Curves.easeOut)
-                              .slideY(
-                            begin: 0.12,
-                            end: 0,
-                            duration: 420.ms,
-                            curve: Curves.easeOutCubic,
-                          );
-                        },
-                        childCount: tournaments.length,
+                            child: Text(
+                              '${tournaments.where((t) => t.isLive).length} LIVE',
+                              style: AppTextStyles.caption
+                                  .copyWith(color: Colors.white, letterSpacing: 0.6),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
-              ],
+                  if (isLoading)
+                    SliverPadding(
+                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+                      sliver: SliverList(
+                        delegate: SliverChildBuilderDelegate(
+                          (context, index) => const Padding(
+                            padding: EdgeInsets.only(bottom: 18),
+                            child: _CardShimmer(),
+                          ),
+                          childCount: 3,
+                        ),
+                      ),
+                    )
+                  else if (tournaments.isEmpty)
+                    SliverFillRemaining(
+                      hasScrollBody: false,
+                      child: _EmptyState(onRefresh: _onRefresh),
+                    )
+                  else
+                    SliverPadding(
+                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+                      sliver: SliverList(
+                        delegate: SliverChildBuilderDelegate(
+                          (context, index) {
+                            final tournament = tournaments[index];
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 18),
+                              child: TournamentCard(
+                                tournament: tournament,
+                                onTap: () {
+                                  Navigator.of(context).push(
+                                    FirePageRoute(
+                                      page: TournamentDetailScreen(
+                                        tournamentId: tournament.id,
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            )
+                                .animate(delay: (60 * index).ms)
+                                .fadeIn(duration: 420.ms, curve: Curves.easeOut)
+                                .slideY(
+                              begin: 0.12,
+                              end: 0,
+                              duration: 420.ms,
+                              curve: Curves.easeOutCubic,
+                            );
+                          },
+                          childCount: tournaments.length,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
             ),
           ),
         ],
@@ -211,9 +237,7 @@ class _LiveScreenState extends ConsumerState<LiveScreen>
 }
 
 /// ------------------------------------------------------------
-/// Ambient breathing background — two soft glow blobs that
-/// slowly drift, giving the dark background depth instead of
-/// being flat black.
+/// Ambient breathing background
 /// ------------------------------------------------------------
 
 class _AmbientBackground extends StatelessWidget {
@@ -406,7 +430,7 @@ class _CardShimmer extends StatelessWidget {
       baseColor: AppColors.surface,
       highlightColor: AppColors.surfaceMuted,
       child: Container(
-        height: 168,
+        height: 178,
         decoration: BoxDecoration(
           color: AppColors.surface,
           borderRadius: BorderRadius.circular(20),
@@ -417,7 +441,9 @@ class _CardShimmer extends StatelessWidget {
 }
 
 class _EmptyState extends StatelessWidget {
-  const _EmptyState();
+  const _EmptyState({required this.onRefresh});
+
+  final Future<void> Function() onRefresh;
 
   @override
   Widget build(BuildContext context) {
@@ -425,10 +451,35 @@ class _EmptyState extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.sports_esports_rounded,
-              color: AppColors.textMuted, size: 48),
+          const Icon(
+            Icons.local_fire_department_rounded,
+            color: AppColors.primary,
+            size: 54,
+          ),
           const SizedBox(height: 12),
-          Text('No tournaments found', style: AppTextStyles.bodyMd),
+          Text(
+            'No Live Free Fire Tournaments',
+            style: AppTextStyles.headingMd,
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Check back soon or pull down to refresh',
+            style: AppTextStyles.bodySm.copyWith(color: AppColors.textMuted),
+          ),
+          const SizedBox(height: 16),
+          ElevatedButton.icon(
+            onPressed: onRefresh,
+            icon: const Icon(Icons.refresh_rounded, size: 18),
+            label: const Text('Refresh'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.surface,
+              foregroundColor: AppColors.primaryLight,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+                side: BorderSide(color: AppColors.primary.withValues(alpha: 0.4)),
+              ),
+            ),
+          ),
         ],
       ),
     );
