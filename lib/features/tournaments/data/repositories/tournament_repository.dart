@@ -21,6 +21,7 @@ class TournamentRepository {
   Future<List<TournamentModel>> getTournaments({
     int page = 1,
     int limit = 20,
+    String? game,
     String? status,
     String? teamMode,
     String? format,
@@ -29,6 +30,7 @@ class TournamentRepository {
     final response = await _apiService.getTournaments(
       page: page,
       limit: limit,
+      game: game,
       status: status,
       teamMode: teamMode,
       format: format,
