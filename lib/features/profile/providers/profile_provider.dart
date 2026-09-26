@@ -1,8 +1,10 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../splash/providers/splash_providers.dart';
+import '../../tournaments/data/repositories/tournament_repository.dart';
 import '../data/models/user_profile_model.dart';
 import '../data/repositories/user_repository.dart';
 
@@ -65,9 +67,26 @@ class ProfileNotifier extends Notifier<ProfileState> {
   /// Load user profile from Backend API
   Future<void> loadProfile() async {
     state = state.copyWith(isLoading: true, errorMessage: null);
+    final storage = ref.read(storageServiceProvider);
+
     try {
       final repo = ref.read(userRepositoryProvider);
-      final user = await repo.getUserProfile();
+      var user = await repo.getUserProfile();
+      
+      // Sync real-time count of tournaments registered by this user
+      try {
+        final tournamentRepo = ref.read(tournamentRepositoryProvider);
+        final myTournaments = await tournamentRepo.getMyTournaments();
+        if (myTournaments.isNotEmpty && myTournaments.length > user.tournamentsPlayed) {
+          user = user.copyWith(tournamentsPlayed: myTournaments.length);
+        }
+      } catch (e) {
+        debugPrint('Failed to sync myTournaments count: $e');
+      }
+
+      // Save user JSON locally for offline access
+      await storage.saveString('user_profile_data', jsonEncode(user.toJson()));
+
       state = state.copyWith(
         user: user,
         isLoading: false,
@@ -75,6 +94,21 @@ class ProfileNotifier extends Notifier<ProfileState> {
     } catch (e, stackTrace) {
       debugPrint('ProfileNotifier loadProfile error: $e');
       debugPrint(stackTrace.toString());
+
+      // Fallback: Check if we have saved user profile data locally (e.g. from Google Sign-In)
+      final savedUserJson = storage.getString('user_profile_data');
+      if (savedUserJson != null && savedUserJson.isNotEmpty) {
+        try {
+          final Map<String, dynamic> userMap = jsonDecode(savedUserJson);
+          final cachedUser = UserProfileModel.fromJson(userMap);
+          state = state.copyWith(
+            user: cachedUser,
+            isLoading: false,
+          );
+          return;
+        } catch (_) {}
+      }
+
       state = state.copyWith(
         isLoading: false,
         errorMessage: 'Failed to load profile. Tap to retry.',

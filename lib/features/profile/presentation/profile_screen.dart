@@ -322,11 +322,32 @@ class ProfileScreen extends ConsumerWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Row(
                   children: [
-                    Expanded(child: _buildStatCard('Game', gameName, Icons.sports_esports_rounded, AppColors.primaryNeon)),
+                    Expanded(
+                      child: _buildStatCard(
+                        'Tournaments',
+                        '${user?.tournamentsPlayed ?? 0}',
+                        Icons.sports_esports_rounded,
+                        AppColors.primaryNeon,
+                      ),
+                    ),
                     const SizedBox(width: 10),
-                    Expanded(child: _buildStatCard('Role', userRole, Icons.emoji_events_rounded, AppColors.glowSoft)),
+                    Expanded(
+                      child: _buildStatCard(
+                        'Wins',
+                        '${user?.tournamentsWon ?? 0}',
+                        Icons.emoji_events_rounded,
+                        AppColors.glowSoft,
+                      ),
+                    ),
                     const SizedBox(width: 10),
-                    Expanded(child: _buildStatCard('Status', user?.isActive == true ? 'Active' : 'Inactive', Icons.verified_user_rounded, AppColors.glowLight)),
+                    Expanded(
+                      child: _buildStatCard(
+                        'Total Kills',
+                        '${user?.totalKills ?? 0}',
+                        Icons.local_fire_department_rounded,
+                        AppColors.glowLight,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -380,6 +401,10 @@ class ProfileScreen extends ConsumerWidget {
                   child: Column(
                     children: [
                       _buildDetailRow('Email', userEmail.isNotEmpty ? userEmail : 'Not set', Icons.email_rounded),
+                      const Divider(height: 30, color: AppColors.surfaceNavy),
+                      _buildDetailRow('Main Game', gameName, Icons.gamepad_rounded),
+                      const Divider(height: 30, color: AppColors.surfaceNavy),
+                      _buildDetailRow('Role', userRole, Icons.military_tech_rounded),
                       const Divider(height: 30, color: AppColors.surfaceNavy),
                       _buildDetailRow('In-Game Name', user?.gameProfile?.inGameName ?? 'N/A', Icons.sports_esports_rounded),
                       const Divider(height: 30, color: AppColors.surfaceNavy),
