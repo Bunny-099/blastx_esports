@@ -3,43 +3,44 @@ import 'package:blastix_esports/features/tournaments/data/repositories/tournamen
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// ============================================================
-/// LIVE PROVIDER
+/// LIVE PROVIDER — Free Fire Exclusive Edition
 /// ============================================================
-/// Riverpod providers that supply tournament data to the UI.
-///
-/// Fetches real tournaments from backend API with automatic
-/// fallback to static dummy data if API returns empty/error.
+/// Riverpod providers that supply Free Fire tournament data to UI.
+/// Fetches real tournaments from backend API with game='Free Fire'.
 /// ============================================================
 
 /// Async provider for backend tournaments API
 final apiTournamentsProvider = FutureProvider<List<TournamentModel>>((ref) async {
   try {
     final repo = ref.watch(tournamentRepositoryProvider);
-    final list = await repo.getTournaments(limit: 50);
-    if (list.isNotEmpty) return list;
+    final list = await repo.getTournaments(limit: 50, game: 'Free Fire');
+    // Ensure only Free Fire tournaments are returned
+    final ffTournaments = list
+        .where((t) => t.game.trim().toLowerCase().contains('free fire'))
+        .toList();
+    return ffTournaments;
   } catch (e) {
-    // Log or handle error gracefully
+    // Return empty list on network error
+    return const [];
   }
-  return const [];
 });
 
-/// Main provider - list of all live/upcoming tournaments.
+/// Main provider - list of all live/upcoming Free Fire tournaments.
 final liveTournamentsProvider = Provider<List<TournamentModel>>((ref) {
   final apiResult = ref.watch(apiTournamentsProvider);
   return apiResult.when(
-    data: (list) => list.isNotEmpty ? list : _dummyTournaments,
-    loading: () => _dummyTournaments,
-    error: (err, stack) => _dummyTournaments,
+    data: (list) => list.isNotEmpty ? list : _freeFireMockTournaments,
+    loading: () => _freeFireMockTournaments,
+    error: (err, stack) => _freeFireMockTournaments,
   );
 });
 
-/// Official tournaments (Garena)
+/// Official tournaments (Garena / Free Fire)
 final officialTournamentsProvider = Provider<List<TournamentModel>>((ref) {
   final all = ref.watch(liveTournamentsProvider);
-  final official = all.where((t) => 
+  final official = all.where((t) =>
     t.organizer.toLowerCase().contains('garena') ||
-    t.organizer.toLowerCase().contains('krafton') ||
-    t.organizer.toLowerCase().contains('riot')
+    t.game.toLowerCase().contains('free fire')
   ).toList();
   return official.isNotEmpty ? official : all;
 });
@@ -47,7 +48,7 @@ final officialTournamentsProvider = Provider<List<TournamentModel>>((ref) {
 /// BlastIX (App) tournaments
 final appTournamentsProvider = Provider<List<TournamentModel>>((ref) {
   final all = ref.watch(liveTournamentsProvider);
-  final appTourneys = all.where((t) => 
+  final appTourneys = all.where((t) =>
     t.organizer.toLowerCase().contains('blastix') ||
     t.organizer.toLowerCase().contains('blastx')
   ).toList();
@@ -91,7 +92,8 @@ final filteredTournamentsProvider = Provider<List<TournamentModel>>((ref) {
   return all.where((t) {
     return t.name.toLowerCase().contains(query) ||
         t.game.toLowerCase().contains(query) ||
-        t.organizer.toLowerCase().contains(query);
+        t.organizer.toLowerCase().contains(query) ||
+        t.mapName.toLowerCase().contains(query);
   }).toList();
 });
 
@@ -108,7 +110,8 @@ final filteredUpcomingTournamentsProvider = Provider<List<TournamentModel>>((ref
   return all.where((t) {
     return t.name.toLowerCase().contains(query) ||
         t.game.toLowerCase().contains(query) ||
-        t.organizer.toLowerCase().contains(query);
+        t.organizer.toLowerCase().contains(query) ||
+        t.mapName.toLowerCase().contains(query);
   }).toList();
 });
 
@@ -122,7 +125,8 @@ final filteredAppLiveTournamentsProvider = Provider<List<TournamentModel>>((ref)
   return all.where((t) {
     return t.name.toLowerCase().contains(query) ||
         t.game.toLowerCase().contains(query) ||
-        t.organizer.toLowerCase().contains(query);
+        t.organizer.toLowerCase().contains(query) ||
+        t.mapName.toLowerCase().contains(query);
   }).toList();
 });
 
@@ -136,73 +140,20 @@ final filteredOfficialTournamentsProvider = Provider<List<TournamentModel>>((ref
   return all.where((t) {
     return t.name.toLowerCase().contains(query) ||
         t.game.toLowerCase().contains(query) ||
-        t.organizer.toLowerCase().contains(query);
+        t.organizer.toLowerCase().contains(query) ||
+        t.mapName.toLowerCase().contains(query);
   }).toList();
 });
 
 /// ------------------------------------------------------------
-/// DUMMY DATA
+/// FREE FIRE ONLY MOCK DATA (Fallback for offline preview)
 /// ------------------------------------------------------------
-final List<TournamentModel> _dummyTournaments = [
+final List<TournamentModel> _freeFireMockTournaments = [
   TournamentModel(
-    id: 't1',
-    name: 'BGMI Conqueror Series',
-    game: 'BGMI',
-    bannerImageUrl: 'https://i.ytimg.com/vi/H5aTv9R9wiU/maxresdefault.jpg',
-    gameLogoUrl: 'https://picsum.photos/seed/bgmilogo/100/100',
-    prizePool: 500000,
-    viewersCount: 128000,
-    status: TournamentStatus.live,
-    startTime: DateTime.now().subtract(const Duration(hours: 1)),
-    organizer: 'Krafton India',
-    accentColorHex: '#FF7A00',
-    teams: [
-      const TeamModel(
-          id: 'te1',
-          name: 'Team Soul',
-          logoUrl: 'https://picsum.photos/seed/soul/100/100',
-          score: 42,
-          status: TeamStatus.winning),
-      const TeamModel(
-          id: 'te2',
-          name: 'GodLike Esports',
-          logoUrl: 'https://picsum.photos/seed/godlike/100/100',
-          score: 38,
-          status: TeamStatus.playing),
-    ],
-    matches: [
-      MatchModel(
-        id: 'm1',
-        tournamentId: 't1',
-        round: 'Grand Finals - Match 3',
-        teamA: const TeamModel(
-            id: 'te1', name: 'Team Soul', logoUrl: '', score: 14),
-        teamB: const TeamModel(
-            id: 'te2', name: 'GodLike Esports', logoUrl: '', score: 11),
-        matchTime: DateTime.now(),
-        status: MatchStatus.live,
-        mapOrMode: 'Erangel',
-      ),
-    ],
-  ),
-  TournamentModel(
-    id: 't2',
-    name: 'Valorant Champions Qualifier',
-    game: 'Valorant',
-    bannerImageUrl: 'https://sdprodstorage.blob.core.windows.net/sd-cms-prod/cms-post/Free%20Fire%20MAX%20iQOO%20Pro%20Series%20Season%203%20Announced%20with%20%C3%A2%C2%82%C2%B910%20Lakh%20Prize%20Pool-1773335315320.webp',
-    gameLogoUrl: 'https://picsum.photos/seed/vallogo/100/100',
-    prizePool: 750000,
-    viewersCount: 96500,
-    status: TournamentStatus.live,
-    startTime: DateTime.now().subtract(const Duration(minutes: 40)),
-    organizer: 'Riot Games',
-    accentColorHex: '#FF3DAE',
-  ),
-  TournamentModel(
-    id: 't3',
+    id: 'ff_live_1',
     name: 'Free Fire Max India Cup',
     game: 'Free Fire',
-    bannerImageUrl: 'https://i.ytimg.com/vi/H5aTv9R9wiU/maxresdefault.jpg',
+    bannerImageUrl: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=1200&q=80',
     gameLogoUrl: 'https://picsum.photos/seed/fflogo/100/100',
     prizePool: 300000,
     viewersCount: 210000,
@@ -210,12 +161,43 @@ final List<TournamentModel> _dummyTournaments = [
     startTime: DateTime.now().subtract(const Duration(hours: 2)),
     organizer: 'Garena',
     accentColorHex: '#FF6B00',
+    mode: 'SQUAD',
+    mapName: 'Bermuda',
+    matchType: 'BATTLE_ROYALE',
+    teams: [
+      const TeamModel(
+          id: 'ff_team_1',
+          name: 'Total Gaming Esports',
+          logoUrl: 'https://picsum.photos/seed/tg/100/100',
+          score: 54,
+          status: TeamStatus.winning),
+      const TeamModel(
+          id: 'ff_team_2',
+          name: 'Orangutan Elite',
+          logoUrl: 'https://picsum.photos/seed/og/100/100',
+          score: 48,
+          status: TeamStatus.playing),
+    ],
+    matches: [
+      MatchModel(
+        id: 'ff_match_1',
+        tournamentId: 'ff_live_1',
+        round: 'Grand Finals - Match 3',
+        teamA: const TeamModel(
+            id: 'ff_team_1', name: 'Total Gaming', logoUrl: '', score: 18),
+        teamB: const TeamModel(
+            id: 'ff_team_2', name: 'Orangutan', logoUrl: '', score: 14),
+        matchTime: DateTime.now(),
+        status: MatchStatus.live,
+        mapOrMode: 'Bermuda (Squad)',
+      ),
+    ],
   ),
   TournamentModel(
-    id: 't7',
-    name: 'FF Pro League: Winter',
+    id: 'ff_live_2',
+    name: 'FF Pro League: Winter Championship',
     game: 'Free Fire',
-    bannerImageUrl: 'https://sdprodstorage.blob.core.windows.net/sd-cms-prod/cms-post/Free%20Fire%20MAX%20iQOO%20Pro%20Series%20Season%203%20Announced%20with%20%C3%A2%C2%82%C2%B910%20Lakh%20Prize%20Pool-1773335315320.webp',
+    bannerImageUrl: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?auto=format&fit=crop&w=1200&q=80',
     gameLogoUrl: 'https://picsum.photos/seed/fflogo/100/100',
     prizePool: 500000,
     viewersCount: 150000,
@@ -223,12 +205,15 @@ final List<TournamentModel> _dummyTournaments = [
     startTime: DateTime.now().subtract(const Duration(minutes: 30)),
     organizer: 'Garena',
     accentColorHex: '#FF2E2E',
+    mode: 'SQUAD',
+    mapName: 'Purgatory',
+    matchType: 'BATTLE_ROYALE',
   ),
   TournamentModel(
-    id: 't8',
-    name: 'Survivor Cup Season 4',
+    id: 'ff_upcoming_1',
+    name: 'Free Fire Survivor Cup Season 4',
     game: 'Free Fire',
-    bannerImageUrl: 'https://i.ytimg.com/vi/H5aTv9R9wiU/maxresdefault.jpg',
+    bannerImageUrl: 'https://images.unsplash.com/photo-1538481199705-c710c4e965fc?auto=format&fit=crop&w=1200&q=80',
     gameLogoUrl: 'https://picsum.photos/seed/fflogo/100/100',
     prizePool: 100000,
     viewersCount: 45000,
@@ -236,44 +221,8 @@ final List<TournamentModel> _dummyTournaments = [
     startTime: DateTime.now().add(const Duration(hours: 24)),
     organizer: 'BlastIX',
     accentColorHex: '#FFC93C',
-  ),
-  TournamentModel(
-    id: 't4',
-    name: 'CODM World Series',
-    game: 'Call of Duty Mobile',
-    bannerImageUrl: 'https://picsum.photos/seed/codm1/800/450',
-    gameLogoUrl: 'https://picsum.photos/seed/codmlogo/100/100',
-    prizePool: 1000000,
-    viewersCount: 54000,
-    status: TournamentStatus.upcoming,
-    startTime: DateTime.now().add(const Duration(hours: 5)),
-    organizer: 'Activision',
-    accentColorHex: '#9B5CFF',
-  ),
-  TournamentModel(
-    id: 't5',
-    name: 'Chess.com Titled Tuesday',
-    game: 'Chess',
-    bannerImageUrl: 'https://picsum.photos/seed/chess1/800/450',
-    gameLogoUrl: 'https://picsum.photos/seed/chesslogo/100/100',
-    prizePool: 50000,
-    viewersCount: 8200,
-    status: TournamentStatus.upcoming,
-    startTime: DateTime.now().add(const Duration(days: 1)),
-    organizer: 'Chess.com',
-    accentColorHex: '#3DDC84',
-  ),
-  TournamentModel(
-    id: 't6',
-    name: 'Clash of Clans Legends Cup',
-    game: 'Clash of Clans',
-    bannerImageUrl: 'https://picsum.photos/seed/coc1/800/450',
-    gameLogoUrl: 'https://picsum.photos/seed/coclogo/100/100',
-    prizePool: 150000,
-    viewersCount: 31000,
-    status: TournamentStatus.completed,
-    startTime: DateTime.now().subtract(const Duration(days: 2)),
-    organizer: 'Supercell',
-    accentColorHex: '#FFC53D',
+    mode: 'DUO',
+    mapName: 'Kalahari',
+    matchType: 'BATTLE_ROYALE',
   ),
 ];
