@@ -12,7 +12,12 @@
           "package_name": "com.example.blastix_arena"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "252531921295-maivho5ga1plaqmr3hndfuif0960lvp6.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyA8neeb8Os7elTOZgUomF-ZUfnqP2kNbCs"
@@ -20,7 +25,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "252531921295-maivho5ga1plaqmr3hndfuif0960lvp6.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     },
@@ -31,7 +41,20 @@
           "package_name": "com.example.blastix_esports"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "252531921295-85ehce3ieup6uk7cmfbkbjnca3lb5443.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.blastix_esports",
+            "certificate_hash": "654091192dcd7db10dd3059223ff2df3a9559bef"
+          }
+        },
+        {
+          "client_id": "252531921295-maivho5ga1plaqmr3hndfuif0960lvp6.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyA8neeb8Os7elTOZgUomF-ZUfnqP2kNbCs"
@@ -39,7 +62,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "252531921295-maivho5ga1plaqmr3hndfuif0960lvp6.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }
