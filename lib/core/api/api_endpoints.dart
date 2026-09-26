@@ -38,4 +38,9 @@ class ApiEndpoints {
   static String transferCaptain(String teamId) => '/teams/$teamId/transfer-captain';
   static String teamSubstitutes(String teamId) => '/teams/$teamId/substitutes';
   static String regenerateInvite(String teamId) => '/teams/$teamId/regenerate-invite';
+
+  // Challenges Endpoints
+  static const String challenges = '/challenges';
+  static String claimChallenge(String id) => '/challenges/$id/claim';
+  static String submitChallengeProof(String id) => '/challenges/$id/submit-proof';
 }
