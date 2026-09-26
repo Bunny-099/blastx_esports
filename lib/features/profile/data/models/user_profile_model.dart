@@ -9,6 +9,12 @@ class UserProfileModel {
   final bool isActive;
   final DateTime? createdAt;
   final GameProfileModel? gameProfile;
+  final int tournamentsPlayed;
+  final int tournamentsWon;
+  final int totalKills;
+  final String winRate;
+  final int xp;
+  final int rank;
 
   const UserProfileModel({
     required this.id,
@@ -19,9 +25,36 @@ class UserProfileModel {
     this.isActive = true,
     this.createdAt,
     this.gameProfile,
+    this.tournamentsPlayed = 0,
+    this.tournamentsWon = 0,
+    this.totalKills = 0,
+    this.winRate = '0%',
+    this.xp = 0,
+    this.rank = 0,
   });
 
   factory UserProfileModel.fromJson(Map<String, dynamic> json) {
+    final tPlayed = (json['tournaments_played'] ??
+            json['tournamentsPlayed'] ??
+            json['matches_played'] ??
+            json['matchesPlayed'] as num?)
+        ?.toInt() ?? 0;
+    final tWon = (json['tournaments_won'] ??
+            json['tournamentsWon'] ??
+            json['wins'] ??
+            json['total_wins'] ??
+            json['totalWins'] as num?)
+        ?.toInt() ?? 0;
+    final kills = (json['total_kills'] ??
+            json['totalKills'] ??
+            json['kills'] as num?)
+        ?.toInt() ?? 0;
+    final wRate = json['win_rate']?.toString() ??
+        json['winRate']?.toString() ??
+        '${(tPlayed > 0 ? (tWon / tPlayed * 100).toStringAsFixed(1) : '0')}%';
+    final userXp = (json['xp'] as num?)?.toInt() ?? 0;
+    final userRank = (json['rank'] as num?)?.toInt() ?? 0;
+
     return UserProfileModel(
       id: json['id']?.toString() ?? json['_id']?.toString() ?? '',
       name: json['name'] as String? ?? json['username'] as String? ?? '',
@@ -43,6 +76,12 @@ class UserProfileModel {
               ? GameProfileModel.fromJson(
                   Map<String, dynamic>.from(json['gameProfile'] as Map))
               : null),
+      tournamentsPlayed: tPlayed,
+      tournamentsWon: tWon,
+      totalKills: kills,
+      winRate: wRate,
+      xp: userXp,
+      rank: userRank,
     );
   }
 
@@ -56,6 +95,12 @@ class UserProfileModel {
       'is_active': isActive,
       'created_at': createdAt?.toIso8601String(),
       if (gameProfile != null) 'game_profile': gameProfile!.toJson(),
+      'tournaments_played': tournamentsPlayed,
+      'tournaments_won': tournamentsWon,
+      'total_kills': totalKills,
+      'win_rate': winRate,
+      'xp': xp,
+      'rank': rank,
     };
   }
 
@@ -63,6 +108,12 @@ class UserProfileModel {
     String? name,
     String? profilePic,
     GameProfileModel? gameProfile,
+    int? tournamentsPlayed,
+    int? tournamentsWon,
+    int? totalKills,
+    String? winRate,
+    int? xp,
+    int? rank,
   }) {
     return UserProfileModel(
       id: id,
@@ -73,6 +124,12 @@ class UserProfileModel {
       isActive: isActive,
       createdAt: createdAt,
       gameProfile: gameProfile ?? this.gameProfile,
+      tournamentsPlayed: tournamentsPlayed ?? this.tournamentsPlayed,
+      tournamentsWon: tournamentsWon ?? this.tournamentsWon,
+      totalKills: totalKills ?? this.totalKills,
+      winRate: winRate ?? this.winRate,
+      xp: xp ?? this.xp,
+      rank: rank ?? this.rank,
     );
   }
 }

@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "252531921295",
+    "project_id": "blastix-arena",
+    "storage_bucket": "blastix-arena.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:252531921295:android:06dde3bb38c9068c453bfa",
+        "android_client_info": {
+          "package_name": "com.example.blastix_arena"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA8neeb8Os7elTOZgUomF-ZUfnqP2kNbCs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:252531921295:android:da7996cde976f801453bfa",
+        "android_client_info": {
+          "package_name": "com.example.blastix_esports"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA8neeb8Os7elTOZgUomF-ZUfnqP2kNbCs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
