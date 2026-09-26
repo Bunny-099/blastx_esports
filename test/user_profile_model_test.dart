@@ -28,7 +28,7 @@ void main() {
       expect(profile.rank, 5);
     });
 
-    test('should use default stats when JSON does not contain stats fields', () {
+    test('should use default 0 stats when JSON does not contain stats fields', () {
       final json = {
         'id': 'u456',
         'name': 'Casual Player',
@@ -37,10 +37,10 @@ void main() {
 
       final profile = UserProfileModel.fromJson(json);
 
-      expect(profile.tournamentsPlayed, 24);
-      expect(profile.tournamentsWon, 8);
-      expect(profile.totalKills, 142);
-      expect(profile.winRate, '33.3%');
+      expect(profile.tournamentsPlayed, 0);
+      expect(profile.tournamentsWon, 0);
+      expect(profile.totalKills, 0);
+      expect(profile.winRate, '0%');
     });
 
     test('toJson should include stats fields', () {
