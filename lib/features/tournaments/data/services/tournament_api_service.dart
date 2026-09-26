@@ -9,6 +9,7 @@ class TournamentApiService {
   Future<Map<String, dynamic>> getTournaments({
     int page = 1,
     int limit = 20,
+    String? game,
     String? status,
     String? teamMode,
     String? format,
@@ -18,6 +19,7 @@ class TournamentApiService {
       'page': page,
       'limit': limit,
     };
+    if (game != null && game.isNotEmpty) queryParams['game'] = game;
     if (status != null && status.isNotEmpty) queryParams['status'] = status;
     if (teamMode != null && teamMode.isNotEmpty) queryParams['team_mode'] = teamMode;
     if (format != null && format.isNotEmpty) queryParams['format'] = format;
