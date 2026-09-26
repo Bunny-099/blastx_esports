@@ -290,7 +290,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
                 // Notice Items List
                 SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
                   sliver: SliverList(
                     delegate: SliverChildBuilderDelegate(
                       (context, index) {
@@ -305,14 +305,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                       },
                       childCount: notices.length,
                     ),
-                  ),
-                ),
-
-                // User Career Stats Card
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
-                    child: _CareerSummaryCard(stats: userStats),
                   ),
                 ),
               ],
@@ -1086,79 +1078,4 @@ class _NoticeCard extends StatelessWidget {
   }
 }
 
-/// ------------------------------------------------------------
-/// User Career Summary Card
-/// ------------------------------------------------------------
-class _CareerSummaryCard extends ConsumerWidget {
-  const _CareerSummaryCard({required this.stats});
-  final UserHomeStats stats;
 
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('MY CAREER OVERVIEW', style: AppTextStyles.headingMd),
-              GestureDetector(
-                onTap: () {
-                  ref.read(navigationIndexProvider.notifier).state = 4; // Profile tab
-                },
-                child: Text(
-                  'Profile ➔',
-                  style: AppTextStyles.caption.copyWith(
-                    color: AppColors.primaryLight,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _StatColumn(label: 'MATCHES', value: '${stats.matchesPlayed}'),
-              _StatColumn(label: 'WINS', value: '${stats.totalWins}'),
-              _StatColumn(label: 'RANK', value: '#${stats.rank}'),
-              _StatColumn(label: 'XP', value: '${stats.xp}'),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _StatColumn extends StatelessWidget {
-  const _StatColumn({required this.label, required this.value});
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Text(
-          value,
-          style: GoogleFonts.rajdhani(
-            fontSize: 20,
-            fontWeight: FontWeight.w800,
-            color: AppColors.textPrimary,
-          ),
-        ),
-        const SizedBox(height: 2),
-        Text(label, style: AppTextStyles.caption.copyWith(fontSize: 10)),
-      ],
-    );
-  }
-}
