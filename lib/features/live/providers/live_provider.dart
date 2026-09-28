@@ -13,7 +13,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 final apiTournamentsProvider = FutureProvider<List<TournamentModel>>((ref) async {
   try {
     final repo = ref.watch(tournamentRepositoryProvider);
-    final list = await repo.getTournaments(limit: 50, game: 'Free Fire');
+    final list = await repo.getTournaments(limit: 50);
     // Ensure only Free Fire tournaments are returned
     final ffTournaments = list
         .where((t) => t.game.trim().toLowerCase().contains('free fire'))
@@ -29,37 +29,34 @@ final apiTournamentsProvider = FutureProvider<List<TournamentModel>>((ref) async
 final liveTournamentsProvider = Provider<List<TournamentModel>>((ref) {
   final apiResult = ref.watch(apiTournamentsProvider);
   return apiResult.when(
-    data: (list) => list.isNotEmpty ? list : _freeFireMockTournaments,
-    loading: () => _freeFireMockTournaments,
-    error: (err, stack) => _freeFireMockTournaments,
+    data: (list) => list,
+    loading: () => const [],
+    error: (err, stack) => const [],
   );
 });
 
 /// Official tournaments (Garena / Free Fire)
 final officialTournamentsProvider = Provider<List<TournamentModel>>((ref) {
   final all = ref.watch(liveTournamentsProvider);
-  final official = all.where((t) =>
+  return all.where((t) =>
     t.organizer.toLowerCase().contains('garena') ||
     t.game.toLowerCase().contains('free fire')
   ).toList();
-  return official.isNotEmpty ? official : all;
 });
 
 /// BlastIX (App) tournaments
 final appTournamentsProvider = Provider<List<TournamentModel>>((ref) {
   final all = ref.watch(liveTournamentsProvider);
-  final appTourneys = all.where((t) =>
+  return all.where((t) =>
     t.organizer.toLowerCase().contains('blastix') ||
     t.organizer.toLowerCase().contains('blastx')
   ).toList();
-  return appTourneys.isNotEmpty ? appTourneys : all;
 });
 
 /// BlastIX Live tournaments
 final appLiveTournamentsProvider = Provider<List<TournamentModel>>((ref) {
   final appTournaments = ref.watch(appTournamentsProvider);
-  final live = appTournaments.where((t) => t.isLive).toList();
-  return live.isNotEmpty ? live : appTournaments;
+  return appTournaments.where((t) => t.isLive).toList();
 });
 
 /// BlastIX Upcoming tournaments
@@ -144,85 +141,3 @@ final filteredOfficialTournamentsProvider = Provider<List<TournamentModel>>((ref
         t.mapName.toLowerCase().contains(query);
   }).toList();
 });
-
-/// ------------------------------------------------------------
-/// FREE FIRE ONLY MOCK DATA (Fallback for offline preview)
-/// ------------------------------------------------------------
-final List<TournamentModel> _freeFireMockTournaments = [
-  TournamentModel(
-    id: 'ff_live_1',
-    name: 'Free Fire Max India Cup',
-    game: 'Free Fire',
-    bannerImageUrl: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=1200&q=80',
-    gameLogoUrl: 'https://picsum.photos/seed/fflogo/100/100',
-    prizePool: 300000,
-    viewersCount: 210000,
-    status: TournamentStatus.live,
-    startTime: DateTime.now().subtract(const Duration(hours: 2)),
-    organizer: 'Garena',
-    accentColorHex: '#FF6B00',
-    mode: 'SQUAD',
-    mapName: 'Bermuda',
-    matchType: 'BATTLE_ROYALE',
-    teams: [
-      const TeamModel(
-          id: 'ff_team_1',
-          name: 'Total Gaming Esports',
-          logoUrl: 'https://picsum.photos/seed/tg/100/100',
-          score: 54,
-          status: TeamStatus.winning),
-      const TeamModel(
-          id: 'ff_team_2',
-          name: 'Orangutan Elite',
-          logoUrl: 'https://picsum.photos/seed/og/100/100',
-          score: 48,
-          status: TeamStatus.playing),
-    ],
-    matches: [
-      MatchModel(
-        id: 'ff_match_1',
-        tournamentId: 'ff_live_1',
-        round: 'Grand Finals - Match 3',
-        teamA: const TeamModel(
-            id: 'ff_team_1', name: 'Total Gaming', logoUrl: '', score: 18),
-        teamB: const TeamModel(
-            id: 'ff_team_2', name: 'Orangutan', logoUrl: '', score: 14),
-        matchTime: DateTime.now(),
-        status: MatchStatus.live,
-        mapOrMode: 'Bermuda (Squad)',
-      ),
-    ],
-  ),
-  TournamentModel(
-    id: 'ff_live_2',
-    name: 'FF Pro League: Winter Championship',
-    game: 'Free Fire',
-    bannerImageUrl: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?auto=format&fit=crop&w=1200&q=80',
-    gameLogoUrl: 'https://picsum.photos/seed/fflogo/100/100',
-    prizePool: 500000,
-    viewersCount: 150000,
-    status: TournamentStatus.live,
-    startTime: DateTime.now().subtract(const Duration(minutes: 30)),
-    organizer: 'Garena',
-    accentColorHex: '#FF2E2E',
-    mode: 'SQUAD',
-    mapName: 'Purgatory',
-    matchType: 'BATTLE_ROYALE',
-  ),
-  TournamentModel(
-    id: 'ff_upcoming_1',
-    name: 'Free Fire Survivor Cup Season 4',
-    game: 'Free Fire',
-    bannerImageUrl: 'https://images.unsplash.com/photo-1538481199705-c710c4e965fc?auto=format&fit=crop&w=1200&q=80',
-    gameLogoUrl: 'https://picsum.photos/seed/fflogo/100/100',
-    prizePool: 100000,
-    viewersCount: 45000,
-    status: TournamentStatus.upcoming,
-    startTime: DateTime.now().add(const Duration(hours: 24)),
-    organizer: 'BlastIX',
-    accentColorHex: '#FFC93C',
-    mode: 'DUO',
-    mapName: 'Kalahari',
-    matchType: 'BATTLE_ROYALE',
-  ),
-];
