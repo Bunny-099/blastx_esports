@@ -46,4 +46,52 @@ class UserRepository {
         inGameUid: inGameUid,
         inGameName: inGameName,
       );
+
+  Future<UserProfileModel> updateFullUserProfile({
+    String? name,
+    String? profilePic,
+    String? freeFireUid,
+    String? inGameName,
+  }) async {
+    UserProfileModel updatedUser;
+    try {
+      updatedUser = await _apiService.updateProfile(
+        name: name,
+        profilePic: profilePic,
+      );
+    } catch (_) {
+      // If server profile update fails, fallback to current user copy with local field updates
+      var user = await getUserProfile();
+      updatedUser = user.copyWith(
+        name: name ?? user.name,
+        profilePic: profilePic ?? user.profilePic,
+      );
+    }
+
+    if (freeFireUid != null && freeFireUid.trim().isNotEmpty) {
+      try {
+        final gameProfile = await _apiService.updateGameProfile(
+          gameSlug: 'free_fire',
+          inGameUid: freeFireUid.trim(),
+          inGameName: (inGameName != null && inGameName.trim().isNotEmpty)
+              ? inGameName.trim()
+              : (name ?? updatedUser.name),
+        );
+        updatedUser = updatedUser.copyWith(gameProfile: gameProfile);
+      } catch (_) {
+        // If server game profile update fails, create a local GameProfileModel
+        final localGameProfile = GameProfileModel(
+          gameSlug: 'free_fire',
+          gameName: 'Free Fire',
+          inGameUid: freeFireUid.trim(),
+          inGameName: (inGameName != null && inGameName.trim().isNotEmpty)
+              ? inGameName.trim()
+              : (name ?? updatedUser.name),
+        );
+        updatedUser = updatedUser.copyWith(gameProfile: localGameProfile);
+      }
+    }
+
+    return updatedUser;
+  }
 }

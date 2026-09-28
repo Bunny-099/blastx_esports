@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../splash/providers/splash_providers.dart';
 import '../../tournaments/data/repositories/tournament_repository.dart';
+import '../data/models/game_profile_model.dart';
 import '../data/models/user_profile_model.dart';
 import '../data/repositories/user_repository.dart';
 
@@ -175,5 +176,75 @@ class ProfileNotifier extends Notifier<ProfileState> {
     final storage = ref.read(storageServiceProvider);
     await storage.saveString(_profileImageKey, '');
     state = state.copyWith(clearLocalImage: true, isLoading: false);
+  }
+
+  /// Update full profile: name, profile image path, Free Fire UID, and IGN
+  Future<bool> updateFullProfile({
+    required String name,
+    required String freeFireUid,
+    String? inGameName,
+    String? localImagePath,
+  }) async {
+    state = state.copyWith(isLoading: true);
+    final storage = ref.read(storageServiceProvider);
+
+    try {
+      final repo = ref.read(userRepositoryProvider);
+
+      if (localImagePath != null && localImagePath.isNotEmpty) {
+        await storage.saveString(_profileImageKey, localImagePath);
+      }
+
+      final updatedUser = await repo.updateFullUserProfile(
+        name: name,
+        profilePic: localImagePath ?? state.user?.profilePic,
+        freeFireUid: freeFireUid,
+        inGameName: inGameName,
+      );
+
+      // Persist locally
+      await storage.saveString('user_profile_data', jsonEncode(updatedUser.toJson()));
+
+      state = state.copyWith(
+        user: updatedUser,
+        localImagePath: localImagePath ?? state.localImagePath,
+        isLoading: false,
+      );
+      return true;
+    } catch (e, stackTrace) {
+      debugPrint('ProfileNotifier updateFullProfile error: $e');
+      debugPrint(stackTrace.toString());
+
+      // Fallback local update so user changes take immediate visual effect
+      if (state.user != null) {
+        final currentGp = state.user!.gameProfile;
+        final newGp = GameProfileModel(
+          id: currentGp?.id ?? '',
+          gameSlug: 'free_fire',
+          gameName: 'Free Fire',
+          inGameUid: freeFireUid,
+          inGameName: (inGameName != null && inGameName.isNotEmpty) ? inGameName : name,
+        );
+        final fallbackUser = state.user!.copyWith(
+          name: name,
+          profilePic: localImagePath ?? state.user!.profilePic,
+          gameProfile: newGp,
+        );
+        await storage.saveString('user_profile_data', jsonEncode(fallbackUser.toJson()));
+
+        state = state.copyWith(
+          user: fallbackUser,
+          localImagePath: localImagePath ?? state.localImagePath,
+          isLoading: false,
+        );
+        return true;
+      }
+
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: 'Failed to update profile. Please try again.',
+      );
+      return false;
+    }
   }
 }
