@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../../profile/presentation/edit_profile_screen.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -104,7 +105,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               _buildSettingTile(
                 icon: Icons.person_outline_rounded,
                 title: 'Profile Information',
-                onTap: () {},
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const EditProfileScreen()),
+                  );
+                },
               ),
               _buildSettingTile(
                 icon: Icons.mail_outline_rounded,
