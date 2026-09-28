@@ -51,4 +51,12 @@ class AuthApiService {
     );
     return UserModel.fromJson(responseData);
   }
+
+  Future<void> logout() async {
+    try {
+      await _apiClient.post(ApiEndpoints.logout);
+    } catch (_) {
+      // Backend logout endpoint call failed or not yet deployed; catch safely so local logout completes.
+    }
+  }
 }
