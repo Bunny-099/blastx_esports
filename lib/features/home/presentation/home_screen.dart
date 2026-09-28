@@ -235,76 +235,99 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 ),
 
                 // Featured Tournaments Horizontal List
-                SliverToBoxAdapter(
-                  child: SizedBox(
-                    height: 210,
-                    child: ListView.builder(
-                      scrollDirection: Axis.horizontal,
-                      physics: const BouncingScrollPhysics(),
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      itemCount: tournaments.length,
-                      itemBuilder: (context, index) {
-                        final tournament = tournaments[index];
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 6),
-                          child: _FeaturedTournamentCard(
-                            tournament: tournament,
-                            onTap: () {
-                              Navigator.of(context).push(
-                                FirePageRoute(
-                                  page: TournamentDetailScreen(
-                                    tournamentId: tournament.id,
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ),
-
-                // Community Announcements & Notice Board
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 4,
-                          height: 18,
-                          decoration: BoxDecoration(
-                            gradient: AppColors.fireGradient,
-                            borderRadius: BorderRadius.circular(2),
+                if (tournaments.isEmpty)
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+                        decoration: BoxDecoration(
+                          color: AppColors.surface,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: AppColors.border),
+                        ),
+                        child: Center(
+                          child: Text(
+                            'No featured tournaments available right now',
+                            style: AppTextStyles.bodySm.copyWith(color: AppColors.textMuted),
                           ),
                         ),
-                        const SizedBox(width: 8),
-                        Text('NOTICES & NEWS', style: AppTextStyles.headingMd),
-                      ],
+                      ),
+                    ),
+                  )
+                else
+                  SliverToBoxAdapter(
+                    child: SizedBox(
+                      height: 210,
+                      child: ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        physics: const BouncingScrollPhysics(),
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        itemCount: tournaments.length,
+                        itemBuilder: (context, index) {
+                          final tournament = tournaments[index];
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 6),
+                            child: _FeaturedTournamentCard(
+                              tournament: tournament,
+                              onTap: () {
+                                Navigator.of(context).push(
+                                  FirePageRoute(
+                                    page: TournamentDetailScreen(
+                                      tournamentId: tournament.id,
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          );
+                        },
+                      ),
                     ),
                   ),
-                ),
 
-                // Notice Items List
-                SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
-                  sliver: SliverList(
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) {
-                        final notice = notices[index];
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: _NoticeCard(notice: notice)
-                              .animate(delay: (80 * index).ms)
-                              .fadeIn(duration: 400.ms)
-                              .slideY(begin: 0.1, end: 0),
-                        );
-                      },
-                      childCount: notices.length,
+                // Community Announcements & Notice Board
+                if (notices.isNotEmpty) ...[
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 4,
+                            height: 18,
+                            decoration: BoxDecoration(
+                              gradient: AppColors.fireGradient,
+                              borderRadius: BorderRadius.circular(2),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text('NOTICES & NEWS', style: AppTextStyles.headingMd),
+                        ],
+                      ),
                     ),
                   ),
-                ),
+
+                  // Notice Items List
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
+                    sliver: SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                        (context, index) {
+                          final notice = notices[index];
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: _NoticeCard(notice: notice)
+                                .animate(delay: (80 * index).ms)
+                                .fadeIn(duration: 400.ms)
+                                .slideY(begin: 0.1, end: 0),
+                          );
+                        },
+                        childCount: notices.length,
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
