@@ -16,59 +16,9 @@ final authApiServiceProvider = Provider((ref) {
 });
 
 final authRepositoryProvider = Provider((ref) {
-  if (AppConstants.useMockData) return MockAuthRepository();
-  
   final apiService = ref.watch(authApiServiceProvider);
   return AuthRepository(apiService);
 });
-
-// Fake Repository for testing when backend is not live
-class MockAuthRepository implements AuthRepository {
-  @override
-  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
-
-  @override
-  Future<void> sendOtp(String email) async {
-    await Future.delayed(const Duration(seconds: 1));
-  }
-
-  @override
-  Future<UserModel> login(String email, String otp) async {
-    await Future.delayed(const Duration(seconds: 1));
-    return UserModel(
-      id: 'mock_user_123',
-      name: 'Test Player',
-      email: email,
-      token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
-    );
-  }
-
-  @override
-  Future<UserModel> register({
-    required String name,
-    required String email,
-    required String otp,
-  }) async {
-    await Future.delayed(const Duration(seconds: 1));
-    return UserModel(
-      id: 'mock_user_456',
-      name: name,
-      email: email,
-      token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
-    );
-  }
-
-  @override
-  Future<UserModel> socialLogin(String idToken, String provider) async {
-    await Future.delayed(const Duration(seconds: 1));
-    return UserModel(
-      id: 'mock_user_google',
-      name: 'Google User',
-      email: 'google@test.com',
-      token: 'mock_google_token',
-    );
-  }
-}
 
 // UI State Management
 enum AuthStep { enterEmail, enterOtp, verifying }
@@ -253,37 +203,7 @@ class AuthNotifier extends Notifier<AuthState> {
 
       final String idToken = googleAuth.idToken ?? googleUser.id;
 
-      UserModel user;
-      if (AppConstants.useMockData) {
-        user = UserModel(
-          id: firebaseUser?.uid ?? googleUser.id,
-          name: firebaseUser?.displayName ?? googleUser.displayName ?? 'Google Gamer',
-          email: firebaseUser?.email ?? googleUser.email,
-          profilePic: firebaseUser?.photoURL ?? googleUser.photoUrl,
-          token: 'mock_google_token_${googleUser.id}',
-        );
-      } else {
-        try {
-          user = await _repository.socialLogin(idToken, 'google');
-          if (user.name == null || user.name!.isEmpty) {
-            user = UserModel(
-              id: user.id.isNotEmpty ? user.id : (firebaseUser?.uid ?? googleUser.id),
-              name: firebaseUser?.displayName ?? googleUser.displayName ?? 'Google Gamer',
-              email: user.email.isNotEmpty ? user.email : (firebaseUser?.email ?? googleUser.email),
-              profilePic: user.profilePic ?? firebaseUser?.photoURL ?? googleUser.photoUrl,
-              token: user.token ?? 'google_token_${googleUser.id}',
-            );
-          }
-        } catch (_) {
-          user = UserModel(
-            id: firebaseUser?.uid ?? googleUser.id,
-            name: firebaseUser?.displayName ?? googleUser.displayName ?? 'Google Gamer',
-            email: firebaseUser?.email ?? googleUser.email,
-            profilePic: firebaseUser?.photoURL ?? googleUser.photoUrl,
-            token: 'google_token_${googleUser.id}',
-          );
-        }
-      }
+      final UserModel user = await _repository.socialLogin(idToken, 'google');
 
       final storage = ref.read(storageServiceProvider);
       if (user.token != null) {
