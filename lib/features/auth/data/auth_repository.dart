@@ -29,4 +29,8 @@ class AuthRepository {
   Future<UserModel> socialLogin(String idToken, String provider) async {
     return await _apiService.socialLogin(idToken, provider);
   }
+
+  Future<void> logout() async {
+    await _apiService.logout();
+  }
 }

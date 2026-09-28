@@ -3,7 +3,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import '../../../core/constants/app_constants.dart';
 import '../../splash/providers/splash_providers.dart';
 import '../data/auth_repository.dart';
 import '../data/models/user_model.dart';
@@ -232,5 +231,36 @@ class AuthNotifier extends Notifier<AuthState> {
   // Email step pe wapas jaana
   void backToEmailStep() {
     state = state.copyWith(step: AuthStep.enterEmail, errorMessage: null);
+  }
+
+  // Logout user
+  Future<void> logout() async {
+    state = state.copyWith(isLoading: true, errorMessage: null);
+
+    try {
+      // 1. Call Backend Logout API
+      await _repository.logout();
+    } catch (e) {
+      debugPrint('Backend Logout Error: $e');
+    }
+
+    try {
+      // 2. Sign out Google and Firebase Auth
+      await FirebaseAuth.instance.signOut();
+      await GoogleSignIn().signOut();
+    } catch (e) {
+      debugPrint('Sign Out Error: $e');
+    }
+
+    try {
+      // 3. Clear Local Storage
+      final storage = ref.read(storageServiceProvider);
+      await storage.clearAll();
+    } catch (e) {
+      debugPrint('Storage Clear Error: $e');
+    }
+
+    // 4. Reset Auth State
+    state = const AuthState();
   }
 }
