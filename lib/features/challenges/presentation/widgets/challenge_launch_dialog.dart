@@ -53,26 +53,38 @@ class _ChallengeLaunchDialogState extends ConsumerState<ChallengeLaunchDialog> {
     }
   }
 
-  Future<void> _handleStartChallenge() async {
-    if (!_isGameInstalled) return;
-
+  Future<void> _handleStartChallenge({bool force = false}) async {
     setState(() => _isStartingRecording = true);
 
     try {
       final recordingService = ref.read(screenRecordingServiceProvider);
       final gameLauncher = ref.read(gameLauncherServiceProvider);
 
-      // Start 480p screen recording
-      final success = await recordingService.startRecording(
-        challengeId: widget.challenge.id,
+      // 1. Try launching Free Fire game FIRST
+      bool gameLaunched = await gameLauncher.launchGame(
+        packageName: widget.challenge.gamePackage,
       );
 
-      if (success) {
-        ref.read(activeRecordingChallengeIdProvider.notifier).state = widget.challenge.id;
-        ref.read(challengesProvider.notifier).updateChallengeStatus(
-          widget.challenge.id,
-          'RECORDING',
+      // Fallback: If launch returns false but force is true, attempt direct launch of freefiremax
+      if (!gameLaunched && force) {
+        gameLaunched = await gameLauncher.launchGame(
+          packageName: 'com.dts.freefiremax',
         );
+      }
+
+      // 2. Start screen recording if game launched OR if forced launch
+      if (gameLaunched || force) {
+        final recordingStarted = await recordingService.startRecording(
+          challengeId: widget.challenge.id,
+        );
+
+        if (recordingStarted) {
+          ref.read(activeRecordingChallengeIdProvider.notifier).state = widget.challenge.id;
+          ref.read(challengesProvider.notifier).updateChallengeStatus(
+            widget.challenge.id,
+            'RECORDING',
+          );
+        }
 
         if (mounted) {
           Navigator.of(context).pop(); // Close bottom sheet
@@ -86,7 +98,7 @@ class _ChallengeLaunchDialogState extends ConsumerState<ChallengeLaunchDialog> {
                   SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      '480p Match Recording Started! Launching Free Fire...',
+                      '480p Match Recording Started! Free Fire launched.',
                       style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                     ),
                   ),
@@ -96,17 +108,23 @@ class _ChallengeLaunchDialogState extends ConsumerState<ChallengeLaunchDialog> {
             ),
           );
         }
-
-        // Launch Free Fire / Free Fire Max
-        await gameLauncher.launchGame(packageName: widget.challenge.gamePackage);
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              backgroundColor: Colors.red,
+              content: Text('Could not launch Free Fire. Please install Free Fire MAX from Play Store.'),
+            ),
+          );
+        }
       }
     } catch (e) {
-      print('Error starting challenge flow: $e');
+      debugPrint('Error starting challenge flow: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             backgroundColor: Colors.red,
-            content: Text('Failed to start recording: $e'),
+            content: Text('Failed to start challenge: $e'),
           ),
         );
       }
@@ -261,85 +279,57 @@ class _ChallengeLaunchDialogState extends ConsumerState<ChallengeLaunchDialog> {
                 ],
               ),
             ),
-          ] else if (!_isGameInstalled) ...[
-            // SCENARIO 1: Free Fire NOT installed
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.red.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: Colors.red.withValues(alpha: 0.4)),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.warning_amber_rounded, color: Colors.redAccent, size: 28),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Free Fire Not Installed',
-                          style: TextStyle(
-                            color: Colors.redAccent,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 15,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Aapke device me Free Fire game installed nahi hai. Challenge complete karne ke liye pehle Free Fire install karein.',
-                          style: AppTextStyles.bodySm.copyWith(color: AppColors.textSecondary),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () => Navigator.of(context).pop(),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.surfaceElevated,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    side: const BorderSide(color: AppColors.borderSubtle),
-                  ),
-                ),
-                child: Text('CLOSE', style: AppTextStyles.button.copyWith(color: AppColors.textPrimary)),
-              ),
-            ),
           ] else ...[
-            // SCENARIO 2: Free Fire IS installed -> START RECORDING & LAUNCH
+            // GAME STATUS CARD
             Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: AppColors.success.withValues(alpha: 0.1),
+                color: _isGameInstalled
+                    ? AppColors.success.withValues(alpha: 0.1)
+                    : AppColors.surfaceNavy,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.success.withValues(alpha: 0.3)),
+                border: Border.all(
+                  color: _isGameInstalled
+                      ? AppColors.success.withValues(alpha: 0.3)
+                      : AppColors.borderSubtle,
+                ),
               ),
-              child: const Row(
+              child: Row(
                 children: [
-                  Icon(Icons.check_circle_outline, color: AppColors.success, size: 22),
-                  SizedBox(width: 12),
+                  Icon(
+                    _isGameInstalled ? Icons.check_circle_outline : Icons.sports_esports_outlined,
+                    color: _isGameInstalled ? AppColors.success : AppColors.primaryNeon,
+                    size: 22,
+                  ),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      'Free Fire detected on device. Ready to record match at 480p.',
-                      style: TextStyle(color: AppColors.success, fontSize: 13, fontWeight: FontWeight.w600),
+                      _isGameInstalled
+                          ? 'Free Fire detected on device. Ready to record match at 480p.'
+                          : 'Launch Free Fire MAX & Start 480p Recording.',
+                      style: TextStyle(
+                        color: _isGameInstalled ? AppColors.success : AppColors.textPrimary,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
+                  if (!_isGameInstalled)
+                    IconButton(
+                      icon: const Icon(Icons.refresh, color: AppColors.primaryNeon, size: 20),
+                      tooltip: 'Re-check Game',
+                      onPressed: _checkGameInstallation,
+                    ),
                 ],
               ),
             ),
             const SizedBox(height: 20),
+
+            // MAIN START & LAUNCH BUTTON (Always active so user is never blocked!)
             SizedBox(
               width: double.infinity,
               child: GestureDetector(
-                onTap: _isStartingRecording ? null : _handleStartChallenge,
+                onTap: _isStartingRecording ? null : () => _handleStartChallenge(force: true),
                 child: Container(
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   decoration: BoxDecoration(
@@ -375,6 +365,25 @@ class _ChallengeLaunchDialogState extends ConsumerState<ChallengeLaunchDialog> {
                         ),
                       ],
                     ],
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // PLAY STORE LINK BUTTON
+            SizedBox(
+              width: double.infinity,
+              child: TextButton.icon(
+                onPressed: () {
+                  ref.read(gameLauncherServiceProvider).openPlayStoreForFreeFire();
+                },
+                icon: const Icon(Icons.download, color: AppColors.textSecondary, size: 18),
+                label: Text(
+                  'GET FREE FIRE MAX FROM PLAY STORE',
+                  style: AppTextStyles.button.copyWith(
+                    color: AppColors.textSecondary,
+                    fontSize: 12,
                   ),
                 ),
               ),
