@@ -8,6 +8,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../settings/presentation/settings_screen.dart';
 import '../providers/profile_provider.dart';
+import 'edit_profile_screen.dart';
 
 /// Profile screen — "Hero Profile" concept — Real-time API connected
 class ProfileScreen extends ConsumerWidget {
@@ -185,9 +186,13 @@ class ProfileScreen extends ConsumerWidget {
     final username = (user?.name != null && user!.name.isNotEmpty)
         ? user.name
         : 'Gamer';
-    final playerId = (user?.gameProfile?.inGameUid != null && user!.gameProfile!.inGameUid.isNotEmpty)
-        ? user.gameProfile!.inGameUid
-        : (user?.id != null && user!.id.isNotEmpty ? user.id : 'N/A');
+    final ffUid = user?.gameProfile?.inGameUid;
+    final ffUidDisplay = (ffUid != null && ffUid.isNotEmpty)
+        ? ffUid
+        : 'Not Set';
+    final inGameName = (user?.gameProfile?.inGameName != null && user!.gameProfile!.inGameName.isNotEmpty)
+        ? user.gameProfile!.inGameName
+        : 'Not Set';
     final userEmail = user?.email ?? '';
     final userRole = user?.role ?? 'Player';
     final gameName = user?.gameProfile?.gameName ?? 'Free Fire';
@@ -363,9 +368,14 @@ class ProfileScreen extends ConsumerWidget {
                   children: [
                     Expanded(
                       child: _buildOutlineButton(
-                        label: 'Edit Photo',
-                        icon: Icons.edit_rounded,
-                        onTap: () => _showImagePickerModal(context, ref),
+                        label: 'Edit Profile',
+                        icon: Icons.edit_square,
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => const EditProfileScreen()),
+                          );
+                        },
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -375,10 +385,10 @@ class ProfileScreen extends ConsumerWidget {
                         icon: Icons.ios_share_rounded,
                         onTap: () async {
                           await Clipboard.setData(
-                            ClipboardData(text: 'Blastix Arena • $username • ID: $playerId'),
+                            ClipboardData(text: 'Blastix Esports • $username • Free Fire UID: $ffUidDisplay'),
                           );
                           if (context.mounted) {
-                            _showSnack(context, 'Profile details copied to clipboard!');
+                            _showSnack(context, 'Profile details & Free Fire UID copied!');
                           }
                         },
                       ),
@@ -390,7 +400,7 @@ class ProfileScreen extends ConsumerWidget {
               const SizedBox(height: 22),
 
               // ------------------------------------------------------------
-              // 5. DETAILS CARD
+              // 5. DETAILS CARD (With Prominent Free Fire UID)
               // ------------------------------------------------------------
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -400,15 +410,16 @@ class ProfileScreen extends ConsumerWidget {
                   decoration: _cardDecoration(radius: 24),
                   child: Column(
                     children: [
-                      _buildDetailRow('Email', userEmail.isNotEmpty ? userEmail : 'Not set', Icons.email_rounded),
-                      const Divider(height: 30, color: AppColors.surfaceNavy),
+                      // Prominent Free Fire UID Box
+                      _buildFreeFireUidRow(context, ffUidDisplay),
+                      const Divider(height: 28, color: AppColors.surfaceNavy),
+                      _buildDetailRow('In-Game Name', inGameName, Icons.badge_rounded),
+                      const Divider(height: 24, color: AppColors.surfaceNavy),
                       _buildDetailRow('Main Game', gameName, Icons.gamepad_rounded),
-                      const Divider(height: 30, color: AppColors.surfaceNavy),
+                      const Divider(height: 24, color: AppColors.surfaceNavy),
+                      _buildDetailRow('Email', userEmail.isNotEmpty ? userEmail : 'Not set', Icons.email_rounded),
+                      const Divider(height: 24, color: AppColors.surfaceNavy),
                       _buildDetailRow('Role', userRole, Icons.military_tech_rounded),
-                      const Divider(height: 30, color: AppColors.surfaceNavy),
-                      _buildDetailRow('In-Game Name', user?.gameProfile?.inGameName ?? 'N/A', Icons.sports_esports_rounded),
-                      const Divider(height: 30, color: AppColors.surfaceNavy),
-                      _buildDetailRow('Player UID / ID', playerId, Icons.badge_rounded),
                     ],
                   ),
                 ),
@@ -748,6 +759,104 @@ class ProfileScreen extends ConsumerWidget {
                 fontWeight: FontWeight.w700,
                 color: AppColors.textPrimary,
               ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFreeFireUidRow(BuildContext context, String ffUid) {
+    final isSet = ffUid != 'Not Set';
+    return InkWell(
+      onTap: () {
+        if (isSet) {
+          Clipboard.setData(ClipboardData(text: ffUid));
+          _showSnack(context, 'Free Fire UID ($ffUid) copied!');
+        } else {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const EditProfileScreen()),
+          );
+        }
+      },
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceNavy,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: AppColors.primaryNeon.withValues(alpha: 0.35),
+            width: 1.2,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.primaryNeon.withValues(alpha: 0.08),
+              blurRadius: 10,
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppColors.primaryNeon.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(Icons.sports_esports_rounded, color: AppColors.primaryNeon, size: 22),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        'Free Fire UID',
+                        style: GoogleFonts.poppins(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryNeon,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          'FF',
+                          style: GoogleFonts.poppins(
+                            fontSize: 9,
+                            fontWeight: FontWeight.w900,
+                            color: AppColors.background,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    isSet ? ffUid : 'Tap to set Free Fire UID',
+                    style: GoogleFonts.poppins(
+                      fontSize: 14,
+                      fontWeight: isSet ? FontWeight.w800 : FontWeight.w500,
+                      color: isSet ? AppColors.primaryNeon : AppColors.textMuted,
+                      letterSpacing: isSet ? 0.8 : 0,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              isSet ? Icons.copy_rounded : Icons.add_circle_outline_rounded,
+              color: AppColors.primaryNeon,
+              size: 20,
             ),
           ],
         ),
