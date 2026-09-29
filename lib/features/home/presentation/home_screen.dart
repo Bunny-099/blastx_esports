@@ -97,9 +97,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               slivers: [
                 // Top App Bar / Header
                 SliverToBoxAdapter(
-                  child: _HeaderBar(
-                    username: widget.username,
-                  ),
+                  child: const _HeaderBar(),
                 ),
 
                 // Live Announcement Ticker
@@ -385,41 +383,33 @@ class _AmbientBackground extends StatelessWidget {
 }
 
 /// ------------------------------------------------------------
-/// Header Bar with BlastIX Branding & User Greeting
+/// Header Bar with BlastIX Branding
 /// ------------------------------------------------------------
 class _HeaderBar extends StatelessWidget {
-  const _HeaderBar({
-    required this.username,
-  });
-
-  final String username;
+  const _HeaderBar();
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          ShaderMask(
-            shaderCallback: (bounds) => AppColors.fireGradient
-                .createShader(Offset.zero & bounds.size),
-            child: Text(
-              'BLASTIX',
-              style: GoogleFonts.rajdhani(
-                fontSize: 26,
-                fontWeight: FontWeight.w900,
-                letterSpacing: 1.5,
-                color: Colors.white,
+    return const Padding(
+      padding: EdgeInsets.fromLTRB(20, 12, 20, 0),
+      child: SizedBox(
+        height: 50, // Layout space occupied on screen
+        child: Stack(
+          clipBehavior: Clip.none, // Baki content ko push kiye bina logo badaa render hoga
+          children: [
+            Positioned(
+              left: -10,
+              top: -40,
+              child: Image(
+                image: AssetImage('assets/logos/Logo.png'),
+                width: 100, // Explicitly increased width
+                height: 500,  // Increased height to maintain proportions
+                alignment: Alignment.topLeft,
+                fit: BoxFit.contain,
               ),
             ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            'Welcome back, $username 🎮',
-            style: AppTextStyles.bodySm.copyWith(color: AppColors.textSecondary),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
