@@ -1,5 +1,7 @@
 import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../profile/data/models/rank_model.dart';
+import '../../profile/providers/profile_provider.dart';
 import '../../splash/providers/splash_providers.dart';
 import '../data/models/challenge_model.dart';
 import '../data/repositories/challenges_repository.dart';
@@ -55,19 +57,41 @@ class ChallengesNotifier extends StateNotifier<List<ChallengeModel>> {
     }
   }
 
-  Future<void> claimReward(String id) async {
+  /// Claims reward for a completed challenge and updates total XP in Profile.
+  /// Prevents duplicate claims if already claimed.
+  Future<RankChangeResult?> claimReward(String id, {WidgetRef? ref, Ref? containerRef}) async {
+    final index = state.indexWhere((c) => c.id == id);
+    if (index == -1) return null;
+
+    final challenge = state[index];
+
+    // CRITICAL: Prevent duplicate XP claim
+    if (challenge.isClaimed) {
+      return null;
+    }
+
     try {
       await _repository.claimChallenge(id);
     } catch (e) {
       print('Claim API warning, applying local state update: $e');
     }
+
+    // Mark challenge as claimed locally
     state = [
-      for (final challenge in state)
-        if (challenge.id == id)
-          challenge.copyWith(isClaimed: true, isCompleted: true, status: 'CLAIMED')
+      for (final c in state)
+        if (c.id == id)
+          c.copyWith(isClaimed: true, isCompleted: true, status: 'CLAIMED')
         else
-          challenge
+          c
     ];
+
+    // Award XP to user profile and return RankChangeResult
+    if (ref != null) {
+      return await ref.read(profileProvider.notifier).addXP(challenge.rewardXP);
+    } else if (containerRef != null) {
+      return await containerRef.read(profileProvider.notifier).addXP(challenge.rewardXP);
+    }
+    return null;
   }
 
   void markProofSubmitted(String id) {
@@ -109,7 +133,7 @@ final dailyProgressProvider = Provider<double>((ref) {
 });
 
 final claimChallengeProvider = Provider((ref) {
-  return (String id) {
-    ref.read(challengesProvider.notifier).claimReward(id);
+  return (String id) async {
+    return await ref.read(challengesProvider.notifier).claimReward(id, containerRef: ref);
   };
 });

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../profile/presentation/widgets/rank_up_dialog.dart';
 import '../data/models/challenge_model.dart';
 import '../providers/challenges_provider.dart';
 import 'widgets/active_recording_overlay.dart';
@@ -169,8 +170,13 @@ class ChallengesScreen extends ConsumerWidget {
                               final challenge = filteredChallenges[index];
                               return ChallengeCard(
                                 challenge: challenge,
-                                onClaim: () {
-                                  ref.read(claimChallengeProvider)(challenge.id);
+                                onClaim: () async {
+                                  final result = await ref
+                                      .read(challengesProvider.notifier)
+                                      .claimReward(challenge.id, ref: ref);
+
+                                  if (!context.mounted) return;
+
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
                                       backgroundColor: AppColors.surfaceNavy,
@@ -187,6 +193,14 @@ class ChallengesScreen extends ConsumerWidget {
                                       duration: const Duration(seconds: 2),
                                     ),
                                   );
+
+                                  if (result != null && result.rankChanged) {
+                                    RankUpDialog.show(
+                                      context,
+                                      previousRank: result.previousRank,
+                                      currentRank: result.currentRank,
+                                    );
+                                  }
                                 },
                               ).animate(delay: (80 * index).ms)
                                .fadeIn(duration: 400.ms)
