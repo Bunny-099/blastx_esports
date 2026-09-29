@@ -217,7 +217,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                           onTap: () {
                             ref
                                 .read(navigationIndexProvider.notifier)
-                                .state = 2; // Tournaments tab
+                                .state = 1; // Tournaments tab
                           },
                           child: Text(
                             'View All ➔',
@@ -694,17 +694,17 @@ class _QuickActionGrid extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final actions = [
       _QuickActionData(
-        title: 'Live Matches',
-        subtitle: 'Watch Streams',
-        icon: Icons.live_tv_rounded,
-        color: AppColors.primaryNeon,
-        onTap: () => ref.read(navigationIndexProvider.notifier).state = 1,
-      ),
-      _QuickActionData(
         title: 'Tournaments',
         subtitle: 'Join & Win',
         icon: Icons.emoji_events_rounded,
         color: AppColors.glowSoft,
+        onTap: () => ref.read(navigationIndexProvider.notifier).state = 1,
+      ),
+      _QuickActionData(
+        title: 'Live Matches',
+        subtitle: 'Watch Streams',
+        icon: Icons.live_tv_rounded,
+        color: AppColors.primaryNeon,
         onTap: () => ref.read(navigationIndexProvider.notifier).state = 2,
       ),
       _QuickActionData(

@@ -21,8 +21,8 @@ class MainScreen extends ConsumerWidget {
 
     final List<Widget> screens = [
       const HomeScreen(),
-      const LiveScreen(),
       const TournamentsScreen(),
+      const LiveScreen(),
       const ChallengesScreen(),
       const ProfileScreen(),
     ];
@@ -54,10 +54,10 @@ class MainScreen extends ConsumerWidget {
           ),
           CurvedNavigationBarItem(
             child: Icon(
-              Icons.live_tv_rounded,
+              Icons.emoji_events_rounded,
               color: selectedIndex == 1 ? Colors.white : AppColors.textSecondary,
             ),
-            label: 'Live',
+            label: 'Tournaments',
             labelStyle: GoogleFonts.poppins(
               fontSize: 11,
               fontWeight: FontWeight.w600,
@@ -66,10 +66,10 @@ class MainScreen extends ConsumerWidget {
           ),
           CurvedNavigationBarItem(
             child: Icon(
-              Icons.emoji_events_rounded,
+              Icons.live_tv_rounded,
               color: selectedIndex == 2 ? Colors.white : AppColors.textSecondary,
             ),
-            label: 'Tournaments',
+            label: 'Live',
             labelStyle: GoogleFonts.poppins(
               fontSize: 11,
               fontWeight: FontWeight.w600,
