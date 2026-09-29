@@ -123,23 +123,28 @@ class ChallengeCard extends StatelessWidget {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Text(
-                                  isProofSubmitted
-                                      ? 'Proof Submitted'
-                                      : isRecording
-                                          ? 'Recording Match...'
-                                          : challenge.isCompleted
-                                              ? 'Completed'
-                                              : 'Progress',
-                                  style: AppTextStyles.caption.copyWith(
-                                    color: isRecording
-                                        ? Colors.redAccent
-                                        : isProofSubmitted || challenge.isCompleted
-                                            ? AppColors.success
-                                            : AppColors.textSecondary,
-                                    fontWeight: FontWeight.w600,
+                                Expanded(
+                                  child: Text(
+                                    isProofSubmitted
+                                        ? 'Proof Submitted'
+                                        : isRecording
+                                            ? 'Recording Match...'
+                                            : challenge.isCompleted
+                                                ? 'Completed'
+                                                : 'Progress',
+                                    style: AppTextStyles.caption.copyWith(
+                                      color: isRecording
+                                          ? Colors.redAccent
+                                          : isProofSubmitted || challenge.isCompleted
+                                              ? AppColors.success
+                                              : AppColors.textSecondary,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
+                                const SizedBox(width: 6),
                                 Text(
                                   '${challenge.currentProgress.toInt()} / ${challenge.targetProgress.toInt()}',
                                   style: AppTextStyles.caption.copyWith(
@@ -157,7 +162,7 @@ class ChallengeCard extends StatelessWidget {
                           ],
                         ),
                       ),
-                      const SizedBox(width: 16),
+                      const SizedBox(width: 12),
                       _ActionButton(
                         challenge: challenge,
                         onClaim: onClaim,
@@ -298,16 +303,17 @@ class _ActionButton extends StatelessWidget {
   Widget build(BuildContext context) {
     if (challenge.isClaimed) {
       return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
           color: AppColors.surfaceNavy,
           borderRadius: BorderRadius.circular(10),
           border: Border.all(color: AppColors.borderSubtle),
         ),
         child: const Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.check_circle, color: AppColors.success, size: 18),
-            SizedBox(width: 6),
+            Icon(Icons.check_circle, color: AppColors.success, size: 16),
+            SizedBox(width: 4),
             Text(
               'CLAIMED',
               style: TextStyle(color: AppColors.success, fontSize: 11, fontWeight: FontWeight.bold),
@@ -334,16 +340,17 @@ class _ActionButton extends StatelessWidget {
 
     if (challenge.status == 'RECORDING') {
       return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         decoration: BoxDecoration(
           color: Colors.red.withValues(alpha: 0.15),
           borderRadius: BorderRadius.circular(10),
           border: Border.all(color: Colors.red.withValues(alpha: 0.5)),
         ),
         child: const Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
             Icon(Icons.fiber_manual_record, color: Colors.red, size: 12),
-            SizedBox(width: 6),
+            SizedBox(width: 4),
             Text(
               'RECORDING',
               style: TextStyle(color: Colors.red, fontSize: 11, fontWeight: FontWeight.bold),
@@ -385,7 +392,7 @@ class _ActionButton extends StatelessWidget {
     return GestureDetector(
       onTap: onGo,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
         decoration: BoxDecoration(
           color: Colors.transparent,
           borderRadius: BorderRadius.circular(10),
@@ -398,6 +405,7 @@ class _ActionButton extends StatelessWidget {
           ],
         ),
         child: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
             const Icon(Icons.play_arrow_rounded, color: AppColors.primaryNeon, size: 18),
             const SizedBox(width: 4),

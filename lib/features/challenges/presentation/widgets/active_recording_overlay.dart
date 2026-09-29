@@ -118,7 +118,7 @@ class _ActiveRecordingOverlayState extends ConsumerState<ActiveRecordingOverlay>
         );
       }
     } catch (e) {
-      print('Upload proof error: $e');
+      debugPrint('Upload proof error: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -180,15 +180,19 @@ class _ActiveRecordingOverlayState extends ConsumerState<ActiveRecordingOverlay>
               children: [
                 Row(
                   children: [
-                    Text(
-                      'MATCH RECORDING (480P)',
-                      style: AppTextStyles.caption.copyWith(
-                        color: Colors.redAccent,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 11,
+                    Flexible(
+                      child: Text(
+                        'MATCH RECORDING (480P)',
+                        style: AppTextStyles.caption.copyWith(
+                          color: Colors.redAccent,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 11,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 6),
                     Text(
                       _formatTime(_seconds),
                       style: AppTextStyles.caption.copyWith(
@@ -206,6 +210,8 @@ class _ActiveRecordingOverlayState extends ConsumerState<ActiveRecordingOverlay>
                     color: AppColors.textSecondary,
                     fontSize: 10,
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),
@@ -224,7 +230,7 @@ class _ActiveRecordingOverlayState extends ConsumerState<ActiveRecordingOverlay>
             GestureDetector(
               onTap: activeChallengeId != null ? () => _handleStopAndUpload(activeChallengeId) : null,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                 decoration: BoxDecoration(
                   gradient: AppColors.cyanIceGradient,
                   borderRadius: BorderRadius.circular(10),
@@ -238,8 +244,8 @@ class _ActiveRecordingOverlayState extends ConsumerState<ActiveRecordingOverlay>
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.cloud_upload_rounded, color: AppColors.bgNavy, size: 16),
-                    const SizedBox(width: 6),
+                    const Icon(Icons.cloud_upload_rounded, color: AppColors.bgNavy, size: 15),
+                    const SizedBox(width: 4),
                     Text(
                       'STOP & UPLOAD',
                       style: AppTextStyles.button.copyWith(

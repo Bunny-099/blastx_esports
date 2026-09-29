@@ -204,6 +204,7 @@ class _ChallengeLaunchDialogState extends ConsumerState<ChallengeLaunchDialog> {
                   border: Border.all(color: AppColors.glowLight.withValues(alpha: 0.4)),
                 ),
                 child: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     const Icon(Icons.star_rounded, color: AppColors.glowLight, size: 16),
                     const SizedBox(width: 4),
@@ -354,13 +355,18 @@ class _ChallengeLaunchDialogState extends ConsumerState<ChallengeLaunchDialog> {
                         )
                       else ...[
                         const Icon(Icons.fiber_manual_record, color: Colors.white, size: 20),
-                        const SizedBox(width: 10),
-                        Text(
-                          'START 480P RECORDING & LAUNCH GAME',
-                          style: AppTextStyles.button.copyWith(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 0.5,
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: Text(
+                            'START 480P RECORDING & LAUNCH GAME',
+                            style: AppTextStyles.button.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 0.5,
+                              fontSize: 12,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
                       ],
