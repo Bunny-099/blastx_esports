@@ -1,12 +1,14 @@
 import 'package:dio/dio.dart';
+import '../services/device_info_service.dart';
 import '../services/storage_service.dart';
 import 'api_endpoints.dart';
 
 class ApiClient {
   late final Dio _dio;
   final StorageService _storageService;
+  final DeviceInfoService _deviceInfoService;
 
-  ApiClient(this._storageService) {
+  ApiClient(this._storageService, this._deviceInfoService) {
     _dio = Dio(
       BaseOptions(
         baseUrl: ApiEndpoints.baseUrl,
@@ -25,6 +27,12 @@ class ApiClient {
         if (token != null) {
           options.headers['Authorization'] = 'Bearer $token';
         }
+
+        try {
+          final deviceInfo = await _deviceInfoService.getDeviceInfo();
+          options.headers.addAll(deviceInfo.toHeaders());
+        } catch (_) {}
+
         return handler.next(options);
       },
       onError: (DioException e, handler) async {
@@ -35,7 +43,6 @@ class ApiClient {
         if (e.response?.statusCode == 401) {
           // Auto logout on token expiry
           await _storageService.deleteToken();
-          // Optionally notify a provider to redirect to login
         }
         return handler.next(e);
       },
