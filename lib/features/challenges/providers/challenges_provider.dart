@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../core/api/api_client.dart';
-import '../../../core/services/storage_service.dart';
+import '../../splash/providers/splash_providers.dart';
 import '../data/models/challenge_model.dart';
 import '../data/repositories/challenges_repository.dart';
 import '../data/services/challenges_api_service.dart';
@@ -10,7 +9,7 @@ import '../data/services/screen_recording_service.dart';
 
 // Services & Repository Providers
 final challengesApiServiceProvider = Provider<ChallengesApiService>((ref) {
-  final apiClient = ApiClient(StorageService());
+  final apiClient = ref.watch(apiClientProvider);
   return ChallengesApiService(apiClient);
 });
 
