@@ -16,6 +16,8 @@ class ApiEndpoints {
   // User Profile & Game Profile Endpoints
   static const String userMe = '/users/me';
   static const String userGameProfile = '/users/me/game-profile';
+  static const String userRank = '/users/me/rank';
+  static String userRankByUserId(String userId) => '/users/$userId/rank';
 
   // Tournaments Endpoints
   static const String tournaments = '/tournaments';

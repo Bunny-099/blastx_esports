@@ -94,4 +94,7 @@ class UserRepository {
 
     return updatedUser;
   }
+
+  Future<Map<String, dynamic>?> getUserRank({String? userId}) =>
+      _apiService.getUserRank(userId: userId);
 }

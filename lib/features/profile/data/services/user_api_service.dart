@@ -53,4 +53,17 @@ class UserApiService {
     );
     return GameProfileModel.fromJson(Map<String, dynamic>.from(responseData as Map));
   }
+
+  Future<Map<String, dynamic>?> getUserRank({String? userId}) async {
+    try {
+      final endpoint = userId != null ? ApiEndpoints.userRankByUserId(userId) : ApiEndpoints.userRank;
+      final responseData = await _apiClient.get(endpoint);
+      if (responseData is Map<String, dynamic>) {
+        return responseData;
+      }
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
 }
