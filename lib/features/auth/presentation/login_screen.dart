@@ -4,7 +4,9 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:pushable_button/pushable_button.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/custom_textfield.dart';
+import '../../splash/providers/splash_providers.dart';
 import '../providers/auth_provider.dart';
+import 'ios_waitlist_dialog.dart';
 import 'signup_screen.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -155,10 +157,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             if (!mounted) return;
                             
                             if (success) {
-                              navigator.pushNamedAndRemoveUntil(
-                                '/home',
-                                (route) => false,
-                              );
+                              final isIos = ref.read(deviceInfoServiceProvider).isIos;
+                              if (isIos) {
+                                if (context.mounted) {
+                                  await IosWaitlistDialog.show(context);
+                                }
+                              } else {
+                                navigator.pushNamedAndRemoveUntil(
+                                  '/home',
+                                  (route) => false,
+                                );
+                              }
                             }
                           },
                         ),
@@ -190,10 +199,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     if (!mounted) return;
 
                     if (success) {
-                      navigator.pushNamedAndRemoveUntil(
-                        '/home',
-                        (route) => false,
-                      );
+                      final isIos = ref.read(deviceInfoServiceProvider).isIos;
+                      if (isIos) {
+                        if (context.mounted) {
+                          await IosWaitlistDialog.show(context);
+                        }
+                      } else {
+                        navigator.pushNamedAndRemoveUntil(
+                          '/home',
+                          (route) => false,
+                        );
+                      }
                     }
                   }),
 
