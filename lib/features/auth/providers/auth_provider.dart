@@ -11,7 +11,8 @@ import '../data/services/auth_api_service.dart';
 // Providers for Data Layer
 final authApiServiceProvider = Provider((ref) {
   final apiClient = ref.watch(apiClientProvider);
-  return AuthApiService(apiClient);
+  final deviceInfoService = ref.watch(deviceInfoServiceProvider);
+  return AuthApiService(apiClient, deviceInfoService);
 });
 
 final authRepositoryProvider = Provider((ref) {
