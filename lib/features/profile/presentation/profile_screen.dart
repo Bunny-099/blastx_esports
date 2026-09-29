@@ -9,6 +9,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../settings/presentation/settings_screen.dart';
 import '../providers/profile_provider.dart';
 import 'edit_profile_screen.dart';
+import 'widgets/rank_card.dart';
 
 /// Profile screen — "Hero Profile" concept — Real-time API connected
 class ProfileScreen extends ConsumerWidget {
@@ -319,6 +320,17 @@ class ProfileScreen extends ConsumerWidget {
                     ),
                   ),
                 ),
+
+              // ------------------------------------------------------------
+              // 2.5. RANK & XP PROGRESSION
+              // ------------------------------------------------------------
+              if (user != null)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: RankCard(user: user),
+                ),
+
+              const SizedBox(height: 18),
 
               // ------------------------------------------------------------
               // 3. STATS

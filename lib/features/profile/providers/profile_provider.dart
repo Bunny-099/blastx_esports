@@ -6,8 +6,10 @@ import 'package:image_picker/image_picker.dart';
 import '../../splash/providers/splash_providers.dart';
 import '../../tournaments/data/repositories/tournament_repository.dart';
 import '../data/models/game_profile_model.dart';
+import '../data/models/rank_model.dart';
 import '../data/models/user_profile_model.dart';
 import '../data/repositories/user_repository.dart';
+import '../domain/rank_system.dart';
 
 class ProfileState {
   final UserProfileModel? user;
@@ -96,7 +98,7 @@ class ProfileNotifier extends Notifier<ProfileState> {
       debugPrint('ProfileNotifier loadProfile error: $e');
       debugPrint(stackTrace.toString());
 
-      // Fallback: Check if we have saved user profile data locally (e.g. from Google Sign-In)
+      // Fallback: Check if we have saved user profile data locally
       final savedUserJson = storage.getString('user_profile_data');
       if (savedUserJson != null && savedUserJson.isNotEmpty) {
         try {
@@ -115,6 +117,34 @@ class ProfileNotifier extends Notifier<ProfileState> {
         errorMessage: 'Failed to load profile. Tap to retry.',
       );
     }
+  }
+
+  /// Safely adds claimed XP to total user XP, recalculates rank, persists locally, and returns [RankChangeResult].
+  Future<RankChangeResult?> addXP(int amount) async {
+    if (amount <= 0) return null;
+    final currentUser = state.user;
+    if (currentUser == null) return null;
+
+    final result = RankSystem.calculateXPClaim(
+      currentXP: currentUser.xp,
+      claimedXP: amount,
+    );
+
+    final updatedUser = currentUser.copyWith(
+      xp: result.totalXP,
+      rank: result.currentRank.number,
+    );
+
+    // Save user JSON locally
+    try {
+      final storage = ref.read(storageServiceProvider);
+      await storage.saveString('user_profile_data', jsonEncode(updatedUser.toJson()));
+    } catch (e) {
+      debugPrint('Error persisting user_profile_data after claiming XP: $e');
+    }
+
+    state = state.copyWith(user: updatedUser);
+    return result;
   }
 
   /// Update user name / tagline on API

@@ -1,4 +1,6 @@
+import '../../domain/rank_system.dart';
 import 'game_profile_model.dart';
+import 'rank_model.dart';
 
 class UserProfileModel {
   final String id;
@@ -30,8 +32,14 @@ class UserProfileModel {
     this.totalKills = 0,
     this.winRate = '0%',
     this.xp = 0,
-    this.rank = 0,
+    this.rank = 1,
   });
+
+  /// Computed rank progress and metrics from total XP
+  RankProgressInfo get rankInfo => RankSystem.getRankProgress(xp);
+
+  /// Current rank tier derived from RankSystem
+  RankTier get currentRankTier => RankSystem.getRankFromXP(xp);
 
   factory UserProfileModel.fromJson(Map<String, dynamic> json) {
     final tPlayed = (json['tournaments_played'] ??
@@ -53,7 +61,9 @@ class UserProfileModel {
         json['winRate']?.toString() ??
         '${(tPlayed > 0 ? (tWon / tPlayed * 100).toStringAsFixed(1) : '0')}%';
     final userXp = (json['xp'] as num?)?.toInt() ?? 0;
-    final userRank = (json['rank'] as num?)?.toInt() ?? 0;
+    final calculatedRank = RankSystem.getRankFromXP(userXp).number;
+    final parsedRank = (json['rank'] as num?)?.toInt();
+    final userRank = (parsedRank != null && parsedRank > 0) ? parsedRank : calculatedRank;
 
     return UserProfileModel(
       id: json['id']?.toString() ?? json['_id']?.toString() ?? '',
@@ -115,6 +125,9 @@ class UserProfileModel {
     int? xp,
     int? rank,
   }) {
+    final nextXp = xp ?? this.xp;
+    final nextRankNumber = rank ?? (xp != null ? RankSystem.getRankFromXP(nextXp).number : this.rank);
+
     return UserProfileModel(
       id: id,
       name: name ?? this.name,
@@ -128,8 +141,8 @@ class UserProfileModel {
       tournamentsWon: tournamentsWon ?? this.tournamentsWon,
       totalKills: totalKills ?? this.totalKills,
       winRate: winRate ?? this.winRate,
-      xp: xp ?? this.xp,
-      rank: rank ?? this.rank,
+      xp: nextXp,
+      rank: nextRankNumber,
     );
   }
 }
