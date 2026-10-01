@@ -8,11 +8,13 @@ import 'challenge_launch_dialog.dart';
 class ChallengeCard extends StatelessWidget {
   final ChallengeModel challenge;
   final VoidCallback? onClaim;
+  final VoidCallback? onStopAndUpload;
 
   const ChallengeCard({
     super.key,
     required this.challenge,
     this.onClaim,
+    this.onStopAndUpload,
   });
 
   @override
@@ -166,6 +168,7 @@ class ChallengeCard extends StatelessWidget {
                       _ActionButton(
                         challenge: challenge,
                         onClaim: onClaim,
+                        onStopAndUpload: onStopAndUpload,
                         onGo: () => ChallengeLaunchDialog.show(context, challenge),
                       ),
                     ],
@@ -291,11 +294,13 @@ class _ProgressBar extends StatelessWidget {
 class _ActionButton extends StatelessWidget {
   final ChallengeModel challenge;
   final VoidCallback? onClaim;
+  final VoidCallback? onStopAndUpload;
   final VoidCallback? onGo;
 
   const _ActionButton({
     required this.challenge,
     this.onClaim,
+    this.onStopAndUpload,
     this.onGo,
   });
 
@@ -339,23 +344,31 @@ class _ActionButton extends StatelessWidget {
     }
 
     if (challenge.status == 'RECORDING') {
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-        decoration: BoxDecoration(
-          color: Colors.red.withValues(alpha: 0.15),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: Colors.red.withValues(alpha: 0.5)),
-        ),
-        child: const Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.fiber_manual_record, color: Colors.red, size: 12),
-            SizedBox(width: 4),
-            Text(
-              'RECORDING',
-              style: TextStyle(color: Colors.red, fontSize: 11, fontWeight: FontWeight.bold),
-            ),
-          ],
+      return GestureDetector(
+        onTap: onStopAndUpload,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(colors: [Colors.red, Colors.deepOrange]),
+            borderRadius: BorderRadius.circular(10),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.red.withValues(alpha: 0.4),
+                blurRadius: 8,
+              ),
+            ],
+          ),
+          child: const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.cloud_upload_rounded, color: Colors.white, size: 14),
+              SizedBox(width: 4),
+              Text(
+                'STOP & UPLOAD',
+                style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
         ),
       );
     }

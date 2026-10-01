@@ -8,6 +8,8 @@ import android.content.ServiceConnection
 import android.media.projection.MediaProjectionManager
 import android.os.Build
 import android.os.IBinder
+import android.util.DisplayMetrics
+import android.util.Log
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -87,7 +89,8 @@ class MainActivity : FlutterActivity() {
                 }
 
                 "isRecording" -> {
-                    result.success(screenRecordService != null)
+                    val active = screenRecordService?.isRecordingActive() ?: false
+                    result.success(active)
                 }
 
                 else -> result.notImplemented()
@@ -106,10 +109,21 @@ class MainActivity : FlutterActivity() {
             pendingResult = null
 
             if (resultCode == Activity.RESULT_OK && data != null && filePath != null) {
+                val metrics = DisplayMetrics()
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    display?.getRealMetrics(metrics)
+                } else {
+                    @Suppress("DEPRECATION")
+                    windowManager.defaultDisplay.getMetrics(metrics)
+                }
+
                 val serviceIntent = Intent(this, ScreenRecordService::class.java).apply {
                     putExtra(ScreenRecordService.EXTRA_RESULT_CODE, resultCode)
                     putExtra(ScreenRecordService.EXTRA_RESULT_DATA, data)
                     putExtra(ScreenRecordService.EXTRA_FILE_PATH, filePath)
+                    putExtra(ScreenRecordService.EXTRA_SCREEN_WIDTH, metrics.widthPixels)
+                    putExtra(ScreenRecordService.EXTRA_SCREEN_HEIGHT, metrics.heightPixels)
+                    putExtra(ScreenRecordService.EXTRA_SCREEN_DENSITY, metrics.densityDpi)
                 }
 
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -119,8 +133,11 @@ class MainActivity : FlutterActivity() {
                 }
 
                 bindService(serviceIntent, connection, Context.BIND_AUTO_CREATE)
+
+                // Return true immediately as mediaProjection permission is granted
                 result?.success(true)
             } else {
+                Log.w("MainActivity", "Screen capture permission denied or canceled by user")
                 result?.success(false)
             }
         }

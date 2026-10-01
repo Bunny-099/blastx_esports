@@ -60,35 +60,22 @@ class _ChallengeLaunchDialogState extends ConsumerState<ChallengeLaunchDialog> {
       final recordingService = ref.read(screenRecordingServiceProvider);
       final gameLauncher = ref.read(gameLauncherServiceProvider);
 
-      // 1. Try launching Free Fire game FIRST
-      bool gameLaunched = await gameLauncher.launchGame(
-        packageName: widget.challenge.gamePackage,
+      // 1. Start 480p Screen Recording FIRST (Prompt system permission dialog in BlastIX foreground)
+      final recordingStarted = await recordingService.startRecording(
+        challengeId: widget.challenge.id,
       );
 
-      // Fallback: If launch returns false but force is true, attempt direct launch of freefiremax
-      if (!gameLaunched && force) {
-        gameLaunched = await gameLauncher.launchGame(
-          packageName: 'com.dts.freefiremax',
+      if (recordingStarted) {
+        // Update Riverpod State
+        ref.read(activeRecordingChallengeIdProvider.notifier).state = widget.challenge.id;
+        ref.read(challengesProvider.notifier).updateChallengeStatus(
+          widget.challenge.id,
+          'RECORDING',
         );
-      }
-
-      // 2. Start screen recording if game launched OR if forced launch
-      if (gameLaunched || force) {
-        final recordingStarted = await recordingService.startRecording(
-          challengeId: widget.challenge.id,
-        );
-
-        if (recordingStarted) {
-          ref.read(activeRecordingChallengeIdProvider.notifier).state = widget.challenge.id;
-          ref.read(challengesProvider.notifier).updateChallengeStatus(
-            widget.challenge.id,
-            'RECORDING',
-          );
-        }
 
         if (mounted) {
-          Navigator.of(context).pop(); // Close bottom sheet
-          
+          Navigator.of(context).pop(); // Close bottom sheet modal
+
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               backgroundColor: AppColors.primaryDeep,
@@ -98,7 +85,7 @@ class _ChallengeLaunchDialogState extends ConsumerState<ChallengeLaunchDialog> {
                   SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      '480p Match Recording Started! Free Fire launched.',
+                      '480p Recording Active! Launching Free Fire...',
                       style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                     ),
                   ),
@@ -108,12 +95,24 @@ class _ChallengeLaunchDialogState extends ConsumerState<ChallengeLaunchDialog> {
             ),
           );
         }
+
+        // 2. Launch Free Fire game SECOND (after recording is smoothly active)
+        bool gameLaunched = await gameLauncher.launchGame(
+          packageName: widget.challenge.gamePackage,
+        );
+
+        // Fallback: If launch returns false but force is true, attempt direct launch of freefiremax
+        if (!gameLaunched && force) {
+          await gameLauncher.launchGame(
+            packageName: 'com.dts.freefiremax',
+          );
+        }
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              backgroundColor: Colors.red,
-              content: Text('Could not launch Free Fire. Please install Free Fire MAX from Play Store.'),
+              backgroundColor: Colors.redAccent,
+              content: Text('Screen capture permission is required to start match recording.'),
             ),
           );
         }

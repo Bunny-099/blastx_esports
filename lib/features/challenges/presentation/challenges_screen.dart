@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -12,6 +13,120 @@ import 'widgets/challenge_header.dart';
 
 class ChallengesScreen extends ConsumerWidget {
   const ChallengesScreen({super.key});
+
+  Future<void> _handleStopAndUpload(BuildContext context, WidgetRef ref, String challengeId) async {
+    final recordingService = ref.read(screenRecordingServiceProvider);
+    final repository = ref.read(challengesRepositoryProvider);
+
+    ref.read(isUploadingProofProvider.notifier).state = true;
+
+    try {
+      File? uploadFile = await recordingService.stopRecording();
+
+      if (uploadFile == null || !await uploadFile.exists()) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              backgroundColor: AppColors.surfaceNavy,
+              content: Text('No automatic screen recording found. Please select your recorded match video proof from gallery.'),
+              duration: Duration(seconds: 3),
+            ),
+          );
+        }
+        uploadFile = await recordingService.pickVideoProof();
+      }
+
+      if (uploadFile == null || !await uploadFile.exists()) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              backgroundColor: Colors.red,
+              content: Text('No valid proof file selected to upload'),
+            ),
+          );
+        }
+        return;
+      }
+
+      final int fileSize = await uploadFile.length();
+      debugPrint('Final Video Size: $fileSize bytes');
+
+      if (fileSize < 100 * 1024) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              backgroundColor: Colors.redAccent,
+              content: Text('Recording was not saved properly. Minimum required size is 100 KB.'),
+              duration: Duration(seconds: 4),
+            ),
+          );
+        }
+        return;
+      }
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            backgroundColor: AppColors.surfaceNavy,
+            content: Row(
+              children: [
+                SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primaryNeon),
+                ),
+                SizedBox(width: 12),
+                Text('Uploading 480p match recording to server...'),
+              ],
+            ),
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+
+      await repository.uploadProofAndDeleteLocal(
+        challengeId: challengeId,
+        videoFile: uploadFile,
+      );
+
+      ref.read(challengesProvider.notifier).markProofSubmitted(challengeId);
+      ref.read(activeRecordingChallengeIdProvider.notifier).state = null;
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: AppColors.success,
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle, color: Colors.white, size: 20),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Match recording uploaded successfully! Temp video auto-deleted.',
+                    style: AppTextStyles.bodySm.copyWith(color: Colors.white, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
+            ),
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('Upload proof error: $e');
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: Colors.red,
+            content: Text('Upload error: $e'),
+          ),
+        );
+      }
+    } finally {
+      ref.read(isUploadingProofProvider.notifier).state = false;
+      recordingService.reset();
+    }
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -155,7 +270,7 @@ class ChallengesScreen extends ConsumerWidget {
                                     const SizedBox(height: 16),
                                     Text(
                                       'No challenges available in this category.',
-                                      style: AppTextStyles.bodyMd.copyWith(color: AppColors.textSecondary),
+                                      style: AppTextStyles.bodySm.copyWith(color: AppColors.textSecondary),
                                     ),
                                   ],
                                 ),
@@ -170,6 +285,7 @@ class ChallengesScreen extends ConsumerWidget {
                               final challenge = filteredChallenges[index];
                               return ChallengeCard(
                                 challenge: challenge,
+                                onStopAndUpload: () => _handleStopAndUpload(context, ref, challenge.id),
                                 onClaim: () async {
                                   final result = await ref
                                       .read(challengesProvider.notifier)

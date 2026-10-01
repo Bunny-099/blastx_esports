@@ -17,9 +17,10 @@ import android.os.Build
 import android.os.IBinder
 import android.util.DisplayMetrics
 import android.util.Log
-import android.view.WindowManager
 import androidx.core.app.NotificationCompat
 import java.io.File
+import kotlin.math.max
+import kotlin.math.min
 
 class ScreenRecordService : Service() {
 
@@ -37,9 +38,20 @@ class ScreenRecordService : Service() {
 
     override fun onBind(intent: Intent?): IBinder = binder
 
+    fun isRecordingActive(): Boolean = isRecording
+
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
+    }
+
+    private fun <T : android.os.Parcelable> Intent.getParcelableExtraCompat(key: String, clazz: java.lang.Class<T>): T? {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            this.getParcelableExtra(key, clazz)
+        } else {
+            @Suppress("DEPRECATION")
+            this.getParcelableExtra(key)
+        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -52,7 +64,7 @@ class ScreenRecordService : Service() {
                     ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION
                 )
             } catch (e: Exception) {
-                Log.e(TAG, "Error starting foreground service with type: ${e.message}")
+                Log.e(TAG, "Error starting foreground service: ${e.message}")
                 startForeground(NOTIFICATION_ID, notification)
             }
         } else {
@@ -62,22 +74,34 @@ class ScreenRecordService : Service() {
         intent?.let {
             if (it.hasExtra(EXTRA_RESULT_CODE) && it.hasExtra(EXTRA_RESULT_DATA)) {
                 val resultCode = it.getIntExtra(EXTRA_RESULT_CODE, 0)
-                val resultData = it.getParcelableExtra<Intent>(EXTRA_RESULT_DATA)
+                val resultData = it.getParcelableExtraCompat(EXTRA_RESULT_DATA, Intent::class.java)
                 val filePath = it.getStringExtra(EXTRA_FILE_PATH)
+                val screenWidth = it.getIntExtra(EXTRA_SCREEN_WIDTH, 1080)
+                val screenHeight = it.getIntExtra(EXTRA_SCREEN_HEIGHT, 2400)
+                val screenDensity = it.getIntExtra(EXTRA_SCREEN_DENSITY, DisplayMetrics.DENSITY_DEFAULT)
 
                 if (resultData != null && filePath != null) {
-                    startRecordingInternal(resultCode, resultData, filePath)
+                    startRecordingInternal(resultCode, resultData, filePath, screenWidth, screenHeight, screenDensity)
+                } else {
+                    Log.e(TAG, "Failed to extract resultData Intent or filePath from extras")
                 }
             }
         }
 
-        return START_NOT_STICKY
+        return Service.START_NOT_STICKY
     }
 
-    fun startRecordingInternal(resultCode: Int, resultData: Intent, filePath: String): Boolean {
+    fun startRecordingInternal(
+        resultCode: Int,
+        resultData: Intent,
+        filePath: String,
+        screenWidth: Int,
+        screenHeight: Int,
+        screenDensity: Int
+    ): Boolean {
         if (isRecording) {
-            Log.w(TAG, "Already recording")
-            return false
+            Log.w(TAG, "Already recording, returning true")
+            return true
         }
 
         try {
@@ -91,34 +115,33 @@ class ScreenRecordService : Service() {
                 return false
             }
 
-            // Register callback for Android Q+ media projection stop
             mediaProjection?.registerCallback(object : MediaProjection.Callback() {
                 override fun onStop() {
-                    Log.d(TAG, "MediaProjection stopped by system or user")
-                    stopRecordingInternal()
+                    Log.d(TAG, "MediaProjection callback onStop received")
                 }
             }, null)
 
-            val windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
-            val metrics = DisplayMetrics()
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                display?.getRealMetrics(metrics)
+            var width = screenWidth
+            var height = screenHeight
+            val densityDpi = screenDensity
+
+            val minDim = min(width, height)
+            val maxDim = max(width, height)
+
+            val scale = 480.0 / minDim.toDouble()
+            val targetMin = 480
+            var targetMax = ((maxDim * scale).toInt() / 16) * 16
+            if (targetMax < 640) targetMax = 640
+
+            if (width > height) {
+                width = targetMax
+                height = targetMin
             } else {
-                @Suppress("DEPRECATION")
-                windowManager.defaultDisplay.getMetrics(metrics)
+                width = targetMin
+                height = targetMax
             }
 
-            var width = metrics.widthPixels
-            var height = metrics.heightPixels
-            val densityDpi = metrics.densityDpi
-
-            // Scale down for 480p match recording efficiency
-            val targetHeight = 480
-            if (height > targetHeight) {
-                val ratio = targetHeight.toDouble() / height.toDouble()
-                width = ((width * ratio).toInt() / 2) * 2 // Ensure even width
-                height = targetHeight
-            }
+            Log.i(TAG, "Configuring MediaRecorder with dimensions: ${width}x${height}, densityDpi: $densityDpi")
 
             setupMediaRecorder(filePath, width, height)
 
@@ -135,7 +158,7 @@ class ScreenRecordService : Service() {
 
             mediaRecorder?.start()
             isRecording = true
-            Log.i(TAG, "Screen recording started successfully at 480p -> $filePath")
+            Log.i(TAG, "Screen recording started successfully at 480p (${width}x${height}) -> $filePath")
             return true
 
         } catch (e: Exception) {
@@ -169,12 +192,12 @@ class ScreenRecordService : Service() {
     }
 
     fun stopRecordingInternal(): String? {
+        val recordedPath = outputPath
         if (!isRecording) {
-            Log.w(TAG, "Stop called but not recording")
-            return outputPath
+            Log.w(TAG, "Stop called but not active recording, returning recordedPath: $recordedPath")
+            return recordedPath
         }
 
-        val recordedPath = outputPath
         Log.i(TAG, "Stopping screen recording...")
 
         try {
@@ -193,6 +216,8 @@ class ScreenRecordService : Service() {
             val file = File(recordedPath)
             if (file.exists()) {
                 Log.i(TAG, "Recording file saved successfully: ${file.absolutePath} (${file.length()} bytes)")
+            } else {
+                Log.w(TAG, "Recorded file does not exist at path: $recordedPath")
             }
         }
 
@@ -264,5 +289,8 @@ class ScreenRecordService : Service() {
         const val EXTRA_RESULT_CODE = "extra_result_code"
         const val EXTRA_RESULT_DATA = "extra_result_data"
         const val EXTRA_FILE_PATH = "extra_file_path"
+        const val EXTRA_SCREEN_WIDTH = "extra_screen_width"
+        const val EXTRA_SCREEN_HEIGHT = "extra_screen_height"
+        const val EXTRA_SCREEN_DENSITY = "extra_screen_density"
     }
 }

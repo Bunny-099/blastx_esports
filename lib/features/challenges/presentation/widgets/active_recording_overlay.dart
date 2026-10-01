@@ -85,47 +85,29 @@ class _ActiveRecordingOverlayState extends ConsumerState<ActiveRecordingOverlay>
       // 2. STOP RECORDING ko properly AWAIT karein
       File? uploadFile = await recordingService.stopRecording();
 
-      // 3. MOST IMPORTANT: 2 seconds ka delay dein taaki OS video encoder file ko disk par finalize kar sake
-      await Future.delayed(const Duration(seconds: 2));
-
-      // Fallback: If auto-recording file is missing or doesn't exist, allow picking recorded match video from gallery
       if (uploadFile == null || !await uploadFile.exists()) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              backgroundColor: AppColors.surfaceNavy,
-              content: Text('No automatic screen recording found. Please select your recorded match video proof from gallery.'),
-              duration: Duration(seconds: 3),
-            ),
-          );
-        }
-
-        uploadFile = await recordingService.pickVideoProof();
-      }
-
-      if (uploadFile == null || !await uploadFile.exists()) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              backgroundColor: Colors.red,
-              content: Text('No valid proof file selected to upload'),
+              backgroundColor: Colors.redAccent,
+              content: Text('Screen recording file not found. Please record your match gameplay again.'),
             ),
           );
         }
         return;
       }
 
-      // 4. File Size verify karein upload karne se pehle (Must be at least 100 KB)
+      // 3. File Size verify karein upload karne se pehle (Must be at least 100 KB)
       final int fileSize = await uploadFile.length();
       debugPrint('Final Video Size: $fileSize bytes');
 
-      // Agar file 100 KB se choti hai (jaise 1 KB / 36 bytes)
+      // Agar file 100 KB se choti hai
       if (fileSize < 100 * 1024) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               backgroundColor: Colors.redAccent,
-              content: Text('Recording was not saved properly. Please record again or select a valid video.'),
+              content: Text('Recording was too short or empty. Please record your match gameplay again.'),
               duration: Duration(seconds: 4),
             ),
           );
@@ -154,13 +136,13 @@ class _ActiveRecordingOverlayState extends ConsumerState<ActiveRecordingOverlay>
         );
       }
 
-      // 2. Upload Real File to Server & Automatically Delete Local File
+      // 4. Upload Real MP4 File to Server & Automatically Delete Local Temp File
       await repository.uploadProofAndDeleteLocal(
         challengeId: challengeId,
         videoFile: uploadFile,
       );
 
-      // 3. Update Challenge State
+      // 5. Update Challenge State to PROOF_SUBMITTED
       ref.read(challengesProvider.notifier).markProofSubmitted(challengeId);
       ref.read(activeRecordingChallengeIdProvider.notifier).state = null;
 
@@ -174,7 +156,7 @@ class _ActiveRecordingOverlayState extends ConsumerState<ActiveRecordingOverlay>
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    'Match recording uploaded successfully! Temp video auto-deleted from local storage.',
+                    'Match recording uploaded successfully! Temp video auto-deleted.',
                     style: AppTextStyles.bodySm.copyWith(color: Colors.white, fontWeight: FontWeight.bold),
                   ),
                 ),
