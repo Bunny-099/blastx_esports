@@ -35,6 +35,8 @@ class AppColors {
   static const Color primaryDeep = Color(0xFF087E5F);
   static const Color glowSoft = Color(0xFF57FDD2);
   static const Color glowLight = Color(0xFFB7FEEC);
+  static const Color accentOrange = Color(0xFFFF7A00);
+  static const Color orangeTint = Color(0x26FF7A00);
 
   // Accent Aliases
   static const Color primary = primaryNeon;
