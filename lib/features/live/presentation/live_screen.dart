@@ -6,7 +6,6 @@ import 'package:shimmer/shimmer.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/transitions/fire_page_route.dart';
-import '../../profile/providers/profile_provider.dart';
 import '../providers/live_provider.dart';
 import 'tournament_detail_screen.dart';
 import 'widgets/tournament_card.dart';
@@ -15,14 +14,11 @@ import 'widgets/tournament_card.dart';
 /// PREMIUM LIVE SCREEN — Free Fire Exclusive Edition
 /// ============================================================
 /// - Ambient breathing gradient background (orange/red glow blobs)
-/// - Glassmorphism collapsing header + dynamic user profile name
 /// - Real-time Free Fire Live API data stream
 /// - Staggered fade+slide entrance for each tournament card
 /// - Shimmer skeleton while fetching from backend API
 /// - Pull-to-refresh support
 /// ============================================================
-
-const double _kExpandedHeaderHeight = 150;
 
 class LiveScreen extends ConsumerStatefulWidget {
   const LiveScreen({super.key, this.username = 'Player'});
@@ -35,52 +31,13 @@ class LiveScreen extends ConsumerStatefulWidget {
 
 class _LiveScreenState extends ConsumerState<LiveScreen>
     with TickerProviderStateMixin {
-  final ScrollController _scrollController = ScrollController();
-
-  double _collapseFraction = 0;
-
   late final AnimationController _ambientController = AnimationController(
     vsync: this,
     duration: const Duration(seconds: 6),
   )..repeat(reverse: true);
 
-  static const List<String> _motivationalQuotes = [
-    "Booyah! Show them who's the real survivor. 🔥",
-    "Stay in the zone, stay in the game. 🎮",
-    "One tap, one kill. The peak of skill.",
-    "Bermuda is yours to conquer today.",
-    "Squad up and dominate the battlefield.",
-  ];
-
-  late final String _quote =
-      _motivationalQuotes[DateTime.now().second % _motivationalQuotes.length];
-
-  String get _greetingText {
-    final hour = DateTime.now().hour;
-    if (hour < 12) return 'Good Morning ☀️';
-    if (hour < 17) return 'Good Afternoon 🌤️';
-    return 'Good Evening 🌙';
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _scrollController.addListener(_onScroll);
-  }
-
-  void _onScroll() {
-    if (!mounted) return;
-    final offset = _scrollController.offset.clamp(0, _kExpandedHeaderHeight);
-    final fraction = offset / _kExpandedHeaderHeight;
-    if ((fraction - _collapseFraction).abs() > 0.01) {
-      setState(() => _collapseFraction = fraction);
-    }
-  }
-
   @override
   void dispose() {
-    _scrollController.removeListener(_onScroll);
-    _scrollController.dispose();
     _ambientController.dispose();
     super.dispose();
   }
@@ -92,13 +49,6 @@ class _LiveScreenState extends ConsumerState<LiveScreen>
 
   @override
   Widget build(BuildContext context) {
-    // Watch User Profile for real dynamic name
-    final profileState = ref.watch(profileProvider);
-    final profileName = profileState.user?.name;
-    final displayName = (profileName != null && profileName.trim().isNotEmpty)
-        ? profileName.trim()
-        : (widget.username != 'Player' ? widget.username : 'Player');
-
     // Watch API Async Value and filtered tournaments
     final apiAsync = ref.watch(apiTournamentsProvider);
     final tournaments = ref.watch(filteredOfficialTournamentsProvider);
@@ -111,30 +61,18 @@ class _LiveScreenState extends ConsumerState<LiveScreen>
         children: [
           _AmbientBackground(controller: _ambientController),
           SafeArea(
-            top: false,
-            bottom: false,
             child: RefreshIndicator(
               onRefresh: _onRefresh,
               color: AppColors.primary,
               backgroundColor: AppColors.surface,
               child: CustomScrollView(
-                controller: _scrollController,
                 physics: const BouncingScrollPhysics(
                   parent: AlwaysScrollableScrollPhysics(),
                 ),
                 slivers: [
-                  SliverPersistentHeader(
-                    pinned: true,
-                    delegate: _CollapsingHeaderDelegate(
-                      collapseFraction: _collapseFraction,
-                      username: displayName,
-                      greetingText: _greetingText,
-                      quote: _quote,
-                    ),
-                  ),
                   SliverToBoxAdapter(
                     child: Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
+                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -281,143 +219,6 @@ class _AmbientBackground extends StatelessWidget {
         );
       },
     );
-  }
-}
-
-class _CollapsingHeaderDelegate extends SliverPersistentHeaderDelegate {
-  _CollapsingHeaderDelegate({
-    required this.collapseFraction,
-    required this.username,
-    required this.greetingText,
-    required this.quote,
-  });
-
-  final double collapseFraction;
-  final String username;
-  final String greetingText;
-  final String quote;
-
-  @override
-  double get minExtent => 60; // Just enough for status bar + small padding
-
-  @override
-  double get maxExtent => _kExpandedHeaderHeight + 20;
-
-  @override
-  Widget build(
-      BuildContext context, double shrinkOffset, bool overlapsContent) {
-    final opacity = (1 - (collapseFraction * 1.5)).clamp(0.0, 1.0);
-    final topPadding = MediaQuery.of(context).padding.top;
-
-    return Container(
-      color: AppColors.background,
-      child: Stack(
-        children: [
-          // 1. Background image (collapsing, cinematic dark overlay)
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            child: Opacity(
-              opacity: opacity,
-              child: Transform.translate(
-                offset: Offset(0, -collapseFraction * 40),
-                child: Container(
-                  height: _kExpandedHeaderHeight + topPadding - 20,
-                  decoration: const BoxDecoration(
-                    borderRadius: BorderRadius.only(
-                      bottomLeft: Radius.circular(28),
-                      bottomRight: Radius.circular(28),
-                    ),
-                  ),
-                  clipBehavior: Clip.antiAlias,
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      Image.asset(
-                        'assets/images/top_banner.jpg',
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) =>
-                            Container(color: AppColors.surface),
-                      ),
-                      Container(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              AppColors.background.withValues(alpha: 0.15),
-                              AppColors.background.withValues(alpha: 0.9),
-                            ],
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                          ),
-                        ),
-                      ),
-                      Container(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              AppColors.primary.withValues(alpha: 0.18),
-                              Colors.transparent,
-                            ],
-                            begin: Alignment.bottomLeft,
-                            end: Alignment.topRight,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-
-          // 2. Greeting block
-          Positioned(
-            top: topPadding + 16,
-            left: 0,
-            right: 0,
-            child: Opacity(
-              opacity: opacity,
-              child: Transform.translate(
-                offset: Offset(0, -collapseFraction * 20),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Hey, $username 👋', style: AppTextStyles.headingXl),
-                      const SizedBox(height: 4),
-                      Text(greetingText, style: AppTextStyles.bodyMd),
-                      const SizedBox(height: 6),
-                      SizedBox(
-                        width: MediaQuery.of(context).size.width * 0.7,
-                        child: Text(
-                          quote,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: AppTextStyles.bodySm.copyWith(
-                            fontStyle: FontStyle.italic,
-                            color: AppColors.primaryLight,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  @override
-  bool shouldRebuild(covariant _CollapsingHeaderDelegate oldDelegate) {
-    return oldDelegate.collapseFraction != collapseFraction ||
-        oldDelegate.username != username ||
-        oldDelegate.greetingText != greetingText ||
-        oldDelegate.quote != quote;
   }
 }
 

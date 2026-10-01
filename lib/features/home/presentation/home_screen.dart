@@ -10,6 +10,7 @@ import '../../../core/transitions/fire_page_route.dart';
 import '../../live/data/models/tournament_model.dart';
 import '../../live/presentation/tournament_detail_screen.dart';
 import '../../live/providers/live_provider.dart';
+import '../../profile/providers/profile_provider.dart';
 import '../data/models/home_data_models.dart';
 import '../providers/home_provider.dart';
 import '../providers/navigation_provider.dart';
@@ -18,13 +19,16 @@ import '../providers/navigation_provider.dart';
 /// HOME SCREEN — BLASTIX ESPORTS LANDING PAGE
 /// ============================================================
 /// Modern esports landing hub featuring:
-/// - Custom Header with user stats & notification bell
+/// - Collapsing Header with dynamic greeting, username & quote
+/// - Custom Header Bar with BlastIX Logo
 /// - Animated Live Announcement Ticker
 /// - Auto-scrolling Promotional Banner Carousel
 /// - Quick Actions Grid (Live, Tournaments, Quests, Teams, etc.)
 /// - Featured Tournaments Spotlight
 /// - Announcements & Community Notice Board
 /// ============================================================
+
+const double _kExpandedHeaderHeight = 150;
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key, this.username = 'Player'});
@@ -37,6 +41,9 @@ class HomeScreen extends ConsumerStatefulWidget {
 
 class _HomeScreenState extends ConsumerState<HomeScreen>
     with SingleTickerProviderStateMixin {
+  final ScrollController _scrollController = ScrollController();
+  double _collapseFraction = 0;
+
   late final PageController _bannerController = PageController();
   late Timer _carouselTimer;
   int _currentBannerIndex = 0;
@@ -46,10 +53,38 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     duration: const Duration(seconds: 6),
   )..repeat(reverse: true);
 
+  static const List<String> _motivationalQuotes = [
+    "Booyah! Show them who's the real survivor. 🔥",
+    "Stay in the zone, stay in the game. 🎮",
+    "One tap, one kill. The peak of skill.",
+    "Bermuda is yours to conquer today.",
+    "Squad up and dominate the battlefield.",
+  ];
+
+  late final String _quote =
+      _motivationalQuotes[DateTime.now().second % _motivationalQuotes.length];
+
+  String get _greetingText {
+    final hour = DateTime.now().hour;
+    if (hour < 12) return 'Good Morning ☀️';
+    if (hour < 17) return 'Good Afternoon 🌤️';
+    return 'Good Evening 🌙';
+  }
+
   @override
   void initState() {
     super.initState();
+    _scrollController.addListener(_onScroll);
     _startAutoCarousel();
+  }
+
+  void _onScroll() {
+    if (!mounted) return;
+    final offset = _scrollController.offset.clamp(0, _kExpandedHeaderHeight);
+    final fraction = offset / _kExpandedHeaderHeight;
+    if ((fraction - _collapseFraction).abs() > 0.01) {
+      setState(() => _collapseFraction = fraction);
+    }
   }
 
   void _startAutoCarousel() {
@@ -68,6 +103,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
   @override
   void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
     _carouselTimer.cancel();
     _bannerController.dispose();
     _ambientController.dispose();
@@ -76,6 +113,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
   @override
   Widget build(BuildContext context) {
+    // Watch User Profile for dynamic username
+    final profileState = ref.watch(profileProvider);
+    final profileName = profileState.user?.name;
+    final displayName = (profileName != null && profileName.trim().isNotEmpty)
+        ? profileName.trim()
+        : (widget.username != 'Player' ? widget.username : 'Player');
+
     final banners = ref.watch(homeBannersProvider);
     final announcements = ref.watch(homeAnnouncementsProvider);
     final notices = ref.watch(homeNoticesProvider);
@@ -90,14 +134,23 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
           // 2. Main Scrollable Content
           SafeArea(
+            top: false,
+            bottom: false,
             child: CustomScrollView(
+              controller: _scrollController,
               physics: const BouncingScrollPhysics(
                 parent: AlwaysScrollableScrollPhysics(),
               ),
               slivers: [
-                // Top App Bar / Header
-                SliverToBoxAdapter(
-                  child: const _HeaderBar(),
+                // Top Collapsing Header with Username & Greeting
+                SliverPersistentHeader(
+                  pinned: true,
+                  delegate: _CollapsingHeaderDelegate(
+                    collapseFraction: _collapseFraction,
+                    username: displayName,
+                    greetingText: _greetingText,
+                    quote: _quote,
+                  ),
                 ),
 
                 // Live Announcement Ticker
@@ -336,6 +389,146 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 }
 
 /// ------------------------------------------------------------
+/// Collapsing Top Banner Header Delegate
+/// ------------------------------------------------------------
+class _CollapsingHeaderDelegate extends SliverPersistentHeaderDelegate {
+  _CollapsingHeaderDelegate({
+    required this.collapseFraction,
+    required this.username,
+    required this.greetingText,
+    required this.quote,
+  });
+
+  final double collapseFraction;
+  final String username;
+  final String greetingText;
+  final String quote;
+
+  @override
+  double get minExtent => 60; // Just enough for status bar + small padding
+
+  @override
+  double get maxExtent => _kExpandedHeaderHeight + 20;
+
+  @override
+  Widget build(
+      BuildContext context, double shrinkOffset, bool overlapsContent) {
+    final opacity = (1 - (collapseFraction * 1.5)).clamp(0.0, 1.0);
+    final topPadding = MediaQuery.of(context).padding.top;
+
+    return Container(
+      color: AppColors.background,
+      child: Stack(
+        children: [
+          // 1. Background image (collapsing, cinematic dark overlay)
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: Opacity(
+              opacity: opacity,
+              child: Transform.translate(
+                offset: Offset(0, -collapseFraction * 40),
+                child: Container(
+                  height: _kExpandedHeaderHeight + topPadding - 20,
+                  decoration: const BoxDecoration(
+                    borderRadius: BorderRadius.only(
+                      bottomLeft: Radius.circular(28),
+                      bottomRight: Radius.circular(28),
+                    ),
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      Image.asset(
+                        'assets/images/top_banner.jpg',
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) =>
+                            Container(color: AppColors.surface),
+                      ),
+                      Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              AppColors.background.withValues(alpha: 0.15),
+                              AppColors.background.withValues(alpha: 0.9),
+                            ],
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                          ),
+                        ),
+                      ),
+                      Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              AppColors.primary.withValues(alpha: 0.18),
+                              Colors.transparent,
+                            ],
+                            begin: Alignment.bottomLeft,
+                            end: Alignment.topRight,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+          // 2. Greeting block
+          Positioned(
+            top: topPadding + 16,
+            left: 0,
+            right: 0,
+            child: Opacity(
+              opacity: opacity,
+              child: Transform.translate(
+                offset: Offset(0, -collapseFraction * 20),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Hey, $username 👋', style: AppTextStyles.headingXl),
+                      const SizedBox(height: 4),
+                      Text(greetingText, style: AppTextStyles.bodyMd),
+                      const SizedBox(height: 6),
+                      SizedBox(
+                        width: MediaQuery.of(context).size.width * 0.7,
+                        child: Text(
+                          quote,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTextStyles.bodySm.copyWith(
+                            fontStyle: FontStyle.italic,
+                            color: AppColors.primaryLight,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  bool shouldRebuild(covariant _CollapsingHeaderDelegate oldDelegate) {
+    return oldDelegate.collapseFraction != collapseFraction ||
+        oldDelegate.username != username ||
+        oldDelegate.greetingText != greetingText ||
+        oldDelegate.quote != quote;
+  }
+}
+
+/// ------------------------------------------------------------
 /// Ambient Background with floating glow circles
 /// ------------------------------------------------------------
 class _AmbientBackground extends StatelessWidget {
@@ -382,38 +575,6 @@ class _AmbientBackground extends StatelessWidget {
   }
 }
 
-/// ------------------------------------------------------------
-/// Header Bar with BlastIX Branding
-/// ------------------------------------------------------------
-class _HeaderBar extends StatelessWidget {
-  const _HeaderBar();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Padding(
-      padding: EdgeInsets.fromLTRB(20, 12, 20, 0),
-      child: SizedBox(
-        height: 50, // Layout space occupied on screen
-        child: Stack(
-          clipBehavior: Clip.none, // Baki content ko push kiye bina logo badaa render hoga
-          children: [
-            Positioned(
-              left: -10,
-              top: -40,
-              child: Image(
-                image: AssetImage('assets/logos/Logo.png'),
-                width: 100, // Explicitly increased width
-                height: 500,  // Increased height to maintain proportions
-                alignment: Alignment.topLeft,
-                fit: BoxFit.contain,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
 
 /// ------------------------------------------------------------
 /// Live Announcement Ticker Bar
@@ -1039,5 +1200,3 @@ class _NoticeCard extends StatelessWidget {
     );
   }
 }
-
-

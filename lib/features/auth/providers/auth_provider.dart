@@ -183,6 +183,7 @@ class AuthNotifier extends Notifier<AuthState> {
     try {
       final GoogleSignIn googleSignIn = GoogleSignIn(
         scopes: ['email', 'profile'],
+        serverClientId: '252531921295-maivho5ga1plaqmr3hndfuif0960lvp6.apps.googleusercontent.com',
       );
 
       final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
