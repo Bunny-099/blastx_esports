@@ -159,7 +159,7 @@ class ScreenRecordService : Service() {
         recorder.setVideoSource(MediaRecorder.VideoSource.SURFACE)
         recorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
         recorder.setVideoEncoder(MediaRecorder.VideoEncoder.H264)
-        recorder.setVideoEncodingBitRate(1500000) // 1.5 Mbps for 480p smooth recording
+        recorder.setVideoEncodingBitRate(600000) // 600 Kbps optimized for 480p clear video & 15-min full match under 60 MB
         recorder.setVideoFrameRate(30)
         recorder.setVideoSize(width, height)
         recorder.setOutputFile(filePath)
