@@ -11,6 +11,8 @@ class TournamentApiService {
     int limit = 20,
     String? game,
     String? status,
+    String? q,
+    String? cursor,
     String? teamMode,
     String? format,
     String? map,
@@ -20,7 +22,11 @@ class TournamentApiService {
       'limit': limit,
     };
     if (game != null && game.isNotEmpty) queryParams['game'] = game;
-    if (status != null && status.isNotEmpty) queryParams['status'] = status;
+    if (status != null && status.isNotEmpty && status.toLowerCase() != 'all') {
+      queryParams['status'] = status.toLowerCase();
+    }
+    if (q != null && q.isNotEmpty) queryParams['q'] = q;
+    if (cursor != null && cursor.isNotEmpty) queryParams['cursor'] = cursor;
     if (teamMode != null && teamMode.isNotEmpty) queryParams['team_mode'] = teamMode;
     if (format != null && format.isNotEmpty) queryParams['format'] = format;
     if (map != null && map.isNotEmpty) queryParams['map'] = map;
@@ -31,9 +37,27 @@ class TournamentApiService {
     );
 
     if (response is Map) {
-      return Map<String, dynamic>.from(response);
+      final mapResp = Map<String, dynamic>.from(response);
+      final rawItems = mapResp['data'] ?? mapResp['items'] ?? [];
+      final itemList = rawItems is List ? rawItems : [];
+      return {
+        'items': itemList,
+        'next_cursor': mapResp['next_cursor'],
+        'page': mapResp['page'] ?? page,
+        'limit': mapResp['limit'] ?? limit,
+        'total': mapResp['total'] ?? itemList.length,
+      };
     }
-    return {'items': response, 'page': page, 'limit': limit, 'total': (response as List).length};
+    if (response is List) {
+      return {
+        'items': response,
+        'next_cursor': null,
+        'page': page,
+        'limit': limit,
+        'total': response.length,
+      };
+    }
+    return {'items': [], 'next_cursor': null, 'page': page, 'limit': limit, 'total': 0};
   }
 
   Future<Map<String, dynamic>> getTournamentDetail(String tournamentId) async {
