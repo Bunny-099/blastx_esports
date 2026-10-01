@@ -44,7 +44,11 @@ class _LiveScreenState extends ConsumerState<LiveScreen>
 
   Future<void> _onRefresh() async {
     ref.invalidate(apiTournamentsProvider);
-    await ref.read(apiTournamentsProvider.future);
+    try {
+      await ref.read(apiTournamentsProvider.future);
+    } catch (_) {
+      // Error handled via AsyncValue listener in UI
+    }
   }
 
   @override
@@ -53,7 +57,28 @@ class _LiveScreenState extends ConsumerState<LiveScreen>
     final apiAsync = ref.watch(apiTournamentsProvider);
     final tournaments = ref.watch(filteredOfficialTournamentsProvider);
 
-    final isLoading = apiAsync.isLoading;
+    // Listen for refresh failures when previous cached data exists
+    ref.listen<AsyncValue<dynamic>>(
+      apiTournamentsProvider,
+      (previous, next) {
+        if (next.hasError && !next.isLoading) {
+          if (previous?.hasValue == true || (next.hasValue && (next.valueOrNull != null))) {
+            ScaffoldMessenger.of(context).hideCurrentSnackBar();
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Refresh failed'),
+                duration: Duration(seconds: 3),
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+          }
+        }
+      },
+    );
+
+    final isLoading = apiAsync.isLoading && !apiAsync.hasValue;
+    final hasErrorNoData = apiAsync.hasError && (!apiAsync.hasValue || tournaments.isEmpty);
+    final isEmpty = !isLoading && !hasErrorNoData && tournaments.isEmpty;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -124,7 +149,12 @@ class _LiveScreenState extends ConsumerState<LiveScreen>
                         ),
                       ),
                     )
-                  else if (tournaments.isEmpty)
+                  else if (hasErrorNoData)
+                    SliverFillRemaining(
+                      hasScrollBody: false,
+                      child: _ErrorState(onRetry: _onRefresh),
+                    )
+                  else if (isEmpty)
                     SliverFillRemaining(
                       hasScrollBody: false,
                       child: _EmptyState(onRefresh: _onRefresh),
@@ -137,6 +167,7 @@ class _LiveScreenState extends ConsumerState<LiveScreen>
                           (context, index) {
                             final tournament = tournaments[index];
                             return Padding(
+                              key: ValueKey(tournament.id),
                               padding: const EdgeInsets.only(bottom: 18),
                               child: TournamentCard(
                                 tournament: tournament,
@@ -184,40 +215,34 @@ class _AmbientBackground extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: controller,
-      builder: (context, _) {
-        final t = controller.value;
-        return Stack(
-          children: [
-            Container(color: AppColors.background),
-            Positioned(
-              top: -80 + (t * 30),
-              right: -60,
-              child: Container(
-                width: 260,
-                height: 260,
-                decoration: const BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: AppColors.ambientGlowOrange,
+    return RepaintBoundary(
+      child: AnimatedBuilder(
+        animation: controller,
+        child: Container(color: AppColors.background),
+        builder: (context, staticBackground) {
+          final t = controller.value;
+          return Stack(
+            children: [
+              staticBackground!,
+              Positioned(
+                top: -80 + (t * 30),
+                right: -60,
+                child: Opacity(
+                  opacity: 0.5,
+                  child: Container(
+                    width: 260,
+                    height: 260,
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: AppColors.ambientGlowOrange,
+                    ),
+                  ),
                 ),
               ),
-            ),
-            Positioned(
-              bottom: 40 - (t * 20),
-              left: -80,
-              child: Container(
-                width: 300,
-                height: 300,
-                decoration: const BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: AppColors.ambientGlowRed,
-                ),
-              ),
-            ),
-          ],
-        );
-      },
+            ],
+          );
+        },
+      ),
     );
   }
 }
@@ -272,6 +297,52 @@ class _EmptyState extends StatelessWidget {
             onPressed: onRefresh,
             icon: const Icon(Icons.refresh_rounded, size: 18),
             label: const Text('Refresh'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.surface,
+              foregroundColor: AppColors.primaryLight,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+                side: BorderSide(color: AppColors.primary.withValues(alpha: 0.4)),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ErrorState extends StatelessWidget {
+  const _ErrorState({required this.onRetry});
+
+  final Future<void> Function() onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(
+            Icons.wifi_off_rounded,
+            color: AppColors.primary,
+            size: 54,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            "Couldn't load tournaments",
+            style: AppTextStyles.headingMd,
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Check your connection and try again',
+            style: AppTextStyles.bodySm.copyWith(color: AppColors.textMuted),
+          ),
+          const SizedBox(height: 16),
+          ElevatedButton.icon(
+            onPressed: onRetry,
+            icon: const Icon(Icons.refresh_rounded, size: 18),
+            label: const Text('Retry'),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.surface,
               foregroundColor: AppColors.primaryLight,

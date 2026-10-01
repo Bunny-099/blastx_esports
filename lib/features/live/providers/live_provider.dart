@@ -11,37 +11,23 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// Async provider for backend tournaments API
 final apiTournamentsProvider = FutureProvider<List<TournamentModel>>((ref) async {
-  try {
-    final repo = ref.watch(tournamentRepositoryProvider);
-    final list = await repo.getTournaments(limit: 50);
-    // Ensure only Free Fire tournaments are returned
-    final ffTournaments = list
-        .where((t) => t.game.trim().toLowerCase().contains('free fire'))
-        .toList();
-    return ffTournaments;
-  } catch (e) {
-    // Return empty list on network error
-    return const [];
-  }
+  final repo = ref.watch(tournamentRepositoryProvider);
+  final list = await repo.getTournaments(limit: 50, game: 'Free Fire');
+  // Light client-side safety check to ensure Free Fire tournaments
+  return list
+      .where((t) => t.game.isEmpty || t.game.trim().toLowerCase().contains('free fire'))
+      .toList();
 });
 
 /// Main provider - list of all live/upcoming Free Fire tournaments.
 final liveTournamentsProvider = Provider<List<TournamentModel>>((ref) {
   final apiResult = ref.watch(apiTournamentsProvider);
-  return apiResult.when(
-    data: (list) => list,
-    loading: () => const [],
-    error: (err, stack) => const [],
-  );
+  return apiResult.valueOrNull ?? const [];
 });
 
 /// Official tournaments (Garena / Free Fire)
 final officialTournamentsProvider = Provider<List<TournamentModel>>((ref) {
-  final all = ref.watch(liveTournamentsProvider);
-  return all.where((t) =>
-    t.organizer.toLowerCase().contains('garena') ||
-    t.game.toLowerCase().contains('free fire')
-  ).toList();
+  return ref.watch(liveTournamentsProvider);
 });
 
 /// BlastIX (App) tournaments
