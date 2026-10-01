@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import '../../../../core/api/api_client.dart';
 import '../../../../core/api/api_endpoints.dart';
 import '../models/challenge_model.dart';
@@ -39,13 +40,31 @@ class ChallengesApiService {
     }
   }
 
-  /// Uploads 480p match recording proof to backend
+  /// Uploads match recording proof video to backend
   Future<Map<String, dynamic>> submitChallengeProof({
     required String challengeId,
     required File videoFile,
   }) async {
+    if (!await videoFile.exists()) {
+      throw Exception('Video recording file does not exist at path: ${videoFile.path}');
+    }
+
+    final fileSize = await videoFile.length();
+    const int minSizeBytes = 100 * 1024; // 100 KB minimum
+    if (fileSize < minSizeBytes) {
+      throw Exception('Recording file is too small (${(fileSize / 1024).toStringAsFixed(1)} KB). Recording was not saved properly. Minimum required size is 100 KB. Please record again.');
+    }
+
+    const int maxSizeBytes = 60 * 1024 * 1024; // 60 MB backend limit
+    if (fileSize > maxSizeBytes) {
+      final double sizeMb = fileSize / (1024 * 1024);
+      throw Exception('Video file size (${sizeMb.toStringAsFixed(1)} MB) exceeds the maximum allowed limit of 60 MB.');
+    }
+
     try {
-      final fileName = videoFile.path.split('/').last;
+      final fileName = videoFile.path.split(Platform.pathSeparator).last.split('/').last;
+      debugPrint('Uploading proof video: $fileName, size: $fileSize bytes (${videoFile.path})');
+
       final formData = FormData.fromMap({
         'challenge_id': challengeId,
         'resolution': '480p',

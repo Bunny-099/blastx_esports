@@ -31,25 +31,30 @@ class ChallengesRepository {
     required String challengeId,
     required File videoFile,
   }) async {
+    bool uploadSuccess = false;
     try {
       await _apiService.submitChallengeProof(
         challengeId: challengeId,
         videoFile: videoFile,
       );
+      uploadSuccess = true;
     } catch (e) {
-      debugPrint('ChallengesRepository upload proof warning: $e');
-    }
-
-    // CRITICAL REQUIREMENT: Automatically delete recording from local mobile storage after upload
-    try {
-      if (await videoFile.exists()) {
-        await videoFile.delete();
-        debugPrint('Successfully deleted temporary video recording from local device storage: ${videoFile.path}');
+      debugPrint('ChallengesRepository upload proof error: $e');
+      rethrow;
+    } finally {
+      // Automatically delete recording from local mobile storage after successful upload
+      if (uploadSuccess) {
+        try {
+          if (await videoFile.exists()) {
+            await videoFile.delete();
+            debugPrint('Successfully deleted temporary video recording from local device storage: ${videoFile.path}');
+          }
+        } catch (e) {
+          debugPrint('Error deleting local temp video file: $e');
+        }
       }
-    } catch (e) {
-      debugPrint('Error deleting local temp video file: $e');
     }
 
-    return true;
+    return uploadSuccess;
   }
 }
