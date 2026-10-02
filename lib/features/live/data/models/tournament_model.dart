@@ -77,9 +77,14 @@ class TournamentModel {
   final List<String> announcements;
   final List<BracketStageModel> stages;
   final String? streamUrl;
-  final bool isRegistered;
+  final bool? isRegistered;
   final int registeredCount;
   final int slotsLeft;
+
+  // New Optional Model Fields
+  final DateTime? startsAt;
+  final int? maxSlots;
+  final int? filledSlots;
 
   const TournamentModel({
     required this.id,
@@ -112,9 +117,12 @@ class TournamentModel {
     this.announcements = const [],
     this.stages = const [],
     this.streamUrl,
-    this.isRegistered = false,
+    this.isRegistered,
     this.registeredCount = 0,
     this.slotsLeft = 0,
+    this.startsAt,
+    this.maxSlots,
+    this.filledSlots,
   });
 
   bool get isLive => status == TournamentStatus.live;
@@ -134,6 +142,30 @@ class TournamentModel {
   String get formattedEntryFee => isFree ? 'FREE' : money(entryFee);
   String get teamsFilled =>
       maxTeams > 0 ? '${registeredCount > 0 ? registeredCount : teams.length}/$maxTeams' : '${teams.length}';
+
+  // TODO(backend): remove mock - Fallback getters when new fields are null from backend
+  int get effectiveFilledSlots =>
+      filledSlots ?? (registeredCount > 0 ? registeredCount : (teams.isNotEmpty ? teams.length : 32));
+
+  int get effectiveMaxSlots =>
+      maxSlots ?? (maxTeams > 0 ? maxTeams : 48);
+
+  DateTime get effectiveStartsAt => startsAt ?? startTime;
+
+  bool get effectiveIsRegistered => isRegistered ?? false;
+
+  /// Helper: Format slots as "32/48 slots"
+  String get slotsText => '$effectiveFilledSlots/$effectiveMaxSlots slots';
+
+  /// Helper: Progress fraction between 0.0 and 1.0
+  double get slotsProgress {
+    final max = effectiveMaxSlots;
+    if (max <= 0) return 0.0;
+    return (effectiveFilledSlots / max).clamp(0.0, 1.0);
+  }
+
+  /// Helper: Indicates if the tournament capacity has been reached
+  bool get isFull => effectiveMaxSlots > 0 && effectiveFilledSlots >= effectiveMaxSlots;
 
   factory TournamentModel.fromJson(Map<String, dynamic> json) {
     List<T> parseList<T>(String key, T Function(Map<String, dynamic>) f) =>
@@ -205,9 +237,12 @@ class TournamentModel {
       announcements: (json['announcements'] as List<dynamic>?)?.cast<String>() ?? const [],
       stages: parseList('stages', BracketStageModel.fromJson),
       streamUrl: json['streamUrl'] as String?,
-      isRegistered: (json['is_registered'] as bool?) ?? false,
+      isRegistered: json['is_registered'] as bool?,
       registeredCount: (json['registered_count'] as num?)?.toInt() ?? 0,
       slotsLeft: (json['slots_left'] as num?)?.toInt() ?? 0,
+      startsAt: json['starts_at'] != null ? DateTime.tryParse(json['starts_at'] as String) : null,
+      maxSlots: (json['max_slots'] as num?)?.toInt(),
+      filledSlots: (json['filled_slots'] as num?)?.toInt(),
     );
   }
 
@@ -245,6 +280,9 @@ class TournamentModel {
     'is_registered': isRegistered,
     'registered_count': registeredCount,
     'slots_left': slotsLeft,
+    'starts_at': startsAt?.toIso8601String(),
+    'max_slots': maxSlots,
+    'filled_slots': filledSlots,
   };
 
   /// Fallback effective stages generator if stages list from API is empty
