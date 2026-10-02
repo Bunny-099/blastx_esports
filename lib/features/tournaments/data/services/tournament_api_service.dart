@@ -86,6 +86,11 @@ class TournamentApiService {
   Future<List<dynamic>> getMatches(String tournamentId) async {
     final response = await _apiClient.get(ApiEndpoints.tournamentMatches(tournamentId));
     if (response is List) return response;
+    if (response is Map) {
+      if (response['matches'] is List) return response['matches'] as List;
+      if (response['data'] is List) return response['data'] as List;
+      if (response['items'] is List) return response['items'] as List;
+    }
     return [];
   }
 

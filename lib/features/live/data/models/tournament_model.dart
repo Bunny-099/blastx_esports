@@ -437,53 +437,94 @@ class MatchModel {
   final String id;
   final String tournamentId;
   final String round;
+  final int matchNumber;
+  final String map;
+  final MatchStatus status;
+  final DateTime startsAt;
+  final DateTime? endedAt;
+  final String? winnerTeamName;
+  final String? topKillerName;
+  final String? streamUrl;
+
+  // Preserved for backward compatibility
   final TeamModel teamA;
   final TeamModel teamB;
-  final DateTime matchTime;
-  final MatchStatus status;
-  final String? mapOrMode;
 
   const MatchModel({
     required this.id,
-    required this.tournamentId,
+    this.tournamentId = '',
     required this.round,
-    required this.teamA,
-    required this.teamB,
-    required this.matchTime,
+    this.matchNumber = 1,
+    this.map = 'Bermuda',
     this.status = MatchStatus.upcoming,
-    this.mapOrMode,
+    required this.startsAt,
+    this.endedAt,
+    this.winnerTeamName,
+    this.topKillerName,
+    this.streamUrl,
+    this.teamA = const TeamModel(id: '', name: 'Team A', logoUrl: ''),
+    this.teamB = const TeamModel(id: '', name: 'Team B', logoUrl: ''),
   });
 
   bool get isLive => status == MatchStatus.live;
 
-  factory MatchModel.fromJson(Map<String, dynamic> json) => MatchModel(
-    id: (json['id'] ?? '') as String,
-    tournamentId: (json['tournament_id'] ?? json['tournamentId'] ?? '') as String,
-    round: (json['round'] ?? '') as String,
-    teamA: json['teamA'] != null
-        ? TeamModel.fromJson(json['teamA'] as Map<String, dynamic>)
-        : const TeamModel(id: '', name: 'Team A', logoUrl: ''),
-    teamB: json['teamB'] != null
-        ? TeamModel.fromJson(json['teamB'] as Map<String, dynamic>)
-        : const TeamModel(id: '', name: 'Team B', logoUrl: ''),
-    matchTime: DateTime.tryParse((json['match_time'] ?? json['matchTime'] ?? '') as String) ??
-        DateTime.now(),
-    status: MatchStatus.values.firstWhere(
-          (e) => e.name == (json['status'] as String? ?? 'upcoming').toLowerCase(),
+  // Backward compatibility getters
+  DateTime get matchTime => startsAt;
+  String? get mapOrMode => map;
+
+  factory MatchModel.fromJson(Map<String, dynamic> json) {
+    final rawStatus = (json['status'] as String? ?? 'upcoming').toLowerCase();
+    final parsedStatus = MatchStatus.values.firstWhere(
+      (e) => e.name == rawStatus,
       orElse: () => MatchStatus.upcoming,
-    ),
-    mapOrMode: (json['map_or_mode'] ?? json['mapOrMode']) as String?,
-  );
+    );
+
+    final rawStartsAt = json['starts_at'] ?? json['startsAt'] ?? json['match_time'] ?? json['matchTime'];
+    final parsedStartsAt = DateTime.tryParse(rawStartsAt as String? ?? '') ?? DateTime.now();
+
+    final rawEndedAt = json['ended_at'] ?? json['endedAt'];
+    final parsedEndedAt = rawEndedAt != null ? DateTime.tryParse(rawEndedAt as String? ?? '') : null;
+
+    final parsedMatchNum = (json['match_number'] ?? json['matchNumber'] as num?)?.toInt() ?? 1;
+    final parsedMap = (json['map'] ?? json['map_or_mode'] ?? json['mapOrMode'] ?? 'Bermuda') as String;
+
+    return MatchModel(
+      id: (json['id'] ?? '') as String,
+      tournamentId: (json['tournament_id'] ?? json['tournamentId'] ?? '') as String,
+      round: (json['round'] ?? 'Round 1') as String,
+      matchNumber: parsedMatchNum,
+      map: parsedMap,
+      status: parsedStatus,
+      startsAt: parsedStartsAt,
+      endedAt: parsedEndedAt,
+      winnerTeamName: (json['winner_team_name'] ?? json['winnerTeamName']) as String?,
+      topKillerName: (json['top_killer_name'] ?? json['topKillerName']) as String?,
+      streamUrl: (json['stream_url'] ?? json['streamUrl']) as String?,
+      teamA: json['teamA'] != null
+          ? TeamModel.fromJson(json['teamA'] as Map<String, dynamic>)
+          : const TeamModel(id: '', name: 'Team A', logoUrl: ''),
+      teamB: json['teamB'] != null
+          ? TeamModel.fromJson(json['teamB'] as Map<String, dynamic>)
+          : const TeamModel(id: '', name: 'Team B', logoUrl: ''),
+    );
+  }
 
   Map<String, dynamic> toJson() => {
     'id': id,
-    'tournamentId': tournamentId,
+    'tournament_id': tournamentId,
     'round': round,
+    'match_number': matchNumber,
+    'map': map,
+    'status': status.name,
+    'starts_at': startsAt.toIso8601String(),
+    'ended_at': endedAt?.toIso8601String(),
+    'winner_team_name': winnerTeamName,
+    'top_killer_name': topKillerName,
+    'stream_url': streamUrl,
     'teamA': teamA.toJson(),
     'teamB': teamB.toJson(),
-    'matchTime': matchTime.toIso8601String(),
-    'status': status.name,
-    'mapOrMode': mapOrMode,
+    'mapOrMode': map,
+    'matchTime': startsAt.toIso8601String(),
   };
 }
 

@@ -75,10 +75,105 @@ class TournamentRepository {
   }
 
   Future<List<MatchModel>> getMatches(String id) async {
-    final list = await _apiService.getMatches(id);
-    return list
-        .map((e) => MatchModel.fromJson(Map<String, dynamic>.from(e as Map)))
-        .toList();
+    try {
+      final list = await _apiService.getMatches(id);
+      if (list.isNotEmpty) {
+        return list
+            .map((e) => MatchModel.fromJson(Map<String, dynamic>.from(e as Map)))
+            .toList();
+      }
+    } catch (_) {
+      // API error or offline fallback handled below
+    }
+
+    // TODO(backend): remove mock - Fallback mock matches data for testing in debug mode
+    if (kDebugMode) {
+      return _getMockMatches(id);
+    }
+
+    return const [];
+  }
+
+  // TODO(backend): remove mock - Sample matches grouped by rounds for testing in debug mode
+  List<MatchModel> _getMockMatches(String tournamentId) {
+    final now = DateTime.now();
+    return [
+      // Round 1 - Qualifiers
+      MatchModel(
+        id: 'match_101',
+        tournamentId: tournamentId,
+        round: 'Round 1 - Qualifiers',
+        matchNumber: 1,
+        map: 'Bermuda',
+        status: MatchStatus.completed,
+        startsAt: now.subtract(const Duration(hours: 3)),
+        endedAt: now.subtract(const Duration(hours: 2, minutes: 20)),
+        winnerTeamName: 'Total Gaming',
+        topKillerName: 'FOAB (12 Kills)',
+      ),
+      MatchModel(
+        id: 'match_102',
+        tournamentId: tournamentId,
+        round: 'Round 1 - Qualifiers',
+        matchNumber: 2,
+        map: 'Purgatory',
+        status: MatchStatus.completed,
+        startsAt: now.subtract(const Duration(hours: 2)),
+        endedAt: now.subtract(const Duration(hours: 1, minutes: 20)),
+        winnerTeamName: 'Team GodLike',
+        topKillerName: 'JONATHAN (9 Kills)',
+      ),
+      MatchModel(
+        id: 'match_103',
+        tournamentId: tournamentId,
+        round: 'Round 1 - Qualifiers',
+        matchNumber: 3,
+        map: 'Kalahari',
+        status: MatchStatus.live,
+        startsAt: now.subtract(const Duration(minutes: 15)),
+        streamUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+      ),
+      MatchModel(
+        id: 'match_104',
+        tournamentId: tournamentId,
+        round: 'Round 1 - Qualifiers',
+        matchNumber: 4,
+        map: 'Alpine',
+        status: MatchStatus.upcoming,
+        startsAt: now.add(const Duration(minutes: 45)),
+      ),
+
+      // Round 2 - Semi Finals
+      MatchModel(
+        id: 'match_201',
+        tournamentId: tournamentId,
+        round: 'Round 2 - Semi Finals',
+        matchNumber: 5,
+        map: 'Bermuda',
+        status: MatchStatus.upcoming,
+        startsAt: now.add(const Duration(hours: 2, minutes: 30)),
+      ),
+      MatchModel(
+        id: 'match_202',
+        tournamentId: tournamentId,
+        round: 'Round 2 - Semi Finals',
+        matchNumber: 6,
+        map: 'Purgatory',
+        status: MatchStatus.upcoming,
+        startsAt: now.add(const Duration(hours: 3, minutes: 30)),
+      ),
+
+      // Grand Finals
+      MatchModel(
+        id: 'match_301',
+        tournamentId: tournamentId,
+        round: 'Grand Finals',
+        matchNumber: 7,
+        map: 'Kalahari',
+        status: MatchStatus.upcoming,
+        startsAt: now.add(const Duration(days: 1)),
+      ),
+    ];
   }
 
   Future<List<TeamModel>> getLeaderboard(String id) async {
