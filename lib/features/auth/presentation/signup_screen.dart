@@ -1,3 +1,5 @@
+// ignore_for_file: unused_import, unused_element
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -32,7 +34,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
     final authNotifier = ref.read(authProvider.notifier);
-    final isOtpStep = authState.step == AuthStep.enterOtp;
+    // final isOtpStep = authState.step == AuthStep.enterOtp;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -59,6 +61,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                   ),
                   const SizedBox(height: 24),
 
+                  /*
                   if (!isOtpStep) ...[
                     Text(
                       'Full Name',
@@ -211,6 +214,16 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                   ),
 
                   const SizedBox(height: 24),
+                  */
+
+                  if (authState.errorMessage != null)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: Text(
+                        authState.errorMessage!,
+                        style: GoogleFonts.poppins(color: AppColors.primaryNeon, fontSize: 13),
+                      ),
+                    ),
 
                   _GoogleButton(onTap: () async {
                     final navigator = Navigator.of(context);
@@ -234,6 +247,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
 
                   const SizedBox(height: 32),
 
+                  /*
                   Center(
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -257,6 +271,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                       ],
                     ),
                   ),
+                  */
 
                   const SizedBox(height: 30),
                 ],
