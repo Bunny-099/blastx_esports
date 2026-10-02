@@ -7,6 +7,7 @@ import 'package:shimmer/shimmer.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/transitions/fire_page_route.dart';
+import '../data/models/tournament_model.dart';
 import '../providers/live_provider.dart';
 import 'tournament_detail_screen.dart';
 import 'widgets/tournament_card.dart';
@@ -18,6 +19,7 @@ import 'widgets/tournament_card.dart';
 /// - Real-time Free Fire Live API data stream
 /// - Collapsible search bar with 300ms debounce
 /// - Horizontally scrollable status filter chips with counts
+/// - Smart default status filter selection
 /// - Staggered fade+slide entrance for each tournament card
 /// - Shimmer skeleton while fetching from backend API
 /// - AnimatedSwitcher list transitions & pull-to-refresh support
@@ -43,6 +45,9 @@ class _LiveScreenState extends ConsumerState<LiveScreen>
   late final FocusNode _searchFocusNode;
   Timer? _searchDebounce;
   bool _isSearchOpen = false;
+
+  bool _hasAutoSelectedFilter = false;
+  bool _userManuallySelectedFilter = false;
 
   @override
   void initState() {
@@ -130,6 +135,27 @@ class _LiveScreenState extends ConsumerState<LiveScreen>
     final isLoading = apiAsync.isLoading && !apiAsync.hasValue;
     final hasErrorNoData = apiAsync.hasError && (!apiAsync.hasValue || tournaments.isEmpty);
     final isEmpty = !isLoading && !hasErrorNoData && tournaments.isEmpty;
+
+    // Smart default filter: Default to Live, but if after the first successful load there are 0 live tournaments
+    // and the user has not manually picked a chip, auto-select Upcoming (or All if upcoming is also 0). Done once per screen open.
+    if (!isLoading && apiAsync.hasValue && !_hasAutoSelectedFilter && !_userManuallySelectedFilter) {
+      _hasAutoSelectedFilter = true;
+      final allTournaments = apiAsync.value ?? [];
+      final liveTournamentsCount = allTournaments.where((t) => t.status == TournamentStatus.live).length;
+      if (liveTournamentsCount == 0) {
+        final upcomingTournamentsCount = allTournaments.where((t) => t.status == TournamentStatus.upcoming).length;
+        final targetFilter = upcomingTournamentsCount > 0
+            ? TournamentStatusFilter.upcoming
+            : TournamentStatusFilter.all;
+        if (currentFilter != targetFilter) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted && !_userManuallySelectedFilter) {
+              ref.read(statusFilterProvider.notifier).state = targetFilter;
+            }
+          });
+        }
+      }
+    }
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -290,6 +316,7 @@ class _LiveScreenState extends ConsumerState<LiveScreen>
                               padding: const EdgeInsets.only(right: 8),
                               child: InkWell(
                                 onTap: () {
+                                  _userManuallySelectedFilter = true;
                                   ref.read(statusFilterProvider.notifier).state = filter;
                                 },
                                 borderRadius: BorderRadius.circular(20),

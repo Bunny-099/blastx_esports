@@ -19,7 +19,7 @@ This document defines the requirements and schema updates for search and status 
 | Parameter | Type | Required | Default | Description |
 | :--- | :--- | :--- | :--- | :--- |
 | `game` | `string` | No | - | Filter by game name (e.g. `Free Fire`). |
-| `status` | `string` | No | `live` | Filter by tournament status. Allowed values: `live`, `upcoming`, `completed`, `all`. |
+| `status` | `string` | No | - | Filter by tournament status (`live`, `upcoming`, `completed`). Passed only when filter is not "all". |
 | `q` | `string` | No | - | Case-insensitive search query matching title (`name`/`title`), organizer (`organizer`), or map name (`map`). |
 | `cursor` | `string` | No | - | Opaque pagination cursor string for cursor-based pagination. |
 | `limit` | `integer` | No | `20` | Max items to return per page (1 to 50). |
