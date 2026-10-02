@@ -19,10 +19,12 @@ class RoomDetailsCard extends ConsumerStatefulWidget {
     super.key,
     required this.tournament,
     required this.accentColor,
+    this.viewOnly = false,
   });
 
   final TournamentModel tournament;
   final Color accentColor;
+  final bool viewOnly;
 
   @override
   ConsumerState<RoomDetailsCard> createState() => _RoomDetailsCardState();
@@ -49,8 +51,8 @@ class _RoomDetailsCardState extends ConsumerState<RoomDetailsCard> {
 
   @override
   Widget build(BuildContext context) {
-    // Only show card for LIVE or UPCOMING tournaments (never for completed)
-    if (widget.tournament.status == TournamentStatus.completed) {
+    // Hide room details card if in view-only mode or if tournament completed
+    if (widget.viewOnly || widget.tournament.status == TournamentStatus.completed) {
       return const SizedBox.shrink();
     }
 

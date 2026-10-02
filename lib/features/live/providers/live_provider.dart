@@ -28,7 +28,7 @@ final tournamentSearchQueryProvider = searchQueryProvider;
 final apiTournamentsProvider = FutureProvider<List<TournamentModel>>((ref) async {
   final repo = ref.watch(tournamentRepositoryProvider);
   final filter = ref.watch(statusFilterProvider);
-  final statusParam = filter == TournamentStatusFilter.all ? null : filter.name;
+  final statusParam = filter == TournamentStatusFilter.all ? null : filter.name.toUpperCase();
   final list = await repo.getTournaments(
     limit: 50,
     game: 'Free Fire',

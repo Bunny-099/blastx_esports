@@ -357,7 +357,6 @@ class _LiveScreenState extends ConsumerState<LiveScreen>
 
                   // 4. Content Area with AnimatedSwitcher
                   SliverFillRemaining(
-                    hasScrollBody: !isEmpty && !hasErrorNoData && !isLoading,
                     child: AnimatedSwitcher(
                       duration: const Duration(milliseconds: 250),
                       switchInCurve: Curves.easeOut,
@@ -397,11 +396,13 @@ class _LiveScreenState extends ConsumerState<LiveScreen>
                                           padding: const EdgeInsets.only(bottom: 18),
                                           child: TournamentCard(
                                             tournament: tournament,
+                                            viewOnly: true,
                                             onTap: () {
                                               Navigator.of(context).push(
                                                 FirePageRoute(
                                                   page: TournamentDetailScreen(
                                                     tournamentId: tournament.id,
+                                                    viewOnly: true,
                                                   ),
                                                 ),
                                               );

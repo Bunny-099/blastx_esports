@@ -15,10 +15,12 @@ class OverviewTab extends StatefulWidget {
     super.key,
     required this.tournament,
     required this.accentColor,
+    this.viewOnly = false,
   });
 
   final TournamentModel tournament;
   final Color accentColor;
+  final bool viewOnly;
 
   @override
   State<OverviewTab> createState() => _OverviewTabState();
@@ -42,7 +44,11 @@ class _OverviewTabState extends State<OverviewTab>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // ── Room Details Card (for Live / Upcoming tournaments) ──
-          RoomDetailsCard(tournament: t, accentColor: accent),
+          RoomDetailsCard(
+            tournament: t,
+            accentColor: accent,
+            viewOnly: widget.viewOnly,
+          ),
 
           // ── Stream Link Card (if available) ──
           if (t.streamUrl != null && t.streamUrl!.isNotEmpty) ...[

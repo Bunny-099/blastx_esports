@@ -20,8 +20,14 @@ import 'tabs/teams_tab.dart';
 /// ============================================================
 
 class TournamentDetailScreen extends ConsumerStatefulWidget {
-  const TournamentDetailScreen({super.key, required this.tournamentId});
+  const TournamentDetailScreen({
+    super.key,
+    required this.tournamentId,
+    this.viewOnly = false,
+  });
+
   final String tournamentId;
+  final bool viewOnly;
 
   @override
   ConsumerState<TournamentDetailScreen> createState() =>
@@ -70,7 +76,10 @@ class _TournamentDetailScreenState
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      bottomNavigationBar: _BottomCta(tournament: t),
+      bottomNavigationBar: _BottomCta(
+        tournament: t,
+        viewOnly: widget.viewOnly,
+      ),
       body: NestedScrollView(
         physics: const BouncingScrollPhysics(),
         headerSliverBuilder: (context, innerBoxIsScrolled) {
@@ -117,7 +126,11 @@ class _TournamentDetailScreenState
         body: TabBarView(
           controller: _tabController,
           children: [
-            OverviewTab(tournament: t, accentColor: accent),
+            OverviewTab(
+              tournament: t,
+              accentColor: accent,
+              viewOnly: widget.viewOnly,
+            ),
             LeaderboardTab(tournamentId: t.id),
             MatchesTab(tournamentId: t.id),
             TeamsTab(tournamentId: t.id),
@@ -277,12 +290,113 @@ class _PinnedTabBarDelegate extends SliverPersistentHeaderDelegate {
 /// ============================================================
 
 class _BottomCta extends StatelessWidget {
-  const _BottomCta({required this.tournament});
+  const _BottomCta({required this.tournament, this.viewOnly = false});
   final TournamentModel tournament;
+  final bool viewOnly;
+
+  String _formatCountdown(DateTime target) {
+    final diff = target.difference(DateTime.now());
+    if (diff.inSeconds <= 0) {
+      return 'Starting soon';
+    }
+    if (diff.inMinutes < 60) {
+      return 'Starts in ${diff.inMinutes}m';
+    }
+    final hours = diff.inHours;
+    final mins = diff.inMinutes % 60;
+    return 'Starts in ${hours.toString().padLeft(2, '0')}h ${mins.toString().padLeft(2, '0')}m';
+  }
 
   @override
   Widget build(BuildContext context) {
     final t = tournament;
+
+    if (viewOnly) {
+      if (t.isLive && t.streamUrl != null && t.streamUrl!.isNotEmpty) {
+        return SafeArea(
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
+            decoration: const BoxDecoration(
+              color: AppColors.background,
+              border: Border(top: BorderSide(color: AppColors.border)),
+            ),
+            child: GestureDetector(
+              onTap: () {
+                // TODO: stream launcher
+              },
+              child: Container(
+                height: 52,
+                decoration: BoxDecoration(
+                  gradient: AppColors.fireGradient,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.secondary.withValues(alpha: 0.4),
+                      blurRadius: 16,
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: const [
+                    Icon(Icons.play_circle_fill_rounded,
+                        color: AppColors.bgNavy, size: 20),
+                    SizedBox(width: 8),
+                    Text(
+                      'WATCH LIVE',
+                      style: TextStyle(
+                        color: AppColors.bgNavy,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      } else if (t.status == TournamentStatus.upcoming) {
+        return SafeArea(
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
+            decoration: const BoxDecoration(
+              color: AppColors.background,
+              border: Border(top: BorderSide(color: AppColors.border)),
+            ),
+            child: Container(
+              height: 48,
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.schedule_rounded,
+                    color: AppColors.accentOrange,
+                    size: 18,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    _formatCountdown(t.effectiveStartsAt),
+                    style: AppTextStyles.bodyLg.copyWith(
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      } else {
+        // Completed or no stream URL in viewOnly mode
+        return const SizedBox.shrink();
+      }
+    }
 
     late final String label;
     late final IconData icon;

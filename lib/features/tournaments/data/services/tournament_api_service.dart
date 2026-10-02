@@ -24,7 +24,7 @@ class TournamentApiService {
     };
     if (game != null && game.isNotEmpty) queryParams['game'] = game;
     if (status != null && status.isNotEmpty && status.toLowerCase() != 'all') {
-      queryParams['status'] = status.toLowerCase();
+      queryParams['status'] = status.toUpperCase();
     }
     if (q != null && q.isNotEmpty) queryParams['q'] = q;
     if (cursor != null && cursor.isNotEmpty) queryParams['cursor'] = cursor;

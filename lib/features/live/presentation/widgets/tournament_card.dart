@@ -22,10 +22,12 @@ class TournamentCard extends StatefulWidget {
     super.key,
     required this.tournament,
     required this.onTap,
+    this.viewOnly = false,
   });
 
   final TournamentModel tournament;
   final VoidCallback onTap;
+  final bool viewOnly;
 
   @override
   State<TournamentCard> createState() => _TournamentCardState();
@@ -224,7 +226,10 @@ class _TournamentCardState extends State<TournamentCard> {
                         const SizedBox(height: 8),
 
                         // Slots Progress Bar
-                        _SlotsProgressBar(tournament: tournament),
+                        _SlotsProgressBar(
+                          tournament: tournament,
+                          viewOnly: widget.viewOnly,
+                        ),
                       ],
                     ),
                   ),
@@ -303,6 +308,7 @@ class _TournamentCardState extends State<TournamentCard> {
 
   /// Builds the top-right registration / capacity chip
   Widget _buildTopRightBadges(TournamentModel tournament) {
+    if (widget.viewOnly) return const SizedBox.shrink();
     final isReg = tournament.effectiveIsRegistered;
     final isFull = tournament.isFull;
 
@@ -408,12 +414,14 @@ class _TagPill extends StatelessWidget {
 /// Thin Slots Progress Bar Widget
 /// ------------------------------------------------------------
 class _SlotsProgressBar extends StatelessWidget {
-  const _SlotsProgressBar({required this.tournament});
+  const _SlotsProgressBar({required this.tournament, this.viewOnly = false});
 
   final TournamentModel tournament;
+  final bool viewOnly;
 
   @override
   Widget build(BuildContext context) {
+    if (viewOnly) return const SizedBox.shrink();
     final progress = tournament.slotsProgress;
     final isCritical = progress >= 0.90;
     final fillColor = isCritical ? const Color(0xFFFF3B30) : AppColors.accentOrange;
