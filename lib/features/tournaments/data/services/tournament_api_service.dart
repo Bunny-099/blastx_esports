@@ -89,10 +89,16 @@ class TournamentApiService {
     return [];
   }
 
-  Future<List<dynamic>> getLeaderboard(String tournamentId) async {
-    final response = await _apiClient.get(ApiEndpoints.tournamentLeaderboard(tournamentId));
-    if (response is List) return response;
-    return [];
+  Future<dynamic> getLeaderboard(String tournamentId, {String? round}) async {
+    final queryParams = <String, dynamic>{};
+    if (round != null && round.isNotEmpty) {
+      queryParams['round'] = round;
+    }
+    final response = await _apiClient.get(
+      ApiEndpoints.tournamentLeaderboard(tournamentId),
+      queryParameters: queryParams.isNotEmpty ? queryParams : null,
+    );
+    return response;
   }
 
   Future<dynamic> register({required String tournamentId, String? teamId}) async {
