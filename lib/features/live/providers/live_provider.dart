@@ -1,3 +1,4 @@
+import 'package:blastix_esports/features/live/data/models/room_details_model.dart';
 import 'package:blastix_esports/features/live/data/models/tournament_model.dart';
 import 'package:blastix_esports/features/tournaments/data/repositories/tournament_repository.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -169,4 +170,11 @@ final filteredAppLiveTournamentsProvider = Provider<List<TournamentModel>>((ref)
         t.organizer.toLowerCase().contains(query) ||
         t.mapName.toLowerCase().contains(query);
   }).toList();
+});
+
+/// Family provider for fetching RoomDetailsState for a given tournament ID
+final roomDetailsProvider = FutureProvider.family<RoomDetailsState, String>((ref, tournamentId) async {
+  final repo = ref.watch(tournamentRepositoryProvider);
+  final tournament = ref.watch(tournamentByIdProvider(tournamentId));
+  return repo.getRoomDetailsState(tournamentId, tournament: tournament);
 });

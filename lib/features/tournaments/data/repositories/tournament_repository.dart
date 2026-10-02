@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:blastix_esports/features/live/data/models/leaderboard_model.dart';
+import 'package:blastix_esports/features/live/data/models/room_details_model.dart';
 import 'package:blastix_esports/features/live/data/models/tournament_model.dart';
 import 'package:blastix_esports/features/splash/providers/splash_providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -68,6 +69,72 @@ class TournamentRepository {
       'room_password': data['room_password']?.toString() ?? '',
       'room_released_at': data['room_released_at']?.toString() ?? '',
     };
+  }
+
+  Future<RoomDetailsState> getRoomDetailsState(
+    String tournamentId, {
+    TournamentModel? tournament,
+  }) async {
+    try {
+      final res = await _apiService.getRoomDetails(tournamentId);
+
+      // Check code or status codes
+      final code = (res['code'] ?? '').toString().toUpperCase();
+      final statusCode = res['statusCode'] as int?;
+
+      if (code == 'NOT_REGISTERED' || statusCode == 403) {
+        return const RoomDetailsNotRegistered();
+      }
+
+      if (code == 'ROOM_NOT_AVAILABLE' || statusCode == 409 || statusCode == 425) {
+        final rawRevealAt = res['reveal_at'] ?? res['revealAt'] ?? res['visible_from'] ?? res['visibleFrom'];
+        final parsedRevealAt = rawRevealAt != null ? DateTime.tryParse(rawRevealAt.toString()) : null;
+        return RoomDetailsNotYetAvailable(revealAt: parsedRevealAt);
+      }
+
+      // Check for valid room_id
+      final dataMap = res['data'] is Map ? Map<String, dynamic>.from(res['data'] as Map) : res;
+      final roomId = (dataMap['room_id'] ?? dataMap['roomId'] ?? '').toString();
+      if (roomId.isNotEmpty) {
+        return RoomDetailsAvailable(RoomDetails.fromJson(dataMap));
+      }
+    } catch (_) {
+      // Backend error or missing endpoint fallback handled below
+    }
+
+    // TODO(backend): remove mock - Fallback room details state when backend is offline or missing endpoint
+    final isReg = tournament?.effectiveIsRegistered ?? false;
+    if (!isReg) {
+      return const RoomDetailsNotRegistered();
+    }
+
+    if (tournament != null) {
+      if (tournament.isLive) {
+        return RoomDetailsAvailable(
+          RoomDetails(
+            roomId: '8492041',
+            password: 'FF2026',
+            visibleFrom: DateTime.now().subtract(const Duration(minutes: 10)),
+          ),
+        );
+      }
+      final diff = tournament.effectiveStartsAt.difference(DateTime.now());
+      if (diff.inMinutes <= 15) {
+        return RoomDetailsAvailable(
+          RoomDetails(
+            roomId: '8492041',
+            password: 'FF2026',
+            visibleFrom: DateTime.now().subtract(const Duration(minutes: 5)),
+          ),
+        );
+      } else {
+        return RoomDetailsNotYetAvailable(
+          revealAt: tournament.effectiveStartsAt.subtract(const Duration(minutes: 15)),
+        );
+      }
+    }
+
+    return const RoomDetailsNotRegistered();
   }
 
   Future<List<dynamic>> getParticipants(String id) async {

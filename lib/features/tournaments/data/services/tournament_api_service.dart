@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:blastix_esports/core/api/api_client.dart';
 import 'package:blastix_esports/core/api/api_endpoints.dart';
 
@@ -73,8 +74,20 @@ class TournamentApiService {
   }
 
   Future<Map<String, dynamic>> getRoomDetails(String tournamentId) async {
-    final response = await _apiClient.get(ApiEndpoints.tournamentRoom(tournamentId));
-    return Map<String, dynamic>.from(response as Map);
+    try {
+      final response = await _apiClient.get(ApiEndpoints.tournamentRoom(tournamentId));
+      if (response is Map) {
+        return Map<String, dynamic>.from(response);
+      }
+      return {'status': 'success', 'data': response};
+    } on DioException catch (e) {
+      if (e.response != null && e.response?.data is Map) {
+        final errorData = Map<String, dynamic>.from(e.response!.data as Map);
+        errorData['statusCode'] = e.response?.statusCode;
+        return errorData;
+      }
+      rethrow;
+    }
   }
 
   Future<List<dynamic>> getParticipants(String tournamentId) async {
