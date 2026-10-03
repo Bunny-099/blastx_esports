@@ -3,10 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class StorageService {
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
-  late SharedPreferences _prefs;
-
-  static const String _tokenKey = 'auth_token';
-  static const String _userKey = 'user_data';
+  SharedPreferences? _prefs;
 
   Future<void> init() async {
     _prefs = await SharedPreferences.getInstance();
@@ -27,15 +24,22 @@ class StorageService {
 
   // --- General Data (JSON strings, etc.) ---
   Future<void> saveString(String key, String value) async {
-    await _prefs.setString(key, value);
+    _prefs ??= await SharedPreferences.getInstance();
+    await _prefs?.setString(key, value);
   }
 
   String? getString(String key) {
-    return _prefs.getString(key);
+    try {
+      return _prefs?.getString(key);
+    } catch (_) {
+      return null;
+    }
   }
 
   Future<void> clearAll() async {
     await _secureStorage.deleteAll();
-    await _prefs.clear();
+    await _prefs?.clear();
   }
+
+  static const String _tokenKey = 'auth_token';
 }
