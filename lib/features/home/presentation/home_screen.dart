@@ -10,25 +10,30 @@ import '../../../core/transitions/fire_page_route.dart';
 import '../../live/data/models/tournament_model.dart';
 import '../../live/presentation/tournament_detail_screen.dart';
 import '../../live/providers/live_provider.dart';
+import '../../profile/domain/rank_system.dart';
 import '../../profile/providers/profile_provider.dart';
 import '../data/models/home_data_models.dart';
 import '../providers/home_provider.dart';
 import '../providers/navigation_provider.dart';
 
 /// ============================================================
-/// HOME SCREEN — BLASTIX ESPORTS LANDING PAGE
+/// HOME SCREEN — REDESIGNED BLASTIX ESPORTS LANDING HUB
 /// ============================================================
-/// Modern esports landing hub featuring:
-/// - Collapsing Header with dynamic greeting, username & quote
-/// - Custom Header Bar with BlastIX Logo
-/// - Animated Live Announcement Ticker
-/// - Auto-scrolling Promotional Banner Carousel
-/// - Quick Actions Grid (Live, Tournaments, Quests, Teams, etc.)
-/// - Featured Tournaments Spotlight
-/// - Announcements & Community Notice Board
+/// Modern dynamic esports landing hub featuring:
+/// - Collapsing Header with dynamic greeting & quote
+/// - Gamer Profile & Rank/XP Stats Banner
+/// - Animated Announcement Ticker
+/// - Auto-scrolling Promotional Carousel Banner
+/// - Esports Hub Quick Action Grid
+/// - Daily Quests & Rewards Teaser Card
+/// - Dynamic Sections (Titles & lists shown ONLY when tournaments exist):
+///   1. BlastX Live Tournaments
+///   2. BlastX Upcoming Tournaments
+///   3. Free Fire Official Tournaments
+/// - Community Notices & News Board
 /// ============================================================
 
-const double _kExpandedHeaderHeight = 150;
+const double _kExpandedHeaderHeight = 140;
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key, this.username = 'Player'});
@@ -115,7 +120,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   Widget build(BuildContext context) {
     // Watch User Profile for dynamic username
     final profileState = ref.watch(profileProvider);
-    final profileName = profileState.user?.name;
+    final user = profileState.user;
+    final profileName = user?.name;
     final displayName = (profileName != null && profileName.trim().isNotEmpty)
         ? profileName.trim()
         : (widget.username != 'Player' ? widget.username : 'Player');
@@ -123,7 +129,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final banners = ref.watch(homeBannersProvider);
     final announcements = ref.watch(homeAnnouncementsProvider);
     final notices = ref.watch(homeNoticesProvider);
-    final tournaments = ref.watch(filteredOfficialTournamentsProvider);
+
+    // Dynamic Tournament Providers
+    final blastxLiveTournaments = ref.watch(appLiveTournamentsProvider);
+    final blastxUpcomingTournaments = ref.watch(appUpcomingTournamentsProvider);
+    final freeFireOfficialTournaments = ref.watch(officialTournamentsProvider);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -153,11 +163,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   ),
                 ),
 
+                // Gamer Rank & XP Progress Banner Widget
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 10, 20, 8),
+                    child: _UserGamerCard(user: user),
+                  ),
+                ),
+
                 // Live Announcement Ticker
                 if (announcements.isNotEmpty)
                   SliverToBoxAdapter(
                     child: Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+                      padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
                       child: _AnnouncementTicker(announcements: announcements),
                     ),
                   ),
@@ -216,10 +234,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     ),
                   ),
 
-                // Quick Action Grid Section
+                // Esports Hub Shortcuts Grid
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
+                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -237,90 +255,55 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                             Text('ESPORTS HUB', style: AppTextStyles.headingMd),
                           ],
                         ),
-                        const SizedBox(height: 14),
+                        const SizedBox(height: 12),
                         _QuickActionGrid(),
                       ],
                     ),
                   ),
                 ),
 
-                // Featured Tournaments Showcase
+                // Daily Quests Teaser Card (Side Feature Addition)
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Row(
-                          children: [
-                            Container(
-                              width: 4,
-                              height: 18,
-                              decoration: BoxDecoration(
-                                gradient: AppColors.fireGradient,
-                                borderRadius: BorderRadius.circular(2),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Text('FEATURED TOURNAMENTS',
-                                style: AppTextStyles.headingMd),
-                          ],
-                        ),
-                        GestureDetector(
-                          onTap: () {
-                            ref
-                                .read(navigationIndexProvider.notifier)
-                                .state = 1; // Tournaments tab
-                          },
-                          child: Text(
-                            'View All ➔',
-                            style: AppTextStyles.caption.copyWith(
-                              color: AppColors.primaryLight,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+                    child: _DailyQuestsTeaserCard(),
                   ),
                 ),
 
-                // Featured Tournaments Horizontal List
-                if (tournaments.isEmpty)
+                // ============================================================
+                // DYNAMIC SECTION 1: BLASTX LIVE TOURNAMENTS
+                // (Only visible when blastxLiveTournaments is NOT empty)
+                // ============================================================
+                if (blastxLiveTournaments.isNotEmpty) ...[
                   SliverToBoxAdapter(
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
-                        decoration: BoxDecoration(
-                          color: AppColors.surface,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: AppColors.border),
-                        ),
-                        child: Center(
-                          child: Text(
-                            'No featured tournaments available right now',
-                            style: AppTextStyles.bodySm.copyWith(color: AppColors.textMuted),
-                          ),
-                        ),
+                      padding: const EdgeInsets.fromLTRB(20, 12, 20, 10),
+                      child: _SectionHeader(
+                        title: '🔴 BLASTX LIVE TOURNAMENTS',
+                        actionText: 'Watch All ➔',
+                        onTapAction: () {
+                          ref.read(navigationIndexProvider.notifier).state = 2; // Live tab
+                        },
                       ),
                     ),
-                  )
-                else
+                  ),
                   SliverToBoxAdapter(
                     child: SizedBox(
-                      height: 210,
+                      height: 215,
                       child: ListView.builder(
                         scrollDirection: Axis.horizontal,
                         physics: const BouncingScrollPhysics(),
                         padding: const EdgeInsets.symmetric(horizontal: 16),
-                        itemCount: tournaments.length,
+                        itemCount: blastxLiveTournaments.length,
                         itemBuilder: (context, index) {
-                          final tournament = tournaments[index];
+                          final tournament = blastxLiveTournaments[index];
                           return Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 6),
-                            child: _FeaturedTournamentCard(
+                            child: _EsportsTournamentCard(
                               tournament: tournament,
+                              badgeText: '🔴 LIVE',
+                              badgeColor: AppColors.secondary,
+                              buttonText: 'WATCH',
                               onTap: () {
                                 Navigator.of(context).push(
                                   FirePageRoute(
@@ -336,6 +319,110 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                       ),
                     ),
                   ),
+                ],
+
+                // ============================================================
+                // DYNAMIC SECTION 2: BLASTX UPCOMING TOURNAMENTS
+                // (Only visible when blastxUpcomingTournaments is NOT empty)
+                // ============================================================
+                if (blastxUpcomingTournaments.isNotEmpty) ...[
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 10),
+                      child: _SectionHeader(
+                        title: '⚡ BLASTX UPCOMING TOURNAMENTS',
+                        actionText: 'View All ➔',
+                        onTapAction: () {
+                          ref.read(navigationIndexProvider.notifier).state = 1; // Tournaments tab
+                        },
+                      ),
+                    ),
+                  ),
+                  SliverToBoxAdapter(
+                    child: SizedBox(
+                      height: 215,
+                      child: ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        physics: const BouncingScrollPhysics(),
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        itemCount: blastxUpcomingTournaments.length,
+                        itemBuilder: (context, index) {
+                          final tournament = blastxUpcomingTournaments[index];
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 6),
+                            child: _EsportsTournamentCard(
+                              tournament: tournament,
+                              badgeText: 'UPCOMING',
+                              badgeColor: AppColors.primary,
+                              buttonText: 'JOIN',
+                              onTap: () {
+                                Navigator.of(context).push(
+                                  FirePageRoute(
+                                    page: TournamentDetailScreen(
+                                      tournamentId: tournament.id,
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                ],
+
+                // ============================================================
+                // DYNAMIC SECTION 3: FREE FIRE OFFICIAL TOURNAMENTS
+                // (Only visible when freeFireOfficialTournaments is NOT empty)
+                // ============================================================
+                if (freeFireOfficialTournaments.isNotEmpty) ...[
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 10),
+                      child: _SectionHeader(
+                        title: '🔥 FREE FIRE OFFICIAL TOURNAMENTS',
+                        actionText: 'View All ➔',
+                        onTapAction: () {
+                          ref.read(navigationIndexProvider.notifier).state = 2; // Live tab
+                        },
+                      ),
+                    ),
+                  ),
+                  SliverToBoxAdapter(
+                    child: SizedBox(
+                      height: 215,
+                      child: ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        physics: const BouncingScrollPhysics(),
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        itemCount: freeFireOfficialTournaments.length,
+                        itemBuilder: (context, index) {
+                          final tournament = freeFireOfficialTournaments[index];
+                          final isLive = tournament.isLive;
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 6),
+                            child: _EsportsTournamentCard(
+                              tournament: tournament,
+                              badgeText: isLive ? '🔴 FF LIVE' : 'FREE FIRE OFFICIAL',
+                              badgeColor: isLive ? AppColors.secondary : AppColors.primaryNeon,
+                              buttonText: isLive ? 'WATCH' : 'JOIN',
+                              onTap: () {
+                                Navigator.of(context).push(
+                                  FirePageRoute(
+                                    page: TournamentDetailScreen(
+                                      tournamentId: tournament.id,
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                ],
 
                 // Community Announcements & Notice Board
                 if (notices.isNotEmpty) ...[
@@ -378,8 +465,344 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                       ),
                     ),
                   ),
+                ] else ...[
+                  const SliverToBoxAdapter(
+                    child: SizedBox(height: 32),
+                  ),
                 ],
               ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// ------------------------------------------------------------
+/// Reusable Section Header with title and View All action
+/// ------------------------------------------------------------
+class _SectionHeader extends StatelessWidget {
+  const _SectionHeader({
+    required this.title,
+    required this.actionText,
+    required this.onTapAction,
+  });
+
+  final String title;
+  final String actionText;
+  final VoidCallback onTapAction;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Expanded(
+          child: Row(
+            children: [
+              Container(
+                width: 4,
+                height: 18,
+                decoration: BoxDecoration(
+                  gradient: AppColors.fireGradient,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Flexible(
+                child: Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTextStyles.headingMd.copyWith(
+                    fontSize: 15,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        GestureDetector(
+          onTap: onTapAction,
+          child: Text(
+            actionText,
+            style: AppTextStyles.caption.copyWith(
+              color: AppColors.primaryLight,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// ------------------------------------------------------------
+/// Gamer Rank & Stats Profile Banner
+/// ------------------------------------------------------------
+class _UserGamerCard extends StatelessWidget {
+  const _UserGamerCard({required this.user});
+
+  final dynamic user;
+
+  @override
+  Widget build(BuildContext context) {
+    final xp = user?.xp ?? 0;
+    final rankTier = RankSystem.getRankFromXP(xp);
+    final progress = RankSystem.getXPProgress(xp);
+    final nextRank = RankSystem.getNextRank(xp);
+
+    final played = user?.tournamentsPlayed ?? 0;
+    final won = user?.tournamentsWon ?? 0;
+    final winRate = played > 0 ? ((won / played) * 100).toStringAsFixed(0) : '0';
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.25)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.3),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              // Rank Icon Badge
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  gradient: AppColors.fireGradient,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.primary.withValues(alpha: 0.4),
+                      blurRadius: 10,
+                    ),
+                  ],
+                ),
+                child: Icon(
+                  rankTier.icon,
+                  color: Colors.white,
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: 12),
+              // Rank & XP Progress
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'RANK: ${rankTier.name.toUpperCase()}',
+                          style: GoogleFonts.rajdhani(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        Text(
+                          '$xp XP',
+                          style: AppTextStyles.caption.copyWith(
+                            color: AppColors.primaryLight,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: LinearProgressIndicator(
+                        value: progress,
+                        minHeight: 6,
+                        backgroundColor: AppColors.surfaceMuted,
+                        valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      nextRank != null
+                          ? 'Next: ${nextRank.name} (${RankSystem.getXPRemaining(xp)} XP remaining)'
+                          : 'MAX RANK REACHED 🏆',
+                      style: AppTextStyles.caption.copyWith(
+                        fontSize: 9.5,
+                        color: AppColors.textMuted,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          const Divider(height: 1, color: AppColors.border),
+          const SizedBox(height: 10),
+          // Stats Row
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _GamerStatChip(label: 'MATCHES', value: '$played'),
+              Container(width: 1, height: 20, color: AppColors.border),
+              _GamerStatChip(label: 'VICTORIES', value: '$won'),
+              Container(width: 1, height: 20, color: AppColors.border),
+              _GamerStatChip(label: 'WIN RATE', value: '$winRate%'),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _GamerStatChip extends StatelessWidget {
+  const _GamerStatChip({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Text(
+          value,
+          style: GoogleFonts.rajdhani(
+            fontSize: 16,
+            fontWeight: FontWeight.w800,
+            color: Colors.white,
+          ),
+        ),
+        Text(
+          label,
+          style: AppTextStyles.caption.copyWith(
+            fontSize: 9.5,
+            color: AppColors.textMuted,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// ------------------------------------------------------------
+/// Daily Quests Teaser Banner Card
+/// ------------------------------------------------------------
+class _DailyQuestsTeaserCard extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            AppColors.surfaceElevated,
+            AppColors.surface,
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: AppColors.secondary.withValues(alpha: 0.35),
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: AppColors.secondary.withValues(alpha: 0.2),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.extension_rounded,
+              color: AppColors.secondaryLight,
+              size: 22,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      'DAILY ESPORTS QUEST',
+                      style: GoogleFonts.rajdhani(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.secondaryLight,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                      decoration: BoxDecoration(
+                        color: AppColors.secondary.withValues(alpha: 0.3),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        '+200 XP',
+                        style: AppTextStyles.caption.copyWith(
+                          fontSize: 8.5,
+                          color: Colors.white,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Record & Upload Match Proof to Earn Rewards',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTextStyles.bodySm.copyWith(
+                    color: AppColors.textSecondary,
+                    fontSize: 11.5,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          GestureDetector(
+            onTap: () {
+              ref.read(navigationIndexProvider.notifier).state = 3; // Challenges / Quests tab
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+              decoration: BoxDecoration(
+                gradient: AppColors.fireGradient,
+                borderRadius: BorderRadius.circular(10),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primary.withValues(alpha: 0.3),
+                    blurRadius: 6,
+                  ),
+                ],
+              ),
+              child: Text(
+                'Play',
+                style: AppTextStyles.button.copyWith(
+                  fontSize: 11,
+                  color: Colors.white,
+                ),
+              ),
             ),
           ),
         ],
@@ -480,7 +903,7 @@ class _CollapsingHeaderDelegate extends SliverPersistentHeaderDelegate {
 
           // 2. Greeting block
           Positioned(
-            top: topPadding + 16,
+            top: topPadding + 14,
             left: 0,
             right: 0,
             child: Opacity(
@@ -493,11 +916,11 @@ class _CollapsingHeaderDelegate extends SliverPersistentHeaderDelegate {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text('Hey, $username 👋', style: AppTextStyles.headingXl),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 2),
                       Text(greetingText, style: AppTextStyles.bodyMd),
-                      const SizedBox(height: 6),
+                      const SizedBox(height: 4),
                       SizedBox(
-                        width: MediaQuery.of(context).size.width * 0.7,
+                        width: MediaQuery.of(context).size.width * 0.75,
                         child: Text(
                           quote,
                           maxLines: 1,
@@ -574,7 +997,6 @@ class _AmbientBackground extends StatelessWidget {
     );
   }
 }
-
 
 /// ------------------------------------------------------------
 /// Live Announcement Ticker Bar
@@ -969,16 +1391,22 @@ class _QuickActionData {
 }
 
 /// ------------------------------------------------------------
-/// Featured Tournament Horizontal Card
+/// Unified Esports Tournament Horizontal Card Component
 /// ------------------------------------------------------------
-class _FeaturedTournamentCard extends StatelessWidget {
-  const _FeaturedTournamentCard({
+class _EsportsTournamentCard extends StatelessWidget {
+  const _EsportsTournamentCard({
     required this.tournament,
     required this.onTap,
+    this.badgeText,
+    this.badgeColor,
+    this.buttonText,
   });
 
   final TournamentModel tournament;
   final VoidCallback onTap;
+  final String? badgeText;
+  final Color? badgeColor;
+  final String? buttonText;
 
   @override
   Widget build(BuildContext context) {
@@ -989,20 +1417,34 @@ class _FeaturedTournamentCard extends StatelessWidget {
         ? tournament.bannerImageUrl
         : 'assets/images/top_banner.jpg';
 
+    final effectiveBadgeText = badgeText ?? (isLive ? '🔴 LIVE' : 'REGISTRATION OPEN');
+    final effectiveBadgeColor = badgeColor ?? (isLive ? AppColors.secondary : AppColors.primary);
+    final actionBtnText = buttonText ?? (isLive ? 'Watch' : 'Join');
+
+    final mapDisplay = tournament.mapName.isNotEmpty ? tournament.mapName : 'Bermuda';
+    final gameDisplay = tournament.game.isNotEmpty ? tournament.game : 'Free Fire';
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 240,
+        width: 250,
         decoration: BoxDecoration(
           color: AppColors.surface,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: AppColors.border),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.3),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
         clipBehavior: Clip.antiAlias,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Banner Top
+            // Banner Top Image
             Stack(
               children: [
                 SizedBox(
@@ -1023,28 +1465,55 @@ class _FeaturedTournamentCard extends StatelessWidget {
                     gradient: LinearGradient(
                       colors: [
                         Colors.transparent,
-                        AppColors.surface.withValues(alpha: 0.9),
+                        AppColors.surface.withValues(alpha: 0.95),
                       ],
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
                     ),
                   ),
                 ),
+                // Top Left Badge
                 Positioned(
                   top: 8,
                   left: 8,
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
-                      color: isLive ? AppColors.secondary : AppColors.primary,
+                      color: effectiveBadgeColor,
                       borderRadius: BorderRadius.circular(6),
+                      boxShadow: [
+                        BoxShadow(
+                          color: effectiveBadgeColor.withValues(alpha: 0.4),
+                          blurRadius: 6,
+                        ),
+                      ],
                     ),
                     child: Text(
-                      isLive ? '🔴 LIVE' : 'REGISTRATION OPEN',
+                      effectiveBadgeText,
                       style: AppTextStyles.caption.copyWith(
-                        color: isLive ? Colors.white : AppColors.bgNavy,
+                        color: Colors.white,
                         fontSize: 9,
                         fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ),
+                // Top Right Game/Map Chip
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.65),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      '$gameDisplay • $mapDisplay',
+                      style: AppTextStyles.caption.copyWith(
+                        color: AppColors.textSecondary,
+                        fontSize: 8.5,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
@@ -1052,7 +1521,7 @@ class _FeaturedTournamentCard extends StatelessWidget {
               ],
             ),
 
-            // Card Body
+            // Card Body Information
             Padding(
               padding: const EdgeInsets.all(12),
               child: Column(
@@ -1071,7 +1540,7 @@ class _FeaturedTournamentCard extends StatelessWidget {
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('PRIZE POOL', style: AppTextStyles.caption),
+                          Text('PRIZE POOL', style: AppTextStyles.caption.copyWith(fontSize: 9)),
                           ShaderMask(
                             shaderCallback: (bounds) => AppColors.goldGradient
                                 .createShader(Offset.zero & bounds.size),
@@ -1087,16 +1556,23 @@ class _FeaturedTournamentCard extends StatelessWidget {
                         ],
                       ),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
                         decoration: BoxDecoration(
                           gradient: AppColors.fireGradient,
                           borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.primary.withValues(alpha: 0.3),
+                              blurRadius: 6,
+                            ),
+                          ],
                         ),
                         child: Text(
-                          'Join',
+                          actionBtnText,
                           style: AppTextStyles.caption.copyWith(
                             color: Colors.white,
                             fontSize: 11,
+                            fontWeight: FontWeight.w800,
                           ),
                         ),
                       ),
