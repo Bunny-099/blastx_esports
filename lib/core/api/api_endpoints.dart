@@ -31,7 +31,8 @@ class ApiEndpoints {
   static const String myTournaments = '/tournaments/me';
   static String tournamentDetail(String tid) => '/tournaments/$tid';
   static String tournamentRoom(String tid) => '/tournaments/$tid/room';
-  static String tournamentParticipants(String tid) => '/tournaments/$tid/participants';
+  static String tournamentRegisteredTeams(String tid) => '/tournaments/$tid/registered-teams';
+  static String tournamentParticipants(String tid) => '/tournaments/$tid/registered-teams';
   static String tournamentMatches(String tid) => '/tournaments/$tid/matches';
   static String tournamentLeaderboard(String tid) => '/tournaments/$tid/leaderboard';
   static String registerTournament(String tid) => '/tournaments/$tid/register';
