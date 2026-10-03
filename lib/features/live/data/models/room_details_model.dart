@@ -21,9 +21,12 @@ class RoomDetails {
     final rawVisibleFrom = json['visible_from'] ?? json['visibleFrom'] ?? json['reveal_at'] ?? json['revealAt'];
     final parsedVisibleFrom = rawVisibleFrom != null ? DateTime.tryParse(rawVisibleFrom.toString()) : null;
 
+    final rawRoomId = json['room_id'] ?? json['roomId'] ?? json['room_code'] ?? '';
+    final rawPassword = json['password'] ?? json['room_password'] ?? json['roomPassword'] ?? '';
+
     return RoomDetails(
-      roomId: (json['room_id'] ?? json['roomId'] ?? json['room_code'] ?? '') as String,
-      password: (json['password'] ?? json['room_password'] ?? '') as String,
+      roomId: rawRoomId.toString(),
+      password: rawPassword.toString(),
       visibleFrom: parsedVisibleFrom,
     );
   }
