@@ -54,28 +54,41 @@ class UserRepository {
     String? inGameName,
   }) async {
     UserProfileModel updatedUser;
+    final cleanName = (name != null && name.trim().isNotEmpty) ? name.trim() : null;
     try {
       updatedUser = await _apiService.updateProfile(
-        name: name,
+        name: cleanName,
         profilePic: profilePic,
       );
     } catch (_) {
       // If server profile update fails, fallback to current user copy with local field updates
-      var user = await getUserProfile();
-      updatedUser = user.copyWith(
-        name: name ?? user.name,
-        profilePic: profilePic ?? user.profilePic,
-      );
+      try {
+        var user = await getUserProfile();
+        updatedUser = user.copyWith(
+          name: cleanName ?? user.name,
+          profilePic: profilePic ?? user.profilePic,
+        );
+      } catch (_) {
+        updatedUser = UserProfileModel(
+          id: '',
+          name: cleanName ?? 'Gamer',
+          email: '',
+          profilePic: profilePic,
+        );
+      }
     }
 
     if (freeFireUid != null && freeFireUid.trim().isNotEmpty) {
+      final cleanUid = freeFireUid.trim();
+      final cleanIgn = (inGameName != null && inGameName.trim().isNotEmpty)
+          ? inGameName.trim()
+          : (cleanName ?? updatedUser.name);
+
       try {
         final gameProfile = await _apiService.updateGameProfile(
           gameSlug: 'free_fire',
-          inGameUid: freeFireUid.trim(),
-          inGameName: (inGameName != null && inGameName.trim().isNotEmpty)
-              ? inGameName.trim()
-              : (name ?? updatedUser.name),
+          inGameUid: cleanUid,
+          inGameName: cleanIgn,
         );
         updatedUser = updatedUser.copyWith(gameProfile: gameProfile);
       } catch (_) {
@@ -83,10 +96,8 @@ class UserRepository {
         final localGameProfile = GameProfileModel(
           gameSlug: 'free_fire',
           gameName: 'Free Fire',
-          inGameUid: freeFireUid.trim(),
-          inGameName: (inGameName != null && inGameName.trim().isNotEmpty)
-              ? inGameName.trim()
-              : (name ?? updatedUser.name),
+          inGameUid: cleanUid,
+          inGameName: cleanIgn,
         );
         updatedUser = updatedUser.copyWith(gameProfile: localGameProfile);
       }
