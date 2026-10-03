@@ -214,17 +214,42 @@ class _TournamentDetailScreenState
         children: [
           Row(
             children: [
-              _Chip(text: t.game, color: accent),
-              if (t.tournamentCode.isNotEmpty) ...[
-                const SizedBox(width: 8),
-                Text('#${t.tournamentCode}', style: AppTextStyles.caption),
-              ],
-              const Spacer(),
-              const Icon(Icons.remove_red_eye_rounded,
-                  color: AppColors.textSecondary, size: 15),
-              const SizedBox(width: 4),
-              Text('${t.formattedViewers} watching',
-                  style: AppTextStyles.bodySm),
+              Expanded(
+                child: Row(
+                  children: [
+                    Flexible(
+                      child: _Chip(text: t.game, color: accent),
+                    ),
+                    if (t.tournamentCode.isNotEmpty) ...[
+                      const SizedBox(width: 8),
+                      Flexible(
+                        child: Text(
+                          '#${t.tournamentCode}',
+                          style: AppTextStyles.caption,
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.remove_red_eye_rounded,
+                    color: AppColors.textSecondary,
+                    size: 15,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    '${t.formattedViewers} watching',
+                    style: AppTextStyles.bodySm,
+                  ),
+                ],
+              ),
             ],
           ),
           const SizedBox(height: 12),
@@ -238,7 +263,14 @@ class _TournamentDetailScreenState
           const SizedBox(height: 4),
           Row(
             children: [
-              Text('Organized by ${t.organizer}', style: AppTextStyles.bodySm),
+              Flexible(
+                child: Text(
+                  'Organized by ${t.organizer}',
+                  style: AppTextStyles.bodySm,
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
+                ),
+              ),
               if (t.organizerVerified) ...[
                 const SizedBox(width: 4),
                 Icon(Icons.verified_rounded, size: 15, color: accent),
@@ -546,7 +578,12 @@ class _Chip extends StatelessWidget {
       borderRadius: BorderRadius.circular(20),
       border: Border.all(color: color, width: 1),
     ),
-    child: Text(text, style: AppTextStyles.caption.copyWith(color: color)),
+    child: Text(
+      text,
+      style: AppTextStyles.caption.copyWith(color: color),
+      overflow: TextOverflow.ellipsis,
+      maxLines: 1,
+    ),
   );
 }
 
@@ -652,15 +689,21 @@ class _GlassPrizeCard extends StatelessWidget {
                       color: Colors.white, size: 30),
                 ),
                 const SizedBox(width: 14),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Total Prize Pool', style: AppTextStyles.bodySm),
-                    const SizedBox(height: 2),
-                    Text(tournament.formattedPrizePool,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Total Prize Pool', style: AppTextStyles.bodySm),
+                      const SizedBox(height: 2),
+                      Text(
+                        tournament.formattedPrizePool,
                         style: AppTextStyles.headingLg
-                            .copyWith(color: AppColors.gold)),
-                  ],
+                            .copyWith(color: AppColors.gold),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
