@@ -212,6 +212,70 @@ class TournamentModel {
   /// Helper: Indicates if the tournament capacity has been reached
   bool get isFull => effectiveMaxSlots > 0 && effectiveFilledSlots >= effectiveMaxSlots;
 
+  /// Checks if registration is currently open
+  bool get isRegistrationOpen {
+    if (status == TournamentStatus.completed) return false;
+    if (isLive) return false;
+    if (isFull) return false;
+
+    final now = DateTime.now();
+    if (registrationClosesAt != null && now.isAfter(registrationClosesAt!)) {
+      return false;
+    }
+    if (now.isAfter(effectiveStartsAt)) {
+      return false;
+    }
+    if (registrationOpensAt != null && now.isBefore(registrationOpensAt!)) {
+      return false;
+    }
+    return true;
+  }
+
+  /// Checks if registration is closed
+  bool get isRegistrationClosed {
+    if (status == TournamentStatus.completed) return false;
+    if (isLive) return false;
+    if (isFull) return true;
+
+    final now = DateTime.now();
+    if (registrationClosesAt != null && now.isAfter(registrationClosesAt!)) {
+      return true;
+    }
+    if (now.isAfter(effectiveStartsAt)) {
+      return true;
+    }
+    return false;
+  }
+
+  /// Checks if registration opens in the future
+  bool get isRegistrationOpensSoon {
+    if (status == TournamentStatus.completed || isLive) return false;
+    final now = DateTime.now();
+    return registrationOpensAt != null && now.isBefore(registrationOpensAt!);
+  }
+
+  /// Button text CTA representation for cards
+  String get actionButtonText {
+    if (isLive) return 'WATCH';
+    if (effectiveIsRegistered) return 'REGISTERED ✓';
+    if (status == TournamentStatus.completed) return 'COMPLETED';
+    if (isRegistrationOpen) return 'REGISTRATION OPEN';
+    if (isRegistrationClosed) return 'REGISTRATION CLOSED';
+    if (isRegistrationOpensSoon) return 'OPENS SOON';
+    return 'VIEW';
+  }
+
+  /// Concise status badge text for top/bottom badges
+  String get statusBadgeText {
+    if (isLive) return 'LIVE';
+    if (effectiveIsRegistered) return 'Registered ✓';
+    if (status == TournamentStatus.completed) return 'Ended';
+    if (isRegistrationOpen) return 'Registration Open';
+    if (isRegistrationClosed) return 'Registration Closed';
+    if (isRegistrationOpensSoon) return 'Opens Soon';
+    return 'Upcoming';
+  }
+
   factory TournamentModel.fromJson(Map<String, dynamic> json) {
     List<T> parseList<T>(String key, T Function(Map<String, dynamic>) f) =>
         (json[key] as List<dynamic>?)
