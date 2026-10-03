@@ -352,9 +352,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                             padding: const EdgeInsets.symmetric(horizontal: 6),
                             child: _EsportsTournamentCard(
                               tournament: tournament,
-                              badgeText: 'UPCOMING',
-                              badgeColor: AppColors.primary,
-                              buttonText: 'JOIN',
+                              badgeText: tournament.statusBadgeText.toUpperCase(),
+                              badgeColor: tournament.isRegistrationOpen ? AppColors.primaryNeon : AppColors.primary,
+                              buttonText: tournament.actionButtonText,
                               onTap: () {
                                 Navigator.of(context).push(
                                   FirePageRoute(
@@ -404,9 +404,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                             padding: const EdgeInsets.symmetric(horizontal: 6),
                             child: _EsportsTournamentCard(
                               tournament: tournament,
-                              badgeText: isLive ? '🔴 FF LIVE' : 'FREE FIRE OFFICIAL',
+                              badgeText: isLive ? '🔴 FF LIVE' : tournament.statusBadgeText.toUpperCase(),
                               badgeColor: isLive ? AppColors.secondary : AppColors.primaryNeon,
-                              buttonText: isLive ? 'WATCH' : 'JOIN',
+                              buttonText: tournament.actionButtonText,
                               onTap: () {
                                 Navigator.of(context).push(
                                   FirePageRoute(
@@ -1417,9 +1417,9 @@ class _EsportsTournamentCard extends StatelessWidget {
         ? tournament.bannerImageUrl
         : 'assets/images/top_banner.jpg';
 
-    final effectiveBadgeText = badgeText ?? (isLive ? '🔴 LIVE' : 'REGISTRATION OPEN');
+    final effectiveBadgeText = badgeText ?? (isLive ? '🔴 LIVE' : tournament.statusBadgeText.toUpperCase());
     final effectiveBadgeColor = badgeColor ?? (isLive ? AppColors.secondary : AppColors.primary);
-    final actionBtnText = buttonText ?? (isLive ? 'Watch' : 'Join');
+    final actionBtnText = buttonText ?? tournament.actionButtonText;
 
     final mapDisplay = tournament.mapName.isNotEmpty ? tournament.mapName : 'Bermuda';
     final gameDisplay = tournament.game.isNotEmpty ? tournament.game : 'Free Fire';
@@ -1448,7 +1448,7 @@ class _EsportsTournamentCard extends StatelessWidget {
             Stack(
               children: [
                 SizedBox(
-                  height: 105,
+                  height: 100,
                   width: double.infinity,
                   child: Image.network(
                     bannerUrl,
@@ -1460,7 +1460,7 @@ class _EsportsTournamentCard extends StatelessWidget {
                   ),
                 ),
                 Container(
-                  height: 105,
+                  height: 100,
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [
@@ -1523,7 +1523,7 @@ class _EsportsTournamentCard extends StatelessWidget {
 
             // Card Body Information
             Padding(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -1537,42 +1537,49 @@ class _EsportsTournamentCard extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('PRIZE POOL', style: AppTextStyles.caption.copyWith(fontSize: 9)),
-                          ShaderMask(
-                            shaderCallback: (bounds) => AppColors.goldGradient
-                                .createShader(Offset.zero & bounds.size),
-                            child: Text(
-                              prizePool,
-                              style: GoogleFonts.rajdhani(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w800,
-                                color: Colors.white,
+                      Flexible(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('PRIZE POOL', style: AppTextStyles.caption.copyWith(fontSize: 9)),
+                            ShaderMask(
+                              shaderCallback: (bounds) => AppColors.goldGradient
+                                  .createShader(Offset.zero & bounds.size),
+                              child: Text(
+                                prizePool,
+                                style: GoogleFonts.rajdhani(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w800,
+                                  color: Colors.white,
+                                ),
                               ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-                        decoration: BoxDecoration(
-                          gradient: AppColors.fireGradient,
-                          borderRadius: BorderRadius.circular(12),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppColors.primary.withValues(alpha: 0.3),
-                              blurRadius: 6,
                             ),
                           ],
                         ),
-                        child: Text(
-                          actionBtnText,
-                          style: AppTextStyles.caption.copyWith(
-                            color: Colors.white,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w800,
+                      ),
+                      const SizedBox(width: 6),
+                      Flexible(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                          decoration: BoxDecoration(
+                            gradient: AppColors.fireGradient,
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.primary.withValues(alpha: 0.3),
+                                blurRadius: 6,
+                              ),
+                            ],
+                          ),
+                          child: Text(
+                            actionBtnText,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppTextStyles.caption.copyWith(
+                              color: Colors.white,
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w800,
+                            ),
                           ),
                         ),
                       ),
