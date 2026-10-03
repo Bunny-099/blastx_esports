@@ -2,6 +2,7 @@ import 'package:blastix_esports/core/theme/app_colors.dart';
 import 'package:blastix_esports/core/theme/app_text_styles.dart';
 import 'package:blastix_esports/features/live/presentation/widgets/player_info_form.dart';
 import 'package:blastix_esports/features/live/providers/team_provider.dart';
+import 'package:blastix_esports/features/profile/providers/profile_provider.dart';
 import 'package:blastix_esports/shared/widgets/custom_button.dart';
 import 'package:blastix_esports/shared/widgets/custom_textfield.dart';
 import 'package:flutter/material.dart';
@@ -26,8 +27,33 @@ class _CreateTeamScreenState extends ConsumerState<CreateTeamScreen> {
   @override
   void initState() {
     super.initState();
-    Future.microtask(
-            () => ref.read(teamProvider(widget.tournamentId).notifier).clearError());
+    Future.microtask(() {
+      ref.read(teamProvider(widget.tournamentId).notifier).clearError();
+      _prefillFromProfile();
+    });
+  }
+
+  void _prefillFromProfile() {
+    final user = ref.read(profileProvider).user;
+    if (user != null) {
+      if (_player.text.trim().isEmpty && user.name.isNotEmpty) {
+        _player.text = user.name;
+      }
+      if (_ign.text.trim().isEmpty) {
+        final existingIgn = user.gameProfile?.inGameName;
+        if (existingIgn != null && existingIgn.isNotEmpty) {
+          _ign.text = existingIgn;
+        } else if (user.name.isNotEmpty) {
+          _ign.text = user.name;
+        }
+      }
+      if (_uid.text.trim().isEmpty) {
+        final existingUid = user.gameProfile?.inGameUid;
+        if (existingUid != null && existingUid.isNotEmpty) {
+          _uid.text = existingUid;
+        }
+      }
+    }
   }
 
   @override
@@ -41,13 +67,17 @@ class _CreateTeamScreenState extends ConsumerState<CreateTeamScreen> {
   Future<void> _submit() async {
     final name = _teamName.text.trim();
     final tag = _tag.text.trim().toUpperCase();
+    final playerName = _player.text.trim();
+    final ign = _ign.text.trim();
+    final uid = _uid.text.trim();
+
     String? err;
     if (name.length < 3) {
       err = 'Team name must be at least 3 characters.';
     } else if (tag.isNotEmpty && (tag.length < 2 || tag.length > 5)) {
       err = 'Team tag must be 2–5 characters.';
     } else {
-      err = PlayerInfoForm.validate(_player.text, _ign.text, _uid.text);
+      err = PlayerInfoForm.validate(playerName, ign, uid);
     }
     setState(() => _localError = err);
     if (err != null) return;
@@ -57,11 +87,18 @@ class _CreateTeamScreenState extends ConsumerState<CreateTeamScreen> {
         .createTeam(
       teamName: name,
       tag: tag,
-      playerName: _player.text.trim(),
-      ign: _ign.text.trim(),
-      uid: _uid.text.trim(),
+      playerName: playerName,
+      ign: ign,
+      uid: uid,
     );
-    if (ok && mounted) Navigator.of(context).pop(true);
+    if (ok && mounted) {
+      ref.read(profileProvider.notifier).updateFullProfile(
+        name: playerName.isNotEmpty ? playerName : (ref.read(profileProvider).user?.name ?? ''),
+        freeFireUid: uid,
+        inGameName: ign,
+      );
+      Navigator.of(context).pop(true);
+    }
   }
 
   Widget _label(String t) => Padding(
@@ -71,6 +108,12 @@ class _CreateTeamScreenState extends ConsumerState<CreateTeamScreen> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<ProfileState>(profileProvider, (previous, next) {
+      if (next.user != null) {
+        _prefillFromProfile();
+      }
+    });
+
     final s = ref.watch(teamProvider(widget.tournamentId));
     final error = _localError ?? s.error;
 
