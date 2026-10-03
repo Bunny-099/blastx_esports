@@ -7,6 +7,54 @@ class TournamentApiService {
 
   TournamentApiService(this._apiClient);
 
+  /// Dedicated fetch call for Free Fire Live section API
+  Future<Map<String, dynamic>> getFreeFireLiveTournaments({
+    int page = 1,
+    int limit = 20,
+    String? status,
+    String? q,
+    String? cursor,
+  }) async {
+    final queryParams = <String, dynamic>{
+      'page': page,
+      'limit': limit,
+    };
+    if (status != null && status.isNotEmpty && status.toLowerCase() != 'all') {
+      queryParams['status'] = status.toUpperCase();
+    }
+    if (q != null && q.isNotEmpty) queryParams['q'] = q;
+    if (cursor != null && cursor.isNotEmpty) queryParams['cursor'] = cursor;
+
+    final response = await _apiClient.get(
+      ApiEndpoints.freeFireLive,
+      queryParameters: queryParams,
+    );
+
+    if (response is Map) {
+      final mapResp = Map<String, dynamic>.from(response);
+      final rawItems = mapResp['data'] ?? mapResp['items'] ?? [];
+      final itemList = rawItems is List ? rawItems : [];
+      return {
+        'items': itemList,
+        'next_cursor': mapResp['next_cursor'],
+        'page': mapResp['page'] ?? page,
+        'limit': mapResp['limit'] ?? limit,
+        'total': mapResp['total'] ?? itemList.length,
+      };
+    }
+    if (response is List) {
+      return {
+        'items': response,
+        'next_cursor': null,
+        'page': page,
+        'limit': limit,
+        'total': response.length,
+      };
+    }
+    return {'items': [], 'next_cursor': null, 'page': page, 'limit': limit, 'total': 0};
+  }
+
+  /// Fetch call for BlastX Esports Tournaments section API
   Future<Map<String, dynamic>> getTournaments({
     int page = 1,
     int limit = 20,

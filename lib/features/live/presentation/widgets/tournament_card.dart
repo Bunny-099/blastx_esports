@@ -181,7 +181,7 @@ class _TournamentCardState extends State<TournamentCard> {
                           child: Material(
                             type: MaterialType.transparency,
                             child: Text(
-                              tournament.name,
+                              tournament.displayTitle,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: AppTextStyles.headingMd.copyWith(

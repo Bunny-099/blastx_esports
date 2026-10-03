@@ -232,7 +232,7 @@ class _TournamentDetailScreenState
             tag: 'tournament-title-${t.id}',
             child: Material(
               type: MaterialType.transparency,
-              child: Text(t.name, style: AppTextStyles.headingXl),
+              child: Text(t.displayTitle, style: AppTextStyles.headingXl),
             ),
           ),
           const SizedBox(height: 4),

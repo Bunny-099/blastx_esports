@@ -19,7 +19,14 @@ class ApiEndpoints {
   static const String userRank = '/users/me/rank';
   static String userRankByUserId(String userId) => '/users/$userId/rank';
 
-  // Tournaments Endpoints
+  // Free Fire Live Dedicated Endpoints
+  static const String freeFireLive = '/free-fire-live';
+  static String freeFireLiveDetail(String tid) => '/free-fire-live/$tid';
+  static String freeFireLiveRoom(String tid) => '/free-fire-live/$tid/room';
+  static String freeFireLiveMatches(String tid) => '/free-fire-live/$tid/matches';
+  static String freeFireLiveLeaderboard(String tid) => '/free-fire-live/$tid/leaderboard';
+
+  // BlastX Esports Tournaments Endpoints
   static const String tournaments = '/tournaments';
   static const String myTournaments = '/tournaments/me';
   static String tournamentDetail(String tid) => '/tournaments/$tid';

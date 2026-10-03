@@ -63,7 +63,7 @@ class BlastIXTournamentCard extends StatelessWidget {
                 ),
               const SizedBox(height: 8),
               Text(
-                tournament.name,
+                tournament.displayTitle,
                 style: AppTextStyles.headingMd.copyWith(color: Colors.white),
               ),
               const SizedBox(height: 4),

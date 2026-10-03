@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../data/models/rank_model.dart';
 import '../../data/models/user_profile_model.dart';
 
 /// Rank section card for Player Profile screen.

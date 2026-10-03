@@ -37,232 +37,261 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // ── Top header image ──
-            Image.asset(
-              'assets/images/login_top.png',
-              fit: BoxFit.contain,
-            ),
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          // ── Fullscreen background image ──
+          Image.asset(
+            'assets/images/login_bg.png',
+            fit: BoxFit.fill,
+            width: double.infinity,
+            height: double.infinity,
+          ),
 
-            // ── Form section ──
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 24),
-                  Text(
-                    'Login to continue to BlastIXEsports',
-                    style: GoogleFonts.poppins(fontSize: 14, color: AppColors.textSecondary),
-                  ),
-                  const SizedBox(height: 24),
-
-                  /*
-                  Text(
-                    'Email',
-                    style: GoogleFonts.poppins(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  CustomTextField(
-                    controller: _emailController,
-                    hintText: 'you@example.com',
-                    keyboardType: TextInputType.emailAddress,
-                  ),
-
-                  if (authState.errorMessage != null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 8),
-                      child: Text(
-                        authState.errorMessage!,
-                        style: GoogleFonts.poppins(color: AppColors.primaryNeon, fontSize: 13),
-                      ),
-                    ),
-
-                  const SizedBox(height: 16),
-
-                  if (!isOtpStep)
-                    _GlowButton(
-                      text: 'Send OTP',
-                      isLoading: authState.isLoading,
-                      onPressed: () =>
-                          authNotifier.sendOtp(_emailController.text.trim()),
-                    ),
-
-                  AnimatedSize(
-                    duration: const Duration(milliseconds: 350),
-                    curve: Curves.easeInOut,
-                    child: isOtpStep
-                        ? Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const SizedBox(height: 8),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            GestureDetector(
-                              onTap: authNotifier.backToEmailStep,
-                              child: Text(
-                                'Change email',
-                                style: GoogleFonts.poppins(
-                                  fontSize: 12,
-                                  color: AppColors.primaryNeon,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        Row(
-                          children: [
-                            const Expanded(child: Divider(color: AppColors.surfaceNavy)),
-                            Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 10),
-                              child: Text(
-                                'Enter OTP',
-                                style: GoogleFonts.poppins(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.textPrimary,
-                                ),
-                              ),
-                            ),
-                            const Expanded(child: Divider(color: AppColors.surfaceNavy)),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Sent to ${authState.email}',
-                          style: GoogleFonts.poppins(fontSize: 12, color: AppColors.textMuted),
-                        ),
-                        const SizedBox(height: 10),
-                        CustomTextField(
-                          controller: _otpController,
-                          hintText: '6-digit code',
-                          keyboardType: TextInputType.number,
-                          maxLength: 6,
-                        ),
-                        const SizedBox(height: 16),
-                        _GlowButton(
-                          text: 'Verify & Login',
-                          isLoading: authState.isLoading,
-                          showArrow: true,
-                          onPressed: () async {
-                            final navigator = Navigator.of(context);
-                            final success = await authNotifier.verifyOtp(_otpController.text.trim());
-                            if (!mounted) return;
-                            
-                            if (success) {
-                              final isIos = ref.read(deviceInfoServiceProvider).isIos;
-                              if (isIos) {
-                                if (context.mounted) {
-                                  await IosWaitlistDialog.show(context);
-                                }
-                              } else {
-                                navigator.pushNamedAndRemoveUntil(
-                                  '/home',
-                                  (route) => false,
-                                );
-                              }
-                            }
-                          },
-                        ),
-                        const SizedBox(height: 8),
-                      ],
-                    )
-                        : const SizedBox.shrink(),
-                  ),
-
-                  const SizedBox(height: 28),
-
-                  Row(
+          // ── Login UI ──
+          SafeArea(
+            child: Align(
+              // 🔴 [POSITION CONTROL]: Change 0.4 (-1.0 = top, 0.0 = center, 1.0 = bottom) to move UI up or down
+              alignment: const Alignment(0.0, 0.2),
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      const Expanded(child: Divider(color: AppColors.surfaceNavy)),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        child: Text('OR',
-                            style: GoogleFonts.poppins(fontSize: 12, color: AppColors.textMuted)),
+                      /*
+                      Text(
+                        'Login to continue to BlastIXEsports',
+                        style: GoogleFonts.poppins(fontSize: 14, color: AppColors.textSecondary),
                       ),
-                      const Expanded(child: Divider(color: AppColors.surfaceNavy)),
-                    ],
-                  ),
+                      const SizedBox(height: 24),
 
-                  const SizedBox(height: 24),
-                  */
-
-                  if (authState.errorMessage != null)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 16),
-                      child: Text(
-                        authState.errorMessage!,
-                        style: GoogleFonts.poppins(color: AppColors.primaryNeon, fontSize: 13),
+                      Text(
+                        'Email',
+                        style: GoogleFonts.poppins(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textPrimary,
+                        ),
                       ),
-                    ),
+                      const SizedBox(height: 8),
+                      CustomTextField(
+                        controller: _emailController,
+                        hintText: 'you@example.com',
+                        keyboardType: TextInputType.emailAddress,
+                      ),
 
-                  _GoogleButton(onTap: () async {
-                    final navigator = Navigator.of(context);
-                    final success = await authNotifier.continueWithGoogle();
-                    if (!mounted) return;
-
-                    if (success) {
-                      final isIos = ref.read(deviceInfoServiceProvider).isIos;
-                      if (isIos) {
-                        if (context.mounted) {
-                          await IosWaitlistDialog.show(context);
-                        }
-                      } else {
-                        navigator.pushNamedAndRemoveUntil(
-                          '/home',
-                          (route) => false,
-                        );
-                      }
-                    }
-                  }),
-
-                  const SizedBox(height: 32),
-
-                  /*
-                  Center(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text("Don't have an account? ",
-                            style: GoogleFonts.poppins(color: AppColors.textSecondary, fontSize: 13)),
-                        GestureDetector(
-                          onTap: () {
-                            authNotifier.backToEmailStep();
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (context) => const SignupScreen()),
-                            );
-                          },
+                      if (authState.errorMessage != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8),
                           child: Text(
-                            'Sign up',
-                            style: GoogleFonts.poppins(
-                              color: AppColors.primaryNeon,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 13,
-                            ),
+                            authState.errorMessage!,
+                            style: GoogleFonts.poppins(color: AppColors.primaryNeon, fontSize: 13),
                           ),
                         ),
-                      ],
-                    ),
-                  ),
-                  */
 
-                  const SizedBox(height: 30),
-                ],
+                      const SizedBox(height: 16),
+
+                      if (!isOtpStep)
+                        _GlowButton(
+                          text: 'Send OTP',
+                          isLoading: authState.isLoading,
+                          onPressed: () =>
+                              authNotifier.sendOtp(_emailController.text.trim()),
+                        ),
+
+                      AnimatedSize(
+                        duration: const Duration(milliseconds: 350),
+                        curve: Curves.easeInOut,
+                        child: isOtpStep
+                            ? Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const SizedBox(height: 8),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                GestureDetector(
+                                  onTap: authNotifier.backToEmailStep,
+                                  child: Text(
+                                    'Change email',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 12,
+                                      color: AppColors.primaryNeon,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            Row(
+                              children: [
+                                const Expanded(child: Divider(color: AppColors.surfaceNavy)),
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                                  child: Text(
+                                    'Enter OTP',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.textPrimary,
+                                    ),
+                                  ),
+                                ),
+                                const Expanded(child: Divider(color: AppColors.surfaceNavy)),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Sent to ${authState.email}',
+                              style: GoogleFonts.poppins(fontSize: 12, color: AppColors.textMuted),
+                            ),
+                            const SizedBox(height: 10),
+                            CustomTextField(
+                              controller: _otpController,
+                              hintText: '6-digit code',
+                              keyboardType: TextInputType.number,
+                              maxLength: 6,
+                            ),
+                            const SizedBox(height: 16),
+                            _GlowButton(
+                              text: 'Verify & Login',
+                              isLoading: authState.isLoading,
+                              showArrow: true,
+                              onPressed: () async {
+                                final navigator = Navigator.of(context);
+                                final success = await authNotifier.verifyOtp(_otpController.text.trim());
+                                if (!mounted) return;
+                                
+                                if (success) {
+                                  final isIos = ref.read(deviceInfoServiceProvider).isIos;
+                                  if (isIos) {
+                                    if (context.mounted) {
+                                      await IosWaitlistDialog.show(context);
+                                    }
+                                  } else {
+                                    navigator.pushNamedAndRemoveUntil(
+                                      '/home',
+                                      (route) => false,
+                                    );
+                                  }
+                                }
+                              },
+                            ),
+                            const SizedBox(height: 8),
+                          ],
+                        )
+                            : const SizedBox.shrink(),
+                      ),
+
+                      const SizedBox(height: 28),
+
+                      Row(
+                        children: [
+                          const Expanded(child: Divider(color: AppColors.surfaceNavy)),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            child: Text('OR',
+                                style: GoogleFonts.poppins(fontSize: 12, color: AppColors.textMuted)),
+                          ),
+                          const Expanded(child: Divider(color: AppColors.surfaceNavy)),
+                        ],
+                      ),
+
+                      const SizedBox(height: 24),
+                      */
+
+                      Center(
+                        child: Text(
+                          'Login to continue to BlastIXEsports',
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.poppins(
+                            fontSize: 13,
+                            color: AppColors.textSecondary,
+                            shadows: const [
+                              Shadow(blurRadius: 6, color: Colors.black, offset: Offset(0, 2)),
+                            ],
+                          ),
+                        ),
+                      ),
+
+                      // 🔴 [GAP CONTROL]: Text aur Google button ke beech ki doori
+                      const SizedBox(height: 20),
+
+                      if (authState.errorMessage != null)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 16),
+                          child: Text(
+                            authState.errorMessage!,
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.poppins(color: AppColors.primaryNeon, fontSize: 13),
+                          ),
+                        ),
+
+                      // 🔴 [BUTTON MARGIN]: Only button ki top/bottom position badalne ke liye
+                      Padding(
+                        padding: const EdgeInsets.only(top: 0, bottom: 0),
+                        child: _GoogleButton(onTap: () async {
+                          final navigator = Navigator.of(context);
+                          final success = await authNotifier.continueWithGoogle();
+                          if (!mounted) return;
+
+                          if (success) {
+                            final isIos = ref.read(deviceInfoServiceProvider).isIos;
+                            if (isIos) {
+                              if (context.mounted) {
+                                await IosWaitlistDialog.show(context);
+                              }
+                            } else {
+                              navigator.pushNamedAndRemoveUntil(
+                                '/home',
+                                (route) => false,
+                              );
+                            }
+                          }
+                        }),
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      /*
+                      Center(
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text("Don't have an account? ",
+                                style: GoogleFonts.poppins(color: AppColors.textSecondary, fontSize: 13)),
+                            GestureDetector(
+                              onTap: () {
+                                authNotifier.backToEmailStep();
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (context) => const SignupScreen()),
+                                );
+                              },
+                              child: Text(
+                                'Sign up',
+                                style: GoogleFonts.poppins(
+                                  color: AppColors.primaryNeon,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      */
+
+                      const SizedBox(height: 16),
+                    ],
+                  ),
+                ),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

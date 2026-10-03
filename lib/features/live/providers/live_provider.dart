@@ -4,10 +4,10 @@ import 'package:blastix_esports/features/tournaments/data/repositories/tournamen
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// ============================================================
-/// LIVE PROVIDER — Free Fire Exclusive Edition
+/// LIVE PROVIDER — Dedicated Free Fire Live & BlastX Esports Edition
 /// ============================================================
-/// Riverpod providers that supply Free Fire tournament data to UI.
-/// Fetches real tournaments from backend API with game='Free Fire'.
+/// Riverpod providers that supply Free Fire Live and BlastX Esports
+/// tournament data directly from dedicated API endpoints.
 /// ============================================================
 
 /// Status filter enum for live screen filter chips
@@ -24,35 +24,32 @@ final searchQueryProvider = StateProvider<String>((ref) => '');
 /// Alias for backward compatibility with capsule search bar
 final tournamentSearchQueryProvider = searchQueryProvider;
 
-/// Async provider for backend tournaments API
+// ── 1. FREE FIRE LIVE SECTION PROVIDERS ──
+
+/// Async provider for dedicated Free Fire Live API (`/free-fire-live`)
 final apiTournamentsProvider = FutureProvider<List<TournamentModel>>((ref) async {
   final repo = ref.watch(tournamentRepositoryProvider);
   final filter = ref.watch(statusFilterProvider);
   final statusParam = filter == TournamentStatusFilter.all ? null : filter.name.toUpperCase();
-  final list = await repo.getTournaments(
+  final list = await repo.getFreeFireLiveTournaments(
     limit: 50,
-    game: 'Free Fire',
     status: statusParam,
   );
-  // Light client-side safety check to ensure Free Fire tournaments
-  return list
-      .where((t) => t.game.isEmpty || t.game.trim().toLowerCase().contains('free fire'))
-      .toList();
+  return list;
 });
 
-/// Main provider - list of all live/upcoming/completed Free Fire tournaments.
+/// Main provider - list of all Free Fire Live tournaments returned from Free Fire Live API endpoint
 final liveTournamentsProvider = Provider<List<TournamentModel>>((ref) {
   final apiResult = ref.watch(apiTournamentsProvider);
   return apiResult.valueOrNull ?? const [];
 });
 
-/// Official tournaments (Garena / Free Fire)
+/// Official tournaments (Free Fire Live section)
 final officialTournamentsProvider = Provider<List<TournamentModel>>((ref) {
   return ref.watch(liveTournamentsProvider);
 });
 
-/// Counts of tournaments per status category for filter chips
-/// TODO(backend): remove mock client-side count computation once backend supplies aggregated counts
+/// Counts of Free Fire Live tournaments per status category for filter chips
 final tournamentCountsProvider = Provider<Map<TournamentStatusFilter, int>>((ref) {
   final all = ref.watch(officialTournamentsProvider);
   return {
@@ -63,8 +60,7 @@ final tournamentCountsProvider = Provider<Map<TournamentStatusFilter, int>>((ref
   };
 });
 
-/// Filtered list applying BOTH status filter and case-insensitive search query (title, organizer, map)
-/// TODO(backend): remove mock client-side filtering once backend handles q & status query parameters directly
+/// Filtered list applying status filter and search query on Free Fire Live tournaments
 final visibleTournamentsProvider = Provider<List<TournamentModel>>((ref) {
   final query = ref.watch(searchQueryProvider).trim().toLowerCase();
   final statusFilter = ref.watch(statusFilterProvider);
@@ -82,7 +78,7 @@ final visibleTournamentsProvider = Provider<List<TournamentModel>>((ref) {
 
     // Apply search query filter (matches title/name, organizer, or map)
     if (query.isEmpty) return true;
-    final nameMatch = t.name.toLowerCase().contains(query);
+    final nameMatch = t.displayTitle.toLowerCase().contains(query) || t.name.toLowerCase().contains(query);
     final organizerMatch = t.organizer.toLowerCase().contains(query);
     final mapMatch = t.mapName.toLowerCase().contains(query);
     return nameMatch || organizerMatch || mapMatch;
@@ -92,57 +88,39 @@ final visibleTournamentsProvider = Provider<List<TournamentModel>>((ref) {
 /// Alias for backward compatibility
 final filteredOfficialTournamentsProvider = visibleTournamentsProvider;
 
-/// BlastIX (App) tournaments
-final appTournamentsProvider = Provider<List<TournamentModel>>((ref) {
-  final all = ref.watch(liveTournamentsProvider);
-  return all.where((t) =>
-    t.organizer.toLowerCase().contains('blastix') ||
-    t.organizer.toLowerCase().contains('blastx')
-  ).toList();
+// ── 2. BLASTX ESPORTS TOURNAMENTS SECTION PROVIDERS ──
+
+/// Async provider for dedicated BlastX Tournaments API (`/tournaments`)
+final blastxTournamentsApiProvider = FutureProvider<List<TournamentModel>>((ref) async {
+  final repo = ref.watch(tournamentRepositoryProvider);
+  final list = await repo.getTournaments(
+    limit: 50,
+  );
+  return list;
 });
 
-/// BlastIX Live tournaments
+/// BlastX E-Sports tournaments list
+final appTournamentsProvider = Provider<List<TournamentModel>>((ref) {
+  final apiResult = ref.watch(blastxTournamentsApiProvider);
+  return apiResult.valueOrNull ?? const [];
+});
+
+/// BlastX Live tournaments
 final appLiveTournamentsProvider = Provider<List<TournamentModel>>((ref) {
   final appTournaments = ref.watch(appTournamentsProvider);
   return appTournaments.where((t) => t.isLive).toList();
 });
 
-/// BlastIX Upcoming tournaments
+/// BlastX Upcoming tournaments
 final appUpcomingTournamentsProvider = Provider<List<TournamentModel>>((ref) {
   final appTournaments = ref.watch(appTournamentsProvider);
   return appTournaments.where((t) => t.status == TournamentStatus.upcoming).toList();
 });
 
-/// Family provider - fetch a single tournament by its ID.
-final tournamentByIdProvider =
-Provider.family<TournamentModel?, String>((ref, id) {
-  final all = ref.watch(liveTournamentsProvider);
-  try {
-    return all.firstWhere((t) => t.id == id);
-  } catch (_) {
-    return null;
-  }
-});
-
-/// Filtered list based on search query - what the UI actually renders.
-final filteredTournamentsProvider = Provider<List<TournamentModel>>((ref) {
-  final query = ref.watch(tournamentSearchQueryProvider).trim().toLowerCase();
-  final all = ref.watch(liveTournamentsProvider);
-
-  if (query.isEmpty) return all;
-
-  return all.where((t) {
-    return t.name.toLowerCase().contains(query) ||
-        t.game.toLowerCase().contains(query) ||
-        t.organizer.toLowerCase().contains(query) ||
-        t.mapName.toLowerCase().contains(query);
-  }).toList();
-});
-
 /// Simple search query provider for upcoming tournaments.
 final upcomingSearchQueryProvider = StateProvider<String>((ref) => '');
 
-/// Filtered list of upcoming tournaments based on search query.
+/// Filtered list of upcoming BlastX tournaments based on search query.
 final filteredUpcomingTournamentsProvider = Provider<List<TournamentModel>>((ref) {
   final query = ref.watch(upcomingSearchQueryProvider).trim().toLowerCase();
   final all = ref.watch(appUpcomingTournamentsProvider);
@@ -157,10 +135,42 @@ final filteredUpcomingTournamentsProvider = Provider<List<TournamentModel>>((ref
   }).toList();
 });
 
-/// Filtered list of app live tournaments based on search query.
+/// Filtered list of BlastX live tournaments based on search query.
 final filteredAppLiveTournamentsProvider = Provider<List<TournamentModel>>((ref) {
   final query = ref.watch(upcomingSearchQueryProvider).trim().toLowerCase();
   final all = ref.watch(appLiveTournamentsProvider);
+
+  if (query.isEmpty) return all;
+
+  return all.where((t) {
+    return t.name.toLowerCase().contains(query) ||
+        t.game.toLowerCase().contains(query) ||
+        t.organizer.toLowerCase().contains(query) ||
+        t.mapName.toLowerCase().contains(query);
+  }).toList();
+});
+
+// ── 3. COMMON LOOKUP & ROOM DETAILS PROVIDERS ──
+
+/// Family provider - fetch a single tournament by its ID (searches both Free Fire Live & BlastX lists)
+final tournamentByIdProvider = Provider.family<TournamentModel?, String>((ref, id) {
+  final ffList = ref.watch(liveTournamentsProvider);
+  try {
+    return ffList.firstWhere((t) => t.id == id);
+  } catch (_) {}
+
+  final bxList = ref.watch(appTournamentsProvider);
+  try {
+    return bxList.firstWhere((t) => t.id == id);
+  } catch (_) {}
+
+  return null;
+});
+
+/// Filtered list based on search query - what the UI actually renders.
+final filteredTournamentsProvider = Provider<List<TournamentModel>>((ref) {
+  final query = ref.watch(tournamentSearchQueryProvider).trim().toLowerCase();
+  final all = ref.watch(liveTournamentsProvider);
 
   if (query.isEmpty) return all;
 

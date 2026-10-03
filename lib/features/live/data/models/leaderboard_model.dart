@@ -47,10 +47,10 @@ class LeaderboardEntry {
     return LeaderboardEntry(
       rank: (json['rank'] as num?)?.toInt() ?? 1,
       prevRank: (json['prev_rank'] ?? json['prevRank'] as num?)?.toInt(),
-      teamId: (json['team_id'] ?? json['teamId'] ?? '') as String,
-      teamName: (json['team_name'] ?? json['teamName'] ?? 'Team') as String,
+      teamId: (json['team_id'] ?? json['registration_id'] ?? json['teamId'] ?? '') as String,
+      teamName: (json['participant_name'] ?? json['team_name'] ?? json['teamName'] ?? 'Team') as String,
       logoUrl: (json['logo_url'] ?? json['logoUrl'] ?? '') as String,
-      kills: (json['kills'] as num?)?.toInt() ?? 0,
+      kills: (json['total_kills'] ?? json['kills'] ?? json['kill_points'] as num?)?.toInt() ?? 0,
       placementPoints: (json['placement_points'] ?? json['placementPoints'] as num?)?.toInt() ?? 0,
       totalPoints: (json['total_points'] ?? json['totalPoints'] as num?)?.toInt() ?? 0,
       status: parsedStatus,

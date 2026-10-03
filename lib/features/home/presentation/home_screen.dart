@@ -982,7 +982,7 @@ class _FeaturedTournamentCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final title = tournament.name;
+    final title = tournament.displayTitle;
     final isLive = tournament.isLive;
     final prizePool = tournament.formattedPrizePool;
     final bannerUrl = tournament.bannerImageUrl.isNotEmpty

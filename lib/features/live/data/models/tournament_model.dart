@@ -85,6 +85,7 @@ class TournamentModel {
   final DateTime? startsAt;
   final int? maxSlots;
   final int? filledSlots;
+  final String description;
 
   const TournamentModel({
     required this.id,
@@ -123,10 +124,50 @@ class TournamentModel {
     this.startsAt,
     this.maxSlots,
     this.filledSlots,
+    this.description = '',
   });
 
   bool get isLive => status == TournamentStatus.live;
   bool get isFree => entryFee <= 0;
+
+  /// Display title in app after stripping [FF Live] or [BlastX] prefix
+  String get displayTitle {
+    var t = name.trim();
+    if (t.startsWith('[FF Live]')) {
+      return t.substring('[FF Live]'.length).trim();
+    }
+    if (t.startsWith('[BlastX]')) {
+      return t.substring('[BlastX]'.length).trim();
+    }
+    return t;
+  }
+
+  /// Filter check for Free Fire Live tab according to Mobile App Filter Rules:
+  /// item.title.startsWith("[FF Live]") OR item.description?.includes("[SECTION:FREEFIRE_LIVE]")
+  /// OR (item.game_slug === "free_fire" && !item.title.startsWith("[BlastX]"))
+  bool get isFreeFireLiveSection {
+    final titleLower = name.trim();
+    final rulesStr = rules.join(' ');
+    final descriptionMatch = description.contains('[SECTION:FREEFIRE_LIVE]') || rulesStr.contains('[SECTION:FREEFIRE_LIVE]');
+    final titlePrefix = titleLower.startsWith('[FF Live]');
+    final gameIsFF = game.toLowerCase().contains('free fire') || game.toLowerCase() == 'free_fire';
+
+    if (titlePrefix || descriptionMatch) return true;
+    if (gameIsFF && !titleLower.startsWith('[BlastX]')) return true;
+    return false;
+  }
+
+  /// Filter check for BlastX E-Sports tab according to Mobile App Filter Rules:
+  /// item.title.startsWith("[BlastX]") OR item.description?.includes("[SECTION:BLASTX]")
+  bool get isBlastXSection {
+    final titleLower = name.trim();
+    final rulesStr = rules.join(' ');
+    final descriptionMatch = description.contains('[SECTION:BLASTX]') || rulesStr.contains('[SECTION:BLASTX]');
+    final titlePrefix = titleLower.startsWith('[BlastX]');
+
+    if (titlePrefix || descriptionMatch) return true;
+    return false;
+  }
 
   String get formattedViewers {
     if (viewersCount >= 1000000) {
@@ -243,12 +284,14 @@ class TournamentModel {
       startsAt: json['starts_at'] != null ? DateTime.tryParse(json['starts_at'] as String) : null,
       maxSlots: (json['max_slots'] as num?)?.toInt(),
       filledSlots: (json['filled_slots'] as num?)?.toInt(),
+      description: (json['description'] as String? ?? ''),
     );
   }
 
   Map<String, dynamic> toJson() => {
     'id': id,
     'name': name,
+    'description': description,
     'game': game,
     'bannerImageUrl': bannerImageUrl,
     'gameLogoUrl': gameLogoUrl,

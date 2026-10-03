@@ -21,6 +21,27 @@ class TournamentRepository {
 
   TournamentRepository(this._apiService);
 
+  Future<List<TournamentModel>> getFreeFireLiveTournaments({
+    int page = 1,
+    int limit = 20,
+    String? status,
+    String? q,
+    String? cursor,
+  }) async {
+    final response = await _apiService.getFreeFireLiveTournaments(
+      page: page,
+      limit: limit,
+      status: status,
+      q: q,
+      cursor: cursor,
+    );
+
+    final items = (response['items'] as List<dynamic>?) ?? [];
+    return items
+        .map((e) => TournamentModel.fromJson(Map<String, dynamic>.from(e as Map)))
+        .toList();
+  }
+
   Future<List<TournamentModel>> getTournaments({
     int page = 1,
     int limit = 20,
@@ -257,6 +278,18 @@ class TournamentRepository {
     try {
       final raw = await _apiService.getLeaderboard(tournamentId, round: round);
       if (raw is Map) {
+        final dataList = raw['data'] is List ? (raw['data'] as List) : null;
+        if (dataList != null && dataList.isNotEmpty) {
+          final entries = dataList
+              .map((e) => LeaderboardEntry.fromJson(Map<String, dynamic>.from(e as Map)))
+              .toList();
+          return LeaderboardResponse(
+            tournamentId: tournamentId,
+            updatedAt: DateTime.now(),
+            round: round ?? 'Live Standings',
+            entries: entries,
+          );
+        }
         final resp = LeaderboardResponse.fromJson(Map<String, dynamic>.from(raw));
         if (resp.entries.isNotEmpty) {
           return resp;
