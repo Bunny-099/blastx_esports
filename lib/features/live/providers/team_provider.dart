@@ -130,6 +130,8 @@ class TeamNotifier extends FamilyNotifier<TeamState, String> {
         case 'TOURNAMENT_NOT_LIVE':
         case 'NOT_LIVE':
           return 'Registration backend par status LIVE hone par hi shuru hoti hai.';
+        case 'PAID_TOURNAMENTS_UNAVAILABLE':
+          return 'Paid tournaments are currently unavailable.';
         case 'INVALID_MEMBER_COUNT':
         case 'INVALID_ROSTER_SIZE':
           return 'Tournament khelne ke liye team mein exactly 4 members chahiye.';
