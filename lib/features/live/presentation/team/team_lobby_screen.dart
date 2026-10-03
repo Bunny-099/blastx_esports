@@ -1,8 +1,10 @@
 import 'package:blastix_esports/core/theme/app_colors.dart';
 import 'package:blastix_esports/core/theme/app_text_styles.dart';
+import 'package:blastix_esports/core/transitions/fire_page_route.dart';
 import 'package:blastix_esports/features/live/data/models/team_member_model.dart';
 import 'package:blastix_esports/features/live/data/models/team_model.dart';
 import 'package:blastix_esports/features/live/data/models/tournament_model.dart';
+import 'package:blastix_esports/features/live/presentation/team/tournament_match_room_screen.dart';
 import 'package:blastix_esports/features/live/presentation/widgets/team_code_card.dart';
 import 'package:blastix_esports/features/live/presentation/widgets/team_member_card.dart';
 import 'package:blastix_esports/features/live/providers/live_provider.dart';
@@ -51,12 +53,12 @@ class TeamLobbyScreen extends ConsumerWidget {
               child: Text('Select new captain', style: AppTextStyles.headingLg),
             ),
             ...others.map((m) => ListTile(
-              leading: const Icon(Icons.person_rounded,
-                  color: AppColors.textSecondary),
-              title: Text(m.name, style: AppTextStyles.bodyLg),
-              subtitle: Text(m.ign, style: AppTextStyles.caption),
-              onTap: () => Navigator.pop(c, m),
-            )),
+                  leading: const Icon(Icons.person_rounded,
+                      color: AppColors.textSecondary),
+                  title: Text(m.name, style: AppTextStyles.bodyLg),
+                  subtitle: Text(m.ign, style: AppTextStyles.caption),
+                  onTap: () => Navigator.pop(c, m),
+                )),
             const SizedBox(height: 8),
           ],
         ),
@@ -140,12 +142,20 @@ class TeamLobbyScreen extends ConsumerWidget {
         elevation: 0,
         title: Text('TEAM LOBBY', style: AppTextStyles.headingLg),
       ),
+      bottomNavigationBar: _buildStickyBottomBar(
+        context: context,
+        ref: ref,
+        team: team,
+        tournament: tournament,
+        isLoading: s.isLoading,
+        isCaptain: isCaptain,
+      ),
       body: RefreshIndicator(
         color: AppColors.primary,
         onRefresh: notifier.refresh,
         child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
+          padding: const EdgeInsets.fromLTRB(20, 4, 20, 110),
           children: [
             _header(team),
             const SizedBox(height: 14),
@@ -179,16 +189,18 @@ class TeamLobbyScreen extends ConsumerWidget {
                 member: i < mains.length ? mains[i] : null,
                 isMe: i < mains.length && mains[i].userId == team.viewerUserId,
                 onRemove: i < mains.length &&
-                    isCaptain &&
-                    canEdit &&
-                    !mains[i].isCaptain
+                        isCaptain &&
+                        canEdit &&
+                        !mains[i].isCaptain
                     ? () async {
-                  if (await _confirm(context, 'Remove player?',
-                      '${mains[i].name} will be removed from the team.',
-                      'Remove')) {
-                    notifier.removeMember(mains[i].userId);
-                  }
-                }
+                        if (await _confirm(
+                            context,
+                            'Remove player?',
+                            '${mains[i].name} will be removed from the team.',
+                            'Remove')) {
+                          notifier.removeMember(mains[i].userId);
+                        }
+                      }
                     : null,
               ),
             const SizedBox(height: 12),
@@ -210,7 +222,8 @@ class TeamLobbyScreen extends ConsumerWidget {
                 contentPadding: EdgeInsets.zero,
                 activeThumbColor: AppColors.primaryNeon,
                 title: Text('Accept substitutes', style: AppTextStyles.bodyLg),
-                subtitle: Text('Players joining with your code become substitutes.',
+                subtitle: Text(
+                    'Players joining with your code become substitutes.',
                     style: AppTextStyles.bodySm),
                 value: team.acceptingSubstitutes,
                 onChanged: s.isLoading
@@ -224,12 +237,14 @@ class TeamLobbyScreen extends ConsumerWidget {
                 isMe: i < subs.length && subs[i].userId == team.viewerUserId,
                 onRemove: i < subs.length && isCaptain && canEdit
                     ? () async {
-                  if (await _confirm(context, 'Remove substitute?',
-                      '${subs[i].name} will be removed from the team.',
-                      'Remove')) {
-                    notifier.removeMember(subs[i].userId);
-                  }
-                }
+                        if (await _confirm(
+                            context,
+                            'Remove substitute?',
+                            '${subs[i].name} will be removed from the team.',
+                            'Remove')) {
+                          notifier.removeMember(subs[i].userId);
+                        }
+                      }
                     : null,
               ),
             const SizedBox(height: 16),
@@ -244,13 +259,147 @@ class TeamLobbyScreen extends ConsumerWidget {
                   onPressed: () => _changeCaptain(context, ref, team),
                 ),
               ),
-            if (isCaptain && canEdit && team.isReady)
+            if (canEdit) ...[
+              const SizedBox(height: 10),
+              TextButton(
+                onPressed:
+                    s.isLoading ? null : () => _leave(context, ref, team),
+                child: Text('LEAVE TEAM',
+                    style:
+                        AppTextStyles.button.copyWith(color: AppColors.error)),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// ── Sticky Floating Bottom Section ──
+  Widget _buildStickyBottomBar({
+    required BuildContext context,
+    required WidgetRef ref,
+    required TournamentTeamModel team,
+    required TournamentModel? tournament,
+    required bool isLoading,
+    required bool isCaptain,
+  }) {
+    final mainCount = team.mainCount;
+    final slotsNeeded = 4 - mainCount;
+
+    return SafeArea(
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+        decoration: BoxDecoration(
+          color: AppColors.background,
+          border: const Border(
+            top: BorderSide(color: AppColors.border, width: 1),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.5),
+              blurRadius: 12,
+              offset: const Offset(0, -4),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // 1. Registered -> Go to Match Room Button
+            if (team.isRegistered) ...[
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  backgroundColor: AppColors.primaryNeon,
+                  foregroundColor: AppColors.bgNavy,
+                  minimumSize: const Size.fromHeight(52),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+                onPressed: () {
+                  Navigator.of(context).push(
+                    FirePageRoute(
+                      page: TournamentMatchRoomScreen(
+                          tournamentId: tournamentId),
+                    ),
+                  );
+                },
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.verified_rounded,
+                        color: AppColors.bgNavy, size: 20),
+                    const SizedBox(width: 8),
+                    Text(
+                      'REGISTERED • VIEW MATCH LOBBY & ROOM',
+                      style: AppTextStyles.button.copyWith(
+                        color: AppColors.bgNavy,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ]
+            // 2. Not Registered: Fewer than 4 players -> Floating Waiting Banner
+            else if (mainCount < 4) ...[
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: AppColors.accentOrange.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: AppColors.accentOrange.withValues(alpha: 0.4),
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.hourglass_empty_rounded,
+                      color: AppColors.accentOrange,
+                      size: 22,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Waiting for $slotsNeeded player${slotsNeeded == 1 ? '' : 's'} to register',
+                            style: AppTextStyles.headingMd.copyWith(
+                              color: AppColors.accentOrange,
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            '4 players are compulsory to register for tournament',
+                            style: AppTextStyles.caption.copyWith(
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ]
+            // 3. Not Registered: Exactly 4 players -> Floating Register Button
+            else ...[
               CustomButton(
                 text: tournament == null
-                    ? 'COMPLETE REGISTRATION'
-                    : 'COMPLETE REGISTRATION • ${tournament.formattedEntryFee}',
-                isLoading: s.isLoading,
-                onPressed: (tournament != null && tournament.status != TournamentStatus.live)
+                    ? 'REGISTER TOURNAMENT'
+                    : 'REGISTER TOURNAMENT • ${tournament.formattedEntryFee}',
+                isLoading: isLoading,
+                onPressed: (tournament != null &&
+                        tournament.status != TournamentStatus.live)
                     ? () {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
@@ -263,28 +412,40 @@ class TeamLobbyScreen extends ConsumerWidget {
                       }
                     : () async {
                         final mode = tournament?.mode ?? 'SQUAD';
-                        final ok = await notifier.completeRegistration(mode: mode);
+                        final ok = await ref
+                            .read(teamProvider(tournamentId).notifier)
+                            .completeRegistration(mode: mode);
+
                         if (ok && context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
                               content: Text(
-                                  '🎉 Registration successful! Your roster is registered.'),
+                                '🎉 Registration successful! Your squad is registered for tournament.',
+                              ),
                               backgroundColor: AppColors.success,
+                            ),
+                          );
+
+                          // Open Match Room & Registered Teams Screen
+                          Navigator.of(context).pushReplacement(
+                            FirePageRoute(
+                              page: TournamentMatchRoomScreen(
+                                tournamentId: tournamentId,
+                              ),
                             ),
                           );
                         }
                       },
               ),
-            if (!isCaptain && canEdit && team.isReady)
-              Text('Waiting for the captain to complete registration.',
-                  textAlign: TextAlign.center, style: AppTextStyles.bodySm),
-            if (canEdit) ...[
-              const SizedBox(height: 10),
-              TextButton(
-                onPressed: s.isLoading ? null : () => _leave(context, ref, team),
-                child: Text('LEAVE TEAM',
-                    style: AppTextStyles.button.copyWith(color: AppColors.error)),
-              ),
+              if (!isCaptain) ...[
+                const SizedBox(height: 6),
+                Text(
+                  'Waiting for the captain to click Register.',
+                  textAlign: TextAlign.center,
+                  style: AppTextStyles.caption
+                      .copyWith(color: AppColors.textMuted),
+                ),
+              ],
             ],
           ],
         ),
@@ -293,37 +454,39 @@ class TeamLobbyScreen extends ConsumerWidget {
   }
 
   Widget _header(TournamentTeamModel team) => Row(
-    children: [
-      CircleAvatar(
-        radius: 30,
-        backgroundColor: AppColors.surfaceMuted,
-        backgroundImage:
-        team.logoUrl.isNotEmpty ? NetworkImage(team.logoUrl) : null,
-        child: team.logoUrl.isEmpty
-            ? const Icon(Icons.groups_rounded,
-            color: AppColors.textMuted, size: 28)
-            : null,
-      ),
-      const SizedBox(width: 14),
-      Expanded(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-                team.tag.isEmpty
-                    ? team.name.toUpperCase()
-                    : '[${team.tag}] ${team.name.toUpperCase()}',
-                style: AppTextStyles.headingXl),
-            Text('Captain: ${team.captainName}', style: AppTextStyles.bodyMd),
-            if (team.tournamentName.isNotEmpty)
-              Text(team.tournamentName, style: AppTextStyles.bodySm),
-          ],
-        ),
-      ),
-    ],
-  );
+        children: [
+          CircleAvatar(
+            radius: 30,
+            backgroundColor: AppColors.surfaceMuted,
+            backgroundImage:
+                team.logoUrl.isNotEmpty ? NetworkImage(team.logoUrl) : null,
+            child: team.logoUrl.isEmpty
+                ? const Icon(Icons.groups_rounded,
+                    color: AppColors.textMuted, size: 28)
+                : null,
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                    team.tag.isEmpty
+                        ? team.name.toUpperCase()
+                        : '[${team.tag}] ${team.name.toUpperCase()}',
+                    style: AppTextStyles.headingXl),
+                Text('Captain: ${team.captainName}',
+                    style: AppTextStyles.bodyMd),
+                if (team.tournamentName.isNotEmpty)
+                  Text(team.tournamentName, style: AppTextStyles.bodySm),
+              ],
+            ),
+          ),
+        ],
+      );
 
-  Widget _statusBanner(TournamentTeamModel team, TournamentModel? tournament) {
+  Widget _statusBanner(
+      TournamentTeamModel team, TournamentModel? tournament) {
     late final Color color;
     late final IconData icon;
     late final String text;
@@ -335,7 +498,8 @@ class TeamLobbyScreen extends ConsumerWidget {
       color = AppColors.error;
       icon = Icons.lock_rounded;
       text = 'Registration closed. The roster can no longer be changed.';
-    } else if (tournament != null && tournament.status == TournamentStatus.upcoming) {
+    } else if (tournament != null &&
+        tournament.status == TournamentStatus.upcoming) {
       color = AppColors.warning;
       icon = Icons.schedule_rounded;
       text = 'Registration opens when tournament goes LIVE on backend.';
@@ -347,7 +511,7 @@ class TeamLobbyScreen extends ConsumerWidget {
       color = AppColors.warning;
       icon = Icons.hourglass_top_rounded;
       text =
-      'Waiting for ${team.mainSlotsLeft} more main player${team.mainSlotsLeft == 1 ? '' : 's'}.';
+          'Waiting for ${team.mainSlotsLeft} more main player${team.mainSlotsLeft == 1 ? '' : 's'}.';
     }
     return Container(
       padding: const EdgeInsets.all(12),
