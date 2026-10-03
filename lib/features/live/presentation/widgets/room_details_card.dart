@@ -317,7 +317,7 @@ class _CredentialRow extends StatelessWidget {
               ],
             ),
           ),
-          if (trailingWidget != null) trailingWidget,
+          if (trailingWidget != null) trailingWidget!,
           const SizedBox(width: 4),
           InkWell(
             onTap: onCopy,
