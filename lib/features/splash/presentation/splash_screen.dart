@@ -141,14 +141,10 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                       opacity: _logoFade.value,
                       child: Transform.scale(
                         scale: _logoScale.value,
-                        child: ShaderMask(
-                          shaderCallback: (bounds) => AppColors.blastixCoreGradient
-                              .createShader(bounds),
-                          child: const Icon(
-                            Icons.sports_esports_rounded,
-                            size: 84,
-                            color: Colors.white,
-                          ),
+                        child: Image.asset(
+                          'assets/logos/app_logo.png',
+                          height: 110,
+                          fit: BoxFit.contain,
                         ),
                       ),
                     ),
