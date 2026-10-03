@@ -63,15 +63,20 @@ class UpcomingTournamentCard extends StatelessWidget {
                 // =================================================
                 // BACKGROUND IMAGE
                 // =================================================
-                Image.network(
-                  tournament.bannerImageUrl,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Container(
-                      color: AppColors.surfaceMuted,
-                    );
-                  },
-                ),
+                (tournament.bannerImageUrl.isNotEmpty && tournament.bannerImageUrl.startsWith('http'))
+                    ? Image.network(
+                        tournament.bannerImageUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            color: AppColors.surfaceMuted,
+                          );
+                        },
+                      )
+                    : Image.asset(
+                        'assets/images/top_banner.jpg',
+                        fit: BoxFit.cover,
+                      ),
 
                 // =================================================
                 // DARK IMAGE OVERLAY
@@ -219,19 +224,19 @@ class UpcomingTournamentCard extends StatelessWidget {
                           const SizedBox(width: 14),
 
                           Icon(
-                            tournament.isLive ? Icons.check_circle_rounded : Icons.schedule_rounded,
-                            color: tournament.isLive ? AppColors.success : Colors.white70,
+                            _getUpcomingStatusIcon(tournament),
+                            color: _getUpcomingStatusColor(tournament),
                             size: 13,
                           ),
 
                           const SizedBox(width: 4),
 
                           Text(
-                            tournament.isLive ? 'Registration Open' : 'Starts ${DateFormat('MMM d, h:mm a').format(tournament.effectiveStartsAt)}',
+                            _getUpcomingStatusLabel(tournament),
                             style: TextStyle(
-                              color: tournament.isLive ? AppColors.success : Colors.white70,
+                              color: _getUpcomingStatusColor(tournament),
                               fontSize: 11,
-                              fontWeight: FontWeight.w500,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                         ],
@@ -275,6 +280,32 @@ class UpcomingTournamentCard extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  IconData _getUpcomingStatusIcon(TournamentModel t) {
+    if (t.isLive) return Icons.sensors_rounded;
+    if (t.effectiveIsRegistered) return Icons.check_circle_rounded;
+    if (t.isRegistrationOpen) return Icons.how_to_reg_rounded;
+    if (t.isRegistrationClosed) return Icons.block_rounded;
+    if (t.isRegistrationOpensSoon) return Icons.schedule_rounded;
+    return Icons.schedule_rounded;
+  }
+
+  Color _getUpcomingStatusColor(TournamentModel t) {
+    if (t.isLive) return const Color(0xFFFF3B30);
+    if (t.effectiveIsRegistered || t.isRegistrationOpen) return AppColors.success;
+    if (t.isRegistrationClosed) return AppColors.accentOrange;
+    if (t.isRegistrationOpensSoon) return AppColors.accentOrange;
+    return Colors.white70;
+  }
+
+  String _getUpcomingStatusLabel(TournamentModel t) {
+    if (t.isLive) return 'LIVE • WATCH';
+    if (t.effectiveIsRegistered) return 'Registered ✓';
+    if (t.isRegistrationOpen) return 'Registration Open';
+    if (t.isRegistrationClosed) return 'Registration Closed';
+    if (t.isRegistrationOpensSoon) return 'Opens Soon';
+    return 'Starts ${DateFormat('MMM d, h:mm a').format(t.effectiveStartsAt)}';
   }
 }
 
