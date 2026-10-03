@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:blastix_esports/features/live/data/models/leaderboard_model.dart';
 import 'package:blastix_esports/features/live/data/models/room_details_model.dart';
+import 'package:blastix_esports/features/live/data/models/team_member_model.dart';
+import 'package:blastix_esports/features/live/data/models/team_model.dart';
 import 'package:blastix_esports/features/live/data/models/tournament_model.dart';
 import 'package:blastix_esports/features/splash/providers/splash_providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -156,6 +158,124 @@ class TournamentRepository {
     }
 
     return const RoomDetailsNotRegistered();
+  }
+
+  Future<List<TournamentTeamModel>> getRegisteredTeams(String id) async {
+    try {
+      final list = await _apiService.getParticipants(id);
+      if (list.isNotEmpty) {
+        return list
+            .map((e) => TournamentTeamModel.fromJson(Map<String, dynamic>.from(e as Map)))
+            .toList();
+      }
+    } catch (_) {}
+
+    // Fallback mock registered teams for testing grid display
+    if (kDebugMode) {
+      return _getMockRegisteredTeams(id);
+    }
+    return const [];
+  }
+
+  List<TournamentTeamModel> _getMockRegisteredTeams(String tournamentId) {
+    return [
+      TournamentTeamModel(
+        id: 'team_01',
+        tournamentId: tournamentId,
+        code: 'BLX101',
+        name: 'TOTAL GAMING',
+        tag: 'TG',
+        logoUrl: 'https://api.dicebear.com/7.x/identicon/svg?seed=TotalGaming',
+        captainId: 'c_01',
+        status: TeamRegistrationStatus.registered,
+        members: const [
+          TeamMemberModel(userId: 'c_01', name: 'FOAB', ign: 'TG_FOAB', role: TeamRole.captain),
+          TeamMemberModel(userId: 'm_02', name: 'AjuBhai', ign: 'TG_AjuBhai'),
+          TeamMemberModel(userId: 'm_03', name: 'Mafia', ign: 'TG_Mafia'),
+          TeamMemberModel(userId: 'm_04', name: 'Vasiyo', ign: 'TG_Vasiyo'),
+        ],
+      ),
+      TournamentTeamModel(
+        id: 'team_02',
+        tournamentId: tournamentId,
+        code: 'BLX102',
+        name: 'TEAM GODLIKE',
+        tag: 'GOD',
+        logoUrl: 'https://api.dicebear.com/7.x/identicon/svg?seed=GodLike',
+        captainId: 'c_02',
+        status: TeamRegistrationStatus.registered,
+        members: const [
+          TeamMemberModel(userId: 'c_02', name: 'JONATHAN', ign: 'GOD_Jona', role: TeamRole.captain),
+          TeamMemberModel(userId: 'm_06', name: 'Neyo', ign: 'GOD_Neyo'),
+          TeamMemberModel(userId: 'm_07', name: 'Shadow', ign: 'GOD_Shadow'),
+          TeamMemberModel(userId: 'm_08', name: 'Zgod', ign: 'GOD_Zgod'),
+        ],
+      ),
+      TournamentTeamModel(
+        id: 'team_03',
+        tournamentId: tournamentId,
+        code: 'BLX103',
+        name: 'ORANGUTAN',
+        tag: 'OG',
+        logoUrl: 'https://api.dicebear.com/7.x/identicon/svg?seed=Orangutan',
+        captainId: 'c_03',
+        status: TeamRegistrationStatus.registered,
+        members: const [
+          TeamMemberModel(userId: 'c_03', name: 'AKOP', ign: 'OG_AKOP', role: TeamRole.captain),
+          TeamMemberModel(userId: 'm_10', name: 'WizzK', ign: 'OG_WizzK'),
+          TeamMemberModel(userId: 'm_11', name: 'Ash', ign: 'OG_Ash'),
+          TeamMemberModel(userId: 'm_12', name: 'Jahi', ign: 'OG_Jahi'),
+        ],
+      ),
+      TournamentTeamModel(
+        id: 'team_04',
+        tournamentId: tournamentId,
+        code: 'BLX104',
+        name: 'TEAM ELITE',
+        tag: 'TE',
+        logoUrl: 'https://api.dicebear.com/7.x/identicon/svg?seed=TeamElite',
+        captainId: 'c_04',
+        status: TeamRegistrationStatus.registered,
+        members: const [
+          TeamMemberModel(userId: 'c_04', name: 'Pahadi', ign: 'TE_Pahadi', role: TeamRole.captain),
+          TeamMemberModel(userId: 'm_14', name: 'Iconic', ign: 'TE_Iconic'),
+          TeamMemberModel(userId: 'm_15', name: 'Killer', ign: 'TE_Killer'),
+          TeamMemberModel(userId: 'm_16', name: 'RNS', ign: 'TE_RNS'),
+        ],
+      ),
+      TournamentTeamModel(
+        id: 'team_05',
+        tournamentId: tournamentId,
+        code: 'BLX105',
+        name: 'BLIND ESPORTS',
+        tag: 'BLD',
+        logoUrl: 'https://api.dicebear.com/7.x/identicon/svg?seed=BlindEsports',
+        captainId: 'c_05',
+        status: TeamRegistrationStatus.registered,
+        members: const [
+          TeamMemberModel(userId: 'c_05', name: 'Diablo', ign: 'BLD_Diablo', role: TeamRole.captain),
+          TeamMemberModel(userId: 'm_18', name: 'Maxy', ign: 'BLD_Maxy'),
+          TeamMemberModel(userId: 'm_19', name: 'Joker', ign: 'BLD_Joker'),
+          TeamMemberModel(userId: 'm_20', name: 'Naman', ign: 'BLD_Naman'),
+        ],
+      ),
+      TournamentTeamModel(
+        id: 'team_06',
+        tournamentId: tournamentId,
+        code: 'BLX106',
+        name: 'NIGMA GALAXY',
+        tag: 'NG',
+        logoUrl: 'https://api.dicebear.com/7.x/identicon/svg?seed=NigmaGalaxy',
+        captainId: 'c_06',
+        status: TeamRegistrationStatus.registered,
+        members: const [
+          TeamMemberModel(userId: 'c_06', name: 'Golden', ign: 'NG_Golden', role: TeamRole.captain),
+          TeamMemberModel(userId: 'm_22', name: 'Tahir', ign: 'NG_Tahir'),
+          TeamMemberModel(userId: 'm_23', name: 'Rohan', ign: 'NG_Rohan'),
+          TeamMemberModel(userId: 'm_24', name: 'Sam', ign: 'NG_Sam'),
+        ],
+      ),
+    ];
   }
 
   Future<List<dynamic>> getParticipants(String id) async {
