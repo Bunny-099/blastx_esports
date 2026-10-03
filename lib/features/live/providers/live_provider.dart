@@ -1,4 +1,5 @@
 import 'package:blastix_esports/features/live/data/models/room_details_model.dart';
+import 'package:blastix_esports/features/live/data/models/team_model.dart';
 import 'package:blastix_esports/features/live/data/models/tournament_model.dart';
 import 'package:blastix_esports/features/tournaments/data/repositories/tournament_repository.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -224,3 +225,10 @@ final roomDetailsProvider = FutureProvider.family<RoomDetailsState, String>((ref
   final tournament = ref.watch(tournamentByIdProvider(tournamentId));
   return repo.getRoomDetailsState(tournamentId, tournament: tournament);
 });
+
+/// Family provider for fetching registered teams list for a tournament
+final registeredTeamsProvider = FutureProvider.family<List<TournamentTeamModel>, String>((ref, tournamentId) async {
+  final repo = ref.watch(tournamentRepositoryProvider);
+  return repo.getRegisteredTeams(tournamentId);
+});
+
