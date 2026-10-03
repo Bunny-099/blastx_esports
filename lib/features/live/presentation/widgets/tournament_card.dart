@@ -310,7 +310,6 @@ class _TournamentCardState extends State<TournamentCard> {
   Widget _buildTopRightBadges(TournamentModel tournament) {
     if (widget.viewOnly) return const SizedBox.shrink();
     final isReg = tournament.effectiveIsRegistered;
-    final isFull = tournament.isFull;
 
     if (isReg) {
       return Container(
@@ -343,7 +342,27 @@ class _TournamentCardState extends State<TournamentCard> {
           ],
         ),
       );
-    } else if (isFull) {
+    } else if (tournament.isRegistrationOpen) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4.5),
+        decoration: BoxDecoration(
+          color: const Color(0x2634C759),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: const Color(0xFF34C759).withValues(alpha: 0.6),
+            width: 0.8,
+          ),
+        ),
+        child: Text(
+          'Registration Open',
+          style: AppTextStyles.caption.copyWith(
+            color: const Color(0xFF34C759),
+            fontWeight: FontWeight.w800,
+            fontSize: 10,
+          ),
+        ),
+      );
+    } else if (tournament.isRegistrationClosed || tournament.isFull) {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4.5),
         decoration: BoxDecoration(
@@ -355,9 +374,29 @@ class _TournamentCardState extends State<TournamentCard> {
           ),
         ),
         child: Text(
-          'Full',
+          tournament.isFull ? 'Full' : 'Registration Closed',
           style: AppTextStyles.caption.copyWith(
             color: AppColors.textMuted,
+            fontWeight: FontWeight.w700,
+            fontSize: 10,
+          ),
+        ),
+      );
+    } else if (tournament.isRegistrationOpensSoon) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4.5),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceNavy,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: AppColors.accentOrange.withValues(alpha: 0.5),
+            width: 0.8,
+          ),
+        ),
+        child: Text(
+          'Opens Soon',
+          style: AppTextStyles.caption.copyWith(
+            color: AppColors.accentOrange,
             fontWeight: FontWeight.w700,
             fontSize: 10,
           ),
