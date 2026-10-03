@@ -26,6 +26,23 @@ void main() {
     filledSlots: 32,
   );
 
+  final testLiveTournament = TournamentModel(
+    id: 't_test_2',
+    name: 'Free Fire Live Battle',
+    game: 'Free Fire',
+    bannerImageUrl: '',
+    gameLogoUrl: '',
+    prizePool: 50000,
+    viewersCount: 1250,
+    status: TournamentStatus.live,
+    startTime: DateTime.now().subtract(const Duration(minutes: 30)),
+    organizer: 'BlastX Esports',
+    entryFee: 50,
+    isRegistered: false,
+    maxSlots: 48,
+    filledSlots: 32,
+  );
+
   group('View-Only Live Section Widget Tests', () {
     testWidgets('TournamentCard with viewOnly = true hides registration badge and slots bar', (tester) async {
       await tester.pumpWidget(
@@ -69,7 +86,7 @@ void main() {
       expect(find.text('32/48 slots'), findsOneWidget);
     });
 
-    testWidgets('TournamentDetailScreen with viewOnly = true hides JOIN NOW button', (tester) async {
+    testWidgets('TournamentDetailScreen with viewOnly = true hides JOIN NOW button and shows countdown', (tester) async {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
@@ -90,10 +107,10 @@ void main() {
       expect(find.textContaining('JOIN NOW'), findsNothing);
 
       // Verify countdown info bar is displayed for upcoming tournament in view-only mode
-      expect(find.textContaining('Starts in'), findsOneWidget);
+      expect(find.textContaining('Opens in'), findsOneWidget);
     });
 
-    testWidgets('TournamentDetailScreen with viewOnly = false displays JOIN NOW button', (tester) async {
+    testWidgets('TournamentDetailScreen for UPCOMING tournament gates registration behind countdown', (tester) async {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
@@ -110,7 +127,29 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 500));
 
-      // Verify JOIN NOW CTA button is displayed
+      // Registration is gated for upcoming tournaments
+      expect(find.textContaining('REGISTRATION OPENS WHEN LIVE'), findsOneWidget);
+      expect(find.textContaining('JOIN NOW'), findsNothing);
+    });
+
+    testWidgets('TournamentDetailScreen for LIVE tournament displays JOIN NOW button when viewOnly = false', (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            liveTournamentsProvider.overrideWithValue([testLiveTournament]),
+          ],
+          child: MaterialApp(
+            home: TournamentDetailScreen(
+              tournamentId: 't_test_2',
+              viewOnly: false,
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+
+      // Verify JOIN NOW CTA button is displayed when tournament status is LIVE
       expect(find.textContaining('JOIN NOW'), findsOneWidget);
     });
   });

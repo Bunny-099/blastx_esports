@@ -58,15 +58,15 @@ class ChallengesNotifier extends StateNotifier<List<ChallengeModel>> {
   }
 
   /// Claims reward for a completed challenge and updates total XP in Profile.
-  /// Prevents duplicate claims if already claimed.
+  /// Prevents duplicate claims if already claimed or if proof review is not approved yet.
   Future<RankChangeResult?> claimReward(String id, {WidgetRef? ref, Ref? containerRef}) async {
     final index = state.indexWhere((c) => c.id == id);
     if (index == -1) return null;
 
     final challenge = state[index];
 
-    // CRITICAL: Prevent duplicate XP claim
-    if (challenge.isClaimed) {
+    // CRITICAL: Prevent duplicate XP claim or claiming before admin approval / if rejected
+    if (challenge.isClaimed || !challenge.isReadyToClaim) {
       return null;
     }
 

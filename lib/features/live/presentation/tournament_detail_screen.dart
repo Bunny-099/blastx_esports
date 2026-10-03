@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -321,29 +322,89 @@ class _PinnedTabBarDelegate extends SliverPersistentHeaderDelegate {
 /// STICKY BOTTOM ACTION BAR (CTA)
 /// ============================================================
 
-class _BottomCta extends StatelessWidget {
+class _BottomCta extends ConsumerStatefulWidget {
   const _BottomCta({required this.tournament, this.viewOnly = false});
   final TournamentModel tournament;
   final bool viewOnly;
 
-  String _formatCountdown(DateTime target) {
+  @override
+  ConsumerState<_BottomCta> createState() => _BottomCtaState();
+}
+
+class _BottomCtaState extends ConsumerState<_BottomCta> {
+  Timer? _timer;
+  bool _isRefreshingStatus = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkTimerNeeded();
+  }
+
+  @override
+  void didUpdateWidget(covariant _BottomCta oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.tournament.status != widget.tournament.status ||
+        oldWidget.tournament.effectiveStartsAt != widget.tournament.effectiveStartsAt) {
+      _checkTimerNeeded();
+    }
+  }
+
+  void _checkTimerNeeded() {
+    _timer?.cancel();
+    if (widget.tournament.status == TournamentStatus.upcoming) {
+      _timer = Timer.periodic(const Duration(seconds: 1), (t) {
+        if (!mounted) return;
+        setState(() {});
+        final diff = widget.tournament.effectiveStartsAt.difference(DateTime.now());
+        if (diff.inSeconds <= 0 && !_isRefreshingStatus) {
+          _refreshTournamentStatus();
+        }
+      });
+    }
+  }
+
+  Future<void> _refreshTournamentStatus() async {
+    _isRefreshingStatus = true;
+    try {
+      await ref.read(tournamentDetailApiProvider(widget.tournament.id).future);
+      ref.invalidate(blastxLiveTournamentsApiProvider);
+      ref.invalidate(blastxUpcomingTournamentsApiProvider);
+    } catch (_) {}
+    if (mounted) {
+      setState(() {
+        _isRefreshingStatus = false;
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  String _formatLiveCountdown(DateTime target) {
     final diff = target.difference(DateTime.now());
     if (diff.inSeconds <= 0) {
-      return 'Starting soon';
+      return 'Checking Live Status...';
     }
-    if (diff.inMinutes < 60) {
-      return 'Starts in ${diff.inMinutes}m';
-    }
-    final hours = diff.inHours;
+    final days = diff.inDays;
+    final hours = diff.inHours % 24;
     final mins = diff.inMinutes % 60;
-    return 'Starts in ${hours.toString().padLeft(2, '0')}h ${mins.toString().padLeft(2, '0')}m';
+    final secs = diff.inSeconds % 60;
+
+    if (days > 0) {
+      return 'Opens in ${days}d ${hours.toString().padLeft(2, '0')}h ${mins.toString().padLeft(2, '0')}m';
+    }
+    return 'Opens in ${hours.toString().padLeft(2, '0')}:${mins.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
   }
 
   @override
   Widget build(BuildContext context) {
-    final t = tournament;
+    final t = widget.tournament;
 
-    if (viewOnly) {
+    if (widget.viewOnly) {
       if (t.isLive && t.streamUrl != null && t.streamUrl!.isNotEmpty) {
         return SafeArea(
           child: Container(
@@ -413,7 +474,7 @@ class _BottomCta extends StatelessWidget {
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    _formatCountdown(t.effectiveStartsAt),
+                    _formatLiveCountdown(t.effectiveStartsAt),
                     style: AppTextStyles.bodyLg.copyWith(
                       color: AppColors.textPrimary,
                       fontWeight: FontWeight.w700,
@@ -425,28 +486,121 @@ class _BottomCta extends StatelessWidget {
           ),
         );
       } else {
-        // Completed or no stream URL in viewOnly mode
         return const SizedBox.shrink();
       }
     }
 
-    late final String label;
-    late final IconData icon;
-    switch (t.status) {
-      case TournamentStatus.upcoming:
-        label = t.isFree ? 'JOIN NOW • FREE' : 'JOIN NOW • ${t.formattedEntryFee}';
-        icon = Icons.sports_esports_rounded;
-        break;
-      case TournamentStatus.live:
-        label = 'WATCH LIVE';
-        icon = Icons.play_circle_fill_rounded;
-        break;
-      case TournamentStatus.completed:
-        label = 'VIEW RESULTS';
-        icon = Icons.emoji_events_rounded;
-        break;
+    // ── Regular Interaction CTA Mode ──
+    if (t.status == TournamentStatus.upcoming) {
+      final isZero = t.effectiveStartsAt.difference(DateTime.now()).inSeconds <= 0;
+      return SafeArea(
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
+          decoration: const BoxDecoration(
+            color: AppColors.background,
+            border: Border(top: BorderSide(color: AppColors.border)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                height: 52,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceElevated,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppColors.accentOrange.withValues(alpha: 0.4)),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    _isRefreshingStatus || isZero
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: AppColors.accentOrange,
+                            ),
+                          )
+                        : const Icon(Icons.lock_clock_rounded,
+                            color: AppColors.accentOrange, size: 20),
+                    const SizedBox(width: 10),
+                    Flexible(
+                      child: Text(
+                        _isRefreshingStatus || isZero
+                            ? 'VERIFYING BACKEND STATUS...'
+                            : 'REGISTRATION OPENS WHEN LIVE • ${_formatLiveCountdown(t.effectiveStartsAt)}',
+                        style: AppTextStyles.button.copyWith(
+                          color: AppColors.textPrimary,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 12,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
     }
 
+    if (t.status == TournamentStatus.live) {
+      final label = t.isFree ? 'JOIN NOW • FREE' : 'JOIN NOW • ${t.formattedEntryFee}';
+      return SafeArea(
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
+          decoration: const BoxDecoration(
+            color: AppColors.background,
+            border: Border(top: BorderSide(color: AppColors.border)),
+          ),
+          child: GestureDetector(
+            onTap: () {
+              Navigator.of(context).push(
+                FirePageRoute(
+                  page: JoinTournamentScreen(tournamentId: t.id),
+                ),
+              );
+            },
+            child: Container(
+              height: 52,
+              decoration: BoxDecoration(
+                gradient: AppColors.fireGradient,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.secondary.withValues(alpha: 0.4),
+                    blurRadius: 16,
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.sports_esports_rounded,
+                      color: AppColors.bgNavy, size: 20),
+                  const SizedBox(width: 8),
+                  Text(
+                    label,
+                    style: const TextStyle(
+                      color: AppColors.bgNavy,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    // Completed
     return SafeArea(
       child: Container(
         padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
@@ -454,40 +608,28 @@ class _BottomCta extends StatelessWidget {
           color: AppColors.background,
           border: Border(top: BorderSide(color: AppColors.border)),
         ),
-        child: GestureDetector(
-          onTap: () {
-            if (t.status == TournamentStatus.upcoming) {
-              Navigator.of(context).push(
-                FirePageRoute(
-                  page: JoinTournamentScreen(tournamentId: t.id),
+        child: Container(
+          height: 52,
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.border),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: const [
+              Icon(Icons.emoji_events_rounded,
+                  color: AppColors.gold, size: 20),
+              SizedBox(width: 8),
+              Text(
+                'TOURNAMENT COMPLETED',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.5,
                 ),
-              );
-            }
-            // TODO: hook up stream / results navigation
-          },
-          child: Container(
-            height: 52,
-            decoration: BoxDecoration(
-              gradient: AppColors.fireGradient,
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                    color: AppColors.secondary.withValues(alpha: 0.4),
-                    blurRadius: 16),
-              ],
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(icon, color: AppColors.bgNavy, size: 20),
-                const SizedBox(width: 8),
-                Text(label,
-                    style: const TextStyle(
-                        color: AppColors.bgNavy,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 0.5)),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),

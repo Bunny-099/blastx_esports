@@ -2,6 +2,7 @@ import 'package:blastix_esports/core/theme/app_colors.dart';
 import 'package:blastix_esports/core/theme/app_text_styles.dart';
 import 'package:blastix_esports/features/live/data/models/team_member_model.dart';
 import 'package:blastix_esports/features/live/data/models/team_model.dart';
+import 'package:blastix_esports/features/live/data/models/tournament_model.dart';
 import 'package:blastix_esports/features/live/presentation/widgets/team_code_card.dart';
 import 'package:blastix_esports/features/live/presentation/widgets/team_member_card.dart';
 import 'package:blastix_esports/features/live/providers/live_provider.dart';
@@ -148,7 +149,7 @@ class TeamLobbyScreen extends ConsumerWidget {
           children: [
             _header(team),
             const SizedBox(height: 14),
-            _statusBanner(team),
+            _statusBanner(team, tournament),
             const SizedBox(height: 14),
             TeamCodeCard(code: team.code, shareText: team.shareText),
             const SizedBox(height: 20),
@@ -249,18 +250,30 @@ class TeamLobbyScreen extends ConsumerWidget {
                     ? 'COMPLETE REGISTRATION'
                     : 'COMPLETE REGISTRATION • ${tournament.formattedEntryFee}',
                 isLoading: s.isLoading,
-                onPressed: () async {
-                  final ok = await notifier.completeRegistration();
-                  if (ok && context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text(
-                            '🎉 Registration successful! Your roster is registered.'),
-                        backgroundColor: AppColors.success,
-                      ),
-                    );
-                  }
-                },
+                onPressed: (tournament != null && tournament.status != TournamentStatus.live)
+                    ? () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              'Registration status LIVE hone par hi shuru hoti hai.',
+                            ),
+                            backgroundColor: AppColors.error,
+                          ),
+                        );
+                      }
+                    : () async {
+                        final mode = tournament?.mode ?? 'SQUAD';
+                        final ok = await notifier.completeRegistration(mode: mode);
+                        if (ok && context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                  '🎉 Registration successful! Your roster is registered.'),
+                              backgroundColor: AppColors.success,
+                            ),
+                          );
+                        }
+                      },
               ),
             if (!isCaptain && canEdit && team.isReady)
               Text('Waiting for the captain to complete registration.',
@@ -310,7 +323,7 @@ class TeamLobbyScreen extends ConsumerWidget {
     ],
   );
 
-  Widget _statusBanner(TournamentTeamModel team) {
+  Widget _statusBanner(TournamentTeamModel team, TournamentModel? tournament) {
     late final Color color;
     late final IconData icon;
     late final String text;
@@ -322,6 +335,10 @@ class TeamLobbyScreen extends ConsumerWidget {
       color = AppColors.error;
       icon = Icons.lock_rounded;
       text = 'Registration closed. The roster can no longer be changed.';
+    } else if (tournament != null && tournament.status == TournamentStatus.upcoming) {
+      color = AppColors.warning;
+      icon = Icons.schedule_rounded;
+      text = 'Registration opens when tournament goes LIVE on backend.';
     } else if (team.isReady) {
       color = AppColors.success;
       icon = Icons.check_circle_rounded;

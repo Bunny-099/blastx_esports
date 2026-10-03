@@ -40,6 +40,17 @@ class ChallengeModel {
   double get progressPercentage =>
       targetProgress > 0 ? (currentProgress / targetProgress).clamp(0.0, 1.0) : 0.0;
 
+  bool get isProofSubmitted =>
+      status == 'PROOF_SUBMITTED' || status == 'UNDER_REVIEW';
+
+  bool get isProofRejected =>
+      status == 'PROOF_REJECTED' || status == 'REJECTED';
+
+  bool get isReadyToClaim =>
+      !isClaimed &&
+      (status == 'COMPLETED' ||
+          (isCompleted && !isProofSubmitted && !isProofRejected && status != 'RECORDING'));
+
   factory ChallengeModel.fromJson(Map<String, dynamic> json) {
     ChallengeType typeEnum = ChallengeType.daily;
     final typeStr = (json['type'] ?? 'DAILY').toString().toUpperCase();
@@ -108,7 +119,7 @@ class ChallengeModel {
   }) {
     return ChallengeModel(
       id: id ?? this.id,
-      title: title ?? this.title,
+      title: id != null ? this.title : (title ?? this.title),
       description: description ?? this.description,
       rewardXP: rewardXP ?? this.rewardXP,
       currentProgress: currentProgress ?? this.currentProgress,

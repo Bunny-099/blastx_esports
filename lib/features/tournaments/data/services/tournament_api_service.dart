@@ -111,7 +111,14 @@ class TournamentApiService {
 
   Future<Map<String, dynamic>> getTournamentDetail(String tournamentId) async {
     final response = await _apiClient.get(ApiEndpoints.tournamentDetail(tournamentId));
-    return Map<String, dynamic>.from(response as Map);
+    if (response is Map) {
+      final mapResp = Map<String, dynamic>.from(response);
+      if (mapResp['data'] is Map) {
+        return Map<String, dynamic>.from(mapResp['data'] as Map);
+      }
+      return mapResp;
+    }
+    return {};
   }
 
   Future<List<dynamic>> getMyTournaments() async {

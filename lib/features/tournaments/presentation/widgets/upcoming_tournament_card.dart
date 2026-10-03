@@ -218,18 +218,18 @@ class UpcomingTournamentCard extends StatelessWidget {
 
                           const SizedBox(width: 14),
 
-                          const Icon(
-                            Icons.calendar_today_rounded,
-                            color: Colors.white70,
+                          Icon(
+                            tournament.isLive ? Icons.check_circle_rounded : Icons.schedule_rounded,
+                            color: tournament.isLive ? AppColors.success : Colors.white70,
                             size: 13,
                           ),
 
                           const SizedBox(width: 4),
 
                           Text(
-                            'Registration Open',
-                            style: const TextStyle(
-                              color: Colors.white70,
+                            tournament.isLive ? 'Registration Open' : 'Starts ${DateFormat('MMM d, h:mm a').format(tournament.effectiveStartsAt)}',
+                            style: TextStyle(
+                              color: tournament.isLive ? AppColors.success : Colors.white70,
                               fontSize: 11,
                               fontWeight: FontWeight.w500,
                             ),

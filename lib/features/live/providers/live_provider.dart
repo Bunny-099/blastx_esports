@@ -90,6 +90,26 @@ final filteredOfficialTournamentsProvider = visibleTournamentsProvider;
 
 // ── 2. BLASTX ESPORTS TOURNAMENTS SECTION PROVIDERS ──
 
+/// Async provider for dedicated BlastX LIVE Tournaments API (`/tournaments?status=LIVE`)
+final blastxLiveTournamentsApiProvider = FutureProvider<List<TournamentModel>>((ref) async {
+  final repo = ref.watch(tournamentRepositoryProvider);
+  final list = await repo.getTournaments(
+    limit: 50,
+    status: 'LIVE',
+  );
+  return list;
+});
+
+/// Async provider for dedicated BlastX UPCOMING Tournaments API (`/tournaments?status=UPCOMING`)
+final blastxUpcomingTournamentsApiProvider = FutureProvider<List<TournamentModel>>((ref) async {
+  final repo = ref.watch(tournamentRepositoryProvider);
+  final list = await repo.getTournaments(
+    limit: 50,
+    status: 'UPCOMING',
+  );
+  return list;
+});
+
 /// Async provider for dedicated BlastX Tournaments API (`/tournaments`)
 final blastxTournamentsApiProvider = FutureProvider<List<TournamentModel>>((ref) async {
   final repo = ref.watch(tournamentRepositoryProvider);
@@ -107,12 +127,18 @@ final appTournamentsProvider = Provider<List<TournamentModel>>((ref) {
 
 /// BlastX Live tournaments
 final appLiveTournamentsProvider = Provider<List<TournamentModel>>((ref) {
+  final liveResult = ref.watch(blastxLiveTournamentsApiProvider);
+  final liveList = liveResult.valueOrNull;
+  if (liveList != null && liveList.isNotEmpty) return liveList;
   final appTournaments = ref.watch(appTournamentsProvider);
   return appTournaments.where((t) => t.isLive).toList();
 });
 
 /// BlastX Upcoming tournaments
 final appUpcomingTournamentsProvider = Provider<List<TournamentModel>>((ref) {
+  final upcomingResult = ref.watch(blastxUpcomingTournamentsApiProvider);
+  final upcomingList = upcomingResult.valueOrNull;
+  if (upcomingList != null && upcomingList.isNotEmpty) return upcomingList;
   final appTournaments = ref.watch(appTournamentsProvider);
   return appTournaments.where((t) => t.status == TournamentStatus.upcoming).toList();
 });
@@ -152,8 +178,18 @@ final filteredAppLiveTournamentsProvider = Provider<List<TournamentModel>>((ref)
 
 // ── 3. COMMON LOOKUP & ROOM DETAILS PROVIDERS ──
 
-/// Family provider - fetch a single tournament by its ID (searches both Free Fire Live & BlastX lists)
+/// Async family provider - fetch / refresh a single tournament by ID directly from backend API
+final tournamentDetailApiProvider = FutureProvider.family<TournamentModel, String>((ref, id) async {
+  final repo = ref.watch(tournamentRepositoryProvider);
+  return await repo.getTournamentDetail(id);
+});
+
+/// Family provider - fetch a single tournament by its ID (prefers fresh detail API data)
 final tournamentByIdProvider = Provider.family<TournamentModel?, String>((ref, id) {
+  final detailResult = ref.watch(tournamentDetailApiProvider(id));
+  final fetched = detailResult.valueOrNull;
+  if (fetched != null) return fetched;
+
   final ffList = ref.watch(liveTournamentsProvider);
   try {
     return ffList.firstWhere((t) => t.id == id);

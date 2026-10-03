@@ -90,7 +90,7 @@ class BlastIXTournamentCard extends StatelessWidget {
                         borderRadius: BorderRadius.circular(8),
                       ),
                     ),
-                    child: Text(tournament.isLive ? 'WATCH' : 'JOIN'),
+                    child: Text(tournament.isLive ? 'WATCH' : 'VIEW'),
                   ),
                 ],
               ),

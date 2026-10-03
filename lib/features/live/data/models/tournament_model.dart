@@ -83,6 +83,8 @@ class TournamentModel {
 
   // New Optional Model Fields
   final DateTime? startsAt;
+  final DateTime? registrationOpensAt;
+  final DateTime? registrationClosesAt;
   final int? maxSlots;
   final int? filledSlots;
   final String description;
@@ -122,6 +124,8 @@ class TournamentModel {
     this.registeredCount = 0,
     this.slotsLeft = 0,
     this.startsAt,
+    this.registrationOpensAt,
+    this.registrationClosesAt,
     this.maxSlots,
     this.filledSlots,
     this.description = '',
@@ -282,6 +286,8 @@ class TournamentModel {
       registeredCount: (json['registered_count'] as num?)?.toInt() ?? 0,
       slotsLeft: (json['slots_left'] as num?)?.toInt() ?? 0,
       startsAt: json['starts_at'] != null ? DateTime.tryParse(json['starts_at'] as String) : null,
+      registrationOpensAt: json['registration_opens_at'] != null ? DateTime.tryParse(json['registration_opens_at'] as String) : null,
+      registrationClosesAt: json['registration_closes_at'] != null ? DateTime.tryParse(json['registration_closes_at'] as String) : null,
       maxSlots: (json['max_slots'] as num?)?.toInt(),
       filledSlots: (json['filled_slots'] as num?)?.toInt(),
       description: (json['description'] as String? ?? ''),
@@ -324,6 +330,8 @@ class TournamentModel {
     'registered_count': registeredCount,
     'slots_left': slotsLeft,
     'starts_at': startsAt?.toIso8601String(),
+    'registration_opens_at': registrationOpensAt?.toIso8601String(),
+    'registration_closes_at': registrationClosesAt?.toIso8601String(),
     'max_slots': maxSlots,
     'filled_slots': filledSlots,
   };

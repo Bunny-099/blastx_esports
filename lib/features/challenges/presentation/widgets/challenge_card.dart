@@ -20,29 +20,33 @@ class ChallengeCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bool isRecording = challenge.status == 'RECORDING';
-    final bool isProofSubmitted = challenge.status == 'PROOF_SUBMITTED' || challenge.status == 'UNDER_REVIEW';
+    final bool isProofSubmitted = challenge.isProofSubmitted;
+    final bool isProofRejected = challenge.isProofRejected;
+    final bool isReadyToClaim = challenge.isReadyToClaim;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: isRecording
+          color: isRecording || isProofRejected
               ? Colors.redAccent.withValues(alpha: 0.8)
-              : challenge.isCompleted
-                  ? AppColors.primaryNeon.withValues(alpha: 0.6)
-                  : AppColors.borderSubtle,
-          width: isRecording || challenge.isCompleted ? 1.5 : 1.0,
+              : isProofSubmitted
+                  ? AppColors.warning.withValues(alpha: 0.6)
+                  : isReadyToClaim
+                      ? AppColors.primaryNeon.withValues(alpha: 0.6)
+                      : AppColors.borderSubtle,
+          width: isRecording || isProofRejected || isProofSubmitted || isReadyToClaim ? 1.5 : 1.0,
         ),
         gradient: AppColors.glassFill,
         boxShadow: [
-          if (isRecording)
+          if (isRecording || isProofRejected)
             BoxShadow(
               color: Colors.red.withValues(alpha: 0.2),
               blurRadius: 12,
               spreadRadius: 1,
             )
-          else if (challenge.isCompleted && !challenge.isClaimed)
+          else if (isReadyToClaim)
             BoxShadow(
               color: AppColors.primaryNeon.withValues(alpha: 0.15),
               blurRadius: 12,
@@ -71,11 +75,13 @@ class ChallengeCard extends StatelessWidget {
                         ),
                         child: Icon(
                           _getIconData(challenge.title),
-                          color: isRecording
+                          color: isRecording || isProofRejected
                               ? Colors.redAccent
-                              : challenge.isCompleted
-                                  ? AppColors.glowLight
-                                  : AppColors.primaryNeon,
+                              : isProofSubmitted
+                                  ? AppColors.warning
+                                  : isReadyToClaim
+                                      ? AppColors.glowLight
+                                      : AppColors.primaryNeon,
                           size: 24,
                         ),
                       ),
@@ -128,18 +134,22 @@ class ChallengeCard extends StatelessWidget {
                                 Expanded(
                                   child: Text(
                                     isProofSubmitted
-                                        ? 'Proof Submitted'
-                                        : isRecording
-                                            ? 'Recording Match...'
-                                            : challenge.isCompleted
-                                                ? 'Completed'
-                                                : 'Progress',
+                                        ? 'Under Review'
+                                        : isProofRejected
+                                            ? 'Proof Rejected'
+                                            : isRecording
+                                                ? 'Recording Match...'
+                                                : isReadyToClaim
+                                                    ? 'Completed'
+                                                    : 'Progress',
                                     style: AppTextStyles.caption.copyWith(
-                                      color: isRecording
+                                      color: isRecording || isProofRejected
                                           ? Colors.redAccent
-                                          : isProofSubmitted || challenge.isCompleted
-                                              ? AppColors.success
-                                              : AppColors.textSecondary,
+                                          : isProofSubmitted
+                                              ? AppColors.warning
+                                              : isReadyToClaim
+                                                  ? AppColors.success
+                                                  : AppColors.textSecondary,
                                       fontWeight: FontWeight.w600,
                                     ),
                                     maxLines: 1,
@@ -160,6 +170,7 @@ class ChallengeCard extends StatelessWidget {
                             _ProgressBar(
                               progress: challenge.progressPercentage,
                               isRecording: isRecording,
+                              isRejected: isProofRejected,
                             ),
                           ],
                         ),
@@ -252,8 +263,13 @@ class _RewardBadge extends StatelessWidget {
 class _ProgressBar extends StatelessWidget {
   final double progress;
   final bool isRecording;
+  final bool isRejected;
 
-  const _ProgressBar({required this.progress, this.isRecording = false});
+  const _ProgressBar({
+    required this.progress,
+    this.isRecording = false,
+    this.isRejected = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -272,13 +288,14 @@ class _ProgressBar extends StatelessWidget {
           child: Container(
             height: 7,
             decoration: BoxDecoration(
-              gradient: isRecording
+              gradient: isRecording || isRejected
                   ? const LinearGradient(colors: [Colors.red, Colors.orangeAccent])
                   : AppColors.blastixCoreGradient,
               borderRadius: BorderRadius.circular(4),
               boxShadow: [
                 BoxShadow(
-                  color: (isRecording ? Colors.red : AppColors.primaryNeon).withValues(alpha: 0.4),
+                  color: (isRecording || isRejected ? Colors.red : AppColors.primaryNeon)
+                      .withValues(alpha: 0.4),
                   blurRadius: 6,
                   spreadRadius: 1,
                 ),
@@ -328,17 +345,55 @@ class _ActionButton extends StatelessWidget {
       );
     }
 
-    if (challenge.status == 'PROOF_SUBMITTED') {
+    if (challenge.isProofSubmitted) {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: AppColors.success.withValues(alpha: 0.15),
+          color: AppColors.warning.withValues(alpha: 0.15),
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: AppColors.success.withValues(alpha: 0.4)),
+          border: Border.all(color: AppColors.warning.withValues(alpha: 0.5)),
         ),
-        child: const Text(
-          'SUBMITTED',
-          style: TextStyle(color: AppColors.success, fontSize: 11, fontWeight: FontWeight.bold),
+        child: const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.hourglass_top_rounded, color: AppColors.warning, size: 14),
+            SizedBox(width: 4),
+            Text(
+              'UNDER REVIEW',
+              style: TextStyle(color: AppColors.warning, fontSize: 11, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (challenge.isProofRejected) {
+      return GestureDetector(
+        onTap: onGo,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: Colors.redAccent.withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: Colors.redAccent, width: 1.5),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.redAccent.withValues(alpha: 0.2),
+                blurRadius: 6,
+              ),
+            ],
+          ),
+          child: const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.refresh_rounded, color: Colors.redAccent, size: 16),
+              SizedBox(width: 4),
+              Text(
+                'RETRY',
+                style: TextStyle(color: Colors.redAccent, fontSize: 11, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
         ),
       );
     }
@@ -373,7 +428,7 @@ class _ActionButton extends StatelessWidget {
       );
     }
 
-    if (challenge.isCompleted) {
+    if (challenge.isReadyToClaim) {
       return GestureDetector(
         onTap: onClaim,
         child: Container(

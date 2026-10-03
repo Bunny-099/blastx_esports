@@ -127,6 +127,12 @@ class TeamNotifier extends FamilyNotifier<TeamState, String> {
           return 'Registration for this tournament has ended.';
         case 'CAPTAIN_MUST_TRANSFER':
           return 'Transfer captaincy before leaving the team.';
+        case 'TOURNAMENT_NOT_LIVE':
+        case 'NOT_LIVE':
+          return 'Registration backend par status LIVE hone par hi shuru hoti hai.';
+        case 'INVALID_MEMBER_COUNT':
+        case 'INVALID_ROSTER_SIZE':
+          return 'Tournament khelne ke liye team mein exactly 4 members chahiye.';
       }
       if (e.type == DioExceptionType.connectionError ||
           e.type == DioExceptionType.connectionTimeout ||
@@ -240,9 +246,24 @@ class TeamNotifier extends FamilyNotifier<TeamState, String> {
     state = state.copyWith(clearTeam: true);
   });
 
-  Future<bool> completeRegistration() => _guard(() async {
-        if (state.team == null) return;
-        final res = await _repo.registerTournament(_tid, state.team!.id);
+  Future<bool> completeRegistration({String mode = 'SQUAD'}) => _guard(() async {
+        final team = state.team;
+        if (team == null) return;
+
+        final totalMembers = team.members.length;
+        final modeUpper = mode.trim().toUpperCase();
+
+        if (modeUpper == 'SQUAD' || modeUpper.contains('SQUAD') || modeUpper.isEmpty) {
+          if (totalMembers != 4) {
+            throw const _TeamException('Tournament khelne ke liye team mein exactly 4 members chahiye.');
+          }
+        } else if (modeUpper == 'DUO' || modeUpper.contains('DUO')) {
+          if (totalMembers < 2) {
+            throw const _TeamException('Tournament khelne ke liye team mein kam se kam 2 members chahiye.');
+          }
+        }
+
+        final res = await _repo.registerTournament(_tid, team.id);
         if (res is Map && res['team'] != null) {
           state = state.copyWith(team: _repo._team(res));
         } else {
