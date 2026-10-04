@@ -2,7 +2,7 @@
 // TEAM MEMBER MODEL (tournament roster player)
 // ============================================================
 
-enum TeamRole { captain, member }
+enum TeamRole { captain, manager, member }
 
 enum RosterType { main, substitute }
 
@@ -35,6 +35,8 @@ class TeamMemberModel {
   });
 
   bool get isCaptain => role == TeamRole.captain;
+  bool get isManager => role == TeamRole.manager;
+  bool get isPlaying => role != TeamRole.manager;
   bool get isSubstitute => rosterType == RosterType.substitute;
   bool get isPending => status == TeamMemberStatus.pending;
   bool get isConfirmed => status == TeamMemberStatus.confirmed;

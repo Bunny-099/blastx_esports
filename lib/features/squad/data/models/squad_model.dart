@@ -2,7 +2,7 @@
 // SQUAD MODEL & SQUAD MEMBER MODEL (Persistent Squad System)
 // ============================================================
 
-enum SquadRole { leader, member }
+enum SquadRole { leader, manager, member }
 
 enum SquadRosterType { main, substitute }
 
@@ -33,6 +33,10 @@ class SquadMemberModel {
   });
 
   bool get isLeader => role == SquadRole.leader;
+  bool get isManager => role == SquadRole.manager;
+  bool get isMember => role == SquadRole.member;
+  bool get isPlaying => role != SquadRole.manager;
+
   bool get isSubstitute => rosterType == SquadRosterType.substitute;
   bool get isMain => rosterType == SquadRosterType.main;
 
@@ -109,6 +113,7 @@ class SquadModel {
   final String tag;
   final String logoUrl;
   final String leaderId;
+  final SquadRole ownerRole;
   final List<SquadMemberModel> members;
   final int maxMainPlayers;
   final int maxSubstitutes;
@@ -118,6 +123,7 @@ class SquadModel {
     required this.id,
     required this.name,
     required this.leaderId,
+    this.ownerRole = SquadRole.leader,
     this.tag = '',
     this.logoUrl = '',
     this.members = const [],
@@ -126,30 +132,48 @@ class SquadModel {
     this.createdAt,
   });
 
+  bool get isManagerOwned => ownerRole == SquadRole.manager;
+
+  /// Main playing players (Manager is non-playing so excluded from main player slots)
   List<SquadMemberModel> get mainPlayers => members
-      .where((m) => m.isMain)
+      .where((m) => m.isMain && m.isPlaying)
       .toList()
     ..sort((a, b) => a.isLeader == b.isLeader ? 0 : (a.isLeader ? -1 : 1));
 
+  /// Substitute playing players
   List<SquadMemberModel> get substitutes =>
-      members.where((m) => m.isSubstitute).toList();
+      members.where((m) => m.isSubstitute && m.isPlaying).toList();
 
   int get mainCount => mainPlayers.length;
   int get substituteCount => substitutes.length;
+  int get totalPlayingMembers => mainCount + substituteCount;
   int get totalMembers => members.length;
 
   bool get isMainFull => mainCount >= maxMainPlayers;
   bool get isSubstituteFull => substituteCount >= maxSubstitutes;
-  bool get isFull => totalMembers >= (maxMainPlayers + maxSubstitutes);
+  bool get isFull => totalPlayingMembers >= (maxMainPlayers + maxSubstitutes);
 
-  bool isLeader(String userId) => leaderId.isNotEmpty && leaderId == userId;
+  bool isOwner(String userId) =>
+      (leaderId.isNotEmpty && leaderId == userId) ||
+      members.any((m) => m.userId == userId && (m.isLeader || m.isManager));
+
+  bool isLeader(String userId) => isOwner(userId);
   bool isMember(String userId) => members.any((m) => m.userId == userId);
 
-  SquadMemberModel? get leader {
+  SquadMemberModel? get owner {
     for (final m in members) {
-      if (m.isLeader || m.userId == leaderId) return m;
+      if (m.isLeader || m.isManager || m.userId == leaderId) return m;
     }
     return null;
+  }
+
+  SquadMemberModel? get leader => owner;
+
+  SquadMemberModel? get manager {
+    for (final m in members) {
+      if (m.isManager) return m;
+    }
+    return isManagerOwned ? owner : null;
   }
 
   SquadMemberModel? getMember(String userId) {
@@ -166,6 +190,7 @@ class SquadModel {
     String? tag,
     String? logoUrl,
     String? leaderId,
+    SquadRole? ownerRole,
     List<SquadMemberModel>? members,
     int? maxMainPlayers,
     int? maxSubstitutes,
@@ -177,6 +202,7 @@ class SquadModel {
       tag: tag ?? this.tag,
       logoUrl: logoUrl ?? this.logoUrl,
       leaderId: leaderId ?? this.leaderId,
+      ownerRole: ownerRole ?? this.ownerRole,
       members: members ?? this.members,
       maxMainPlayers: maxMainPlayers ?? this.maxMainPlayers,
       maxSubstitutes: maxSubstitutes ?? this.maxSubstitutes,
@@ -191,12 +217,16 @@ class SquadModel {
       parsedCreated = DateTime.tryParse((json['created_at'] ?? json['createdAt']).toString());
     }
 
+    final ownerRoleRaw = (json['owner_role'] ?? json['ownerRole'] ?? 'leader').toString().toLowerCase();
+    final ownerRoleParsed = ownerRoleRaw == 'manager' ? SquadRole.manager : SquadRole.leader;
+
     return SquadModel(
       id: (json['id'] ?? '') as String,
       name: (json['name'] ?? '') as String,
       tag: (json['tag'] ?? '') as String,
       logoUrl: (json['logo_url'] ?? json['logoUrl'] ?? '') as String,
       leaderId: (json['leader_id'] ?? json['leaderId'] ?? '') as String,
+      ownerRole: ownerRoleParsed,
       members: rawMembers
               ?.map((e) => SquadMemberModel.fromJson(e as Map<String, dynamic>))
               .toList() ??
@@ -213,6 +243,7 @@ class SquadModel {
         'tag': tag,
         'logoUrl': logoUrl,
         'leaderId': leaderId,
+        'ownerRole': ownerRole.name.toUpperCase(),
         'members': members.map((e) => e.toJson()).toList(),
         'maxMainPlayers': maxMainPlayers,
         'maxSubstitutes': maxSubstitutes,

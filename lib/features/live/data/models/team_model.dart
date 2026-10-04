@@ -6,6 +6,8 @@ import 'team_member_model.dart';
 
 enum TeamRegistrationStatus { forming, ready, registered, locked }
 
+enum TeamOwnerRole { leader, manager }
+
 class TournamentTeamModel {
   final String id;
   final String tournamentId;
@@ -15,6 +17,7 @@ class TournamentTeamModel {
   final String tag;
   final String logoUrl;
   final String captainId;
+  final TeamOwnerRole ownerRole;
   final String viewerUserId;
   final List<TeamMemberModel> members;
   final int maxMainPlayers;
@@ -29,6 +32,7 @@ class TournamentTeamModel {
     required this.code,
     required this.name,
     required this.captainId,
+    this.ownerRole = TeamOwnerRole.leader,
     this.tournamentName = '',
     this.tag = '',
     this.logoUrl = '',
@@ -41,13 +45,18 @@ class TournamentTeamModel {
     this.acceptingSubstitutes = false,
   });
 
+  bool get isManagerOwned => ownerRole == TeamOwnerRole.manager;
+
+  /// Main playing players (Manager is non-playing so excluded from player slots)
   List<TeamMemberModel> get mainPlayers => members
-      .where((m) => !m.isSubstitute)
+      .where((m) => !m.isSubstitute && m.isPlaying)
       .toList()
     ..sort((a, b) =>
     a.isCaptain == b.isCaptain ? 0 : (a.isCaptain ? -1 : 1));
+
+  /// Substitute playing players
   List<TeamMemberModel> get substitutes =>
-      members.where((m) => m.isSubstitute).toList();
+      members.where((m) => m.isSubstitute && m.isPlaying).toList();
 
   int get mainCount => mainPlayers.length;
   int get substituteCount => substitutes.length;
@@ -62,8 +71,18 @@ class TournamentTeamModel {
   bool get isLocked =>
       status == TeamRegistrationStatus.locked || !registrationOpen;
   bool get isRegistered => status == TeamRegistrationStatus.registered;
+
   bool get viewerIsCaptain =>
       viewerUserId.isNotEmpty && viewerUserId == captainId;
+
+  bool get viewerIsManager =>
+      isManagerOwned && manager != null && manager!.userId == viewerUserId;
+
+  bool get viewerIsOwner => viewerIsCaptain || viewerIsManager || viewerIsOwnerMember;
+
+  bool get viewerIsOwnerMember => members.any(
+        (m) => m.userId == viewerUserId && (m.isCaptain || m.isManager),
+      );
 
   TeamMemberModel? get captain {
     for (final m in members) {
@@ -72,7 +91,21 @@ class TournamentTeamModel {
     return null;
   }
 
+  TeamMemberModel? get manager {
+    for (final m in members) {
+      if (m.isManager) return m;
+    }
+    if (isManagerOwned && viewerIsCaptain) {
+      return captain;
+    }
+    return null;
+  }
+
+  TeamMemberModel? get owner => isManagerOwned ? manager ?? captain : captain;
+
   String get captainName => captain?.name ?? '';
+  String get managerName => manager?.name ?? '';
+  String get ownerName => isManagerOwned ? (managerName.isNotEmpty ? managerName : captainName) : captainName;
 
   String get shareText =>
       'Join my team "$name" for ${tournamentName.isEmpty ? 'the tournament' : tournamentName} '
@@ -87,6 +120,7 @@ class TournamentTeamModel {
     String? tag,
     String? logoUrl,
     String? captainId,
+    TeamOwnerRole? ownerRole,
     String? viewerUserId,
     List<TeamMemberModel>? members,
     int? maxMainPlayers,
@@ -104,6 +138,7 @@ class TournamentTeamModel {
       tag: tag ?? this.tag,
       logoUrl: logoUrl ?? this.logoUrl,
       captainId: captainId ?? this.captainId,
+      ownerRole: ownerRole ?? this.ownerRole,
       viewerUserId: viewerUserId ?? this.viewerUserId,
       members: members ?? this.members,
       maxMainPlayers: maxMainPlayers ?? this.maxMainPlayers,
@@ -127,6 +162,9 @@ class TournamentTeamModel {
       parsedStatus = TeamRegistrationStatus.forming;
     }
 
+    final ownerRoleRaw = (json['owner_role'] ?? json['ownerRole'] ?? 'leader').toString().toLowerCase();
+    final ownerRoleParsed = ownerRoleRaw == 'manager' ? TeamOwnerRole.manager : TeamOwnerRole.leader;
+
     final rosterInfo = json['roster_info'] is Map ? json['roster_info'] as Map<String, dynamic> : null;
 
     return TournamentTeamModel(
@@ -138,6 +176,7 @@ class TournamentTeamModel {
       tag: (json['tag'] ?? '') as String,
       logoUrl: (json['logo_url'] ?? json['logoUrl'] ?? '') as String,
       captainId: (json['captain_id'] ?? json['captainId'] ?? '') as String,
+      ownerRole: ownerRoleParsed,
       viewerUserId: (json['viewerUserId'] ?? '') as String,
       members: (json['members'] as List<dynamic>?)
           ?.map((e) => TeamMemberModel.fromJson(e as Map<String, dynamic>))
@@ -160,6 +199,7 @@ class TournamentTeamModel {
     'tag': tag,
     'logoUrl': logoUrl,
     'captainId': captainId,
+    'ownerRole': ownerRole.name.toUpperCase(),
     'viewerUserId': viewerUserId,
     'members': members.map((e) => e.toJson()).toList(),
     'maxMainPlayers': maxMainPlayers,
