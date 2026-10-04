@@ -64,9 +64,11 @@ class TeamMemberModel {
   }
 
   factory TeamMemberModel.fromJson(Map<String, dynamic> json) {
-    final userMap = json['user'] is Map ? json['user'] as Map<String, dynamic> : null;
-    final gameProfile = userMap?['game_profile'] is Map
-        ? userMap!['game_profile'] as Map<String, dynamic>
+    final userMap = json['user'] is Map
+        ? json['user'] as Map<String, dynamic>
+        : (json['profile'] is Map ? json['profile'] as Map<String, dynamic> : null);
+    final gameProfile = (userMap?['game_profile'] ?? json['game_profile']) is Map
+        ? (userMap?['game_profile'] ?? json['game_profile']) as Map<String, dynamic>
         : null;
 
     final resolvedUserId = (json['user_id'] ?? json['userId'] ?? userMap?['id'] ?? json['id'] ?? '') as String;
@@ -74,6 +76,16 @@ class TeamMemberModel {
     final resolvedAvatar = (userMap?['profile_pic'] ?? json['avatarUrl'] ?? json['profile_pic'] ?? '') as String;
     final resolvedIgn = (gameProfile?['in_game_name'] ?? json['ign'] ?? json['in_game_name'] ?? '') as String;
     final resolvedUid = (gameProfile?['in_game_uid'] ?? json['uid'] ?? json['in_game_uid'] ?? '') as String;
+
+    final statusRaw = (json['status'] ?? 'CONFIRMED').toString().toLowerCase();
+    TeamMemberStatus parsedStatus;
+    if (statusRaw == 'pending') {
+      parsedStatus = TeamMemberStatus.pending;
+    } else if (statusRaw == 'rejected') {
+      parsedStatus = TeamMemberStatus.rejected;
+    } else {
+      parsedStatus = TeamMemberStatus.confirmed;
+    }
 
     return TeamMemberModel(
       userId: resolvedUserId,
@@ -87,11 +99,7 @@ class TeamMemberModel {
         json['roster_type'] ?? json['rosterType'],
         RosterType.main,
       ),
-      status: _enumFrom(
-        TeamMemberStatus.values,
-        json['status'],
-        TeamMemberStatus.confirmed,
-      ),
+      status: parsedStatus,
     );
   }
 

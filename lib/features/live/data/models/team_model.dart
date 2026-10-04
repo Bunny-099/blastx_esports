@@ -25,6 +25,7 @@ class TournamentTeamModel {
   final TeamRegistrationStatus status;
   final bool registrationOpen;
   final bool acceptingSubstitutes;
+  final bool isBackendReady;
 
   const TournamentTeamModel({
     required this.id,
@@ -43,6 +44,7 @@ class TournamentTeamModel {
     this.status = TeamRegistrationStatus.forming,
     this.registrationOpen = true,
     this.acceptingSubstitutes = false,
+    this.isBackendReady = false,
   });
 
   bool get isManagerOwned => ownerRole == TeamOwnerRole.manager;
@@ -64,7 +66,7 @@ class TournamentTeamModel {
   int get pendingMainCount => mainPlayers.where((m) => m.isPending).length;
 
   bool get isMainFull => mainCount >= maxMainPlayers;
-  bool get isReady => confirmedMainCount >= maxMainPlayers;
+  bool get isReady => isBackendReady || confirmedMainCount >= maxMainPlayers || status == TeamRegistrationStatus.ready;
   int get mainSlotsLeft => (maxMainPlayers - confirmedMainCount).clamp(0, maxMainPlayers);
   bool get canJoinAsSubstitute =>
       isMainFull && acceptingSubstitutes && substituteCount < maxSubstitutes;
@@ -128,6 +130,7 @@ class TournamentTeamModel {
     TeamRegistrationStatus? status,
     bool? registrationOpen,
     bool? acceptingSubstitutes,
+    bool? isBackendReady,
   }) {
     return TournamentTeamModel(
       id: id ?? this.id,
@@ -146,6 +149,7 @@ class TournamentTeamModel {
       status: status ?? this.status,
       registrationOpen: registrationOpen ?? this.registrationOpen,
       acceptingSubstitutes: acceptingSubstitutes ?? this.acceptingSubstitutes,
+      isBackendReady: isBackendReady ?? this.isBackendReady,
     );
   }
 
@@ -167,6 +171,37 @@ class TournamentTeamModel {
 
     final rosterInfo = json['roster_info'] is Map ? json['roster_info'] as Map<String, dynamic> : null;
 
+    final bool parsedIsReady = (json['is_ready'] ?? json['isReady'] as bool?) ?? false;
+
+    List<TeamMemberModel> parsedMembers = (json['members'] as List<dynamic>?)
+            ?.map((e) => TeamMemberModel.fromJson(e as Map<String, dynamic>))
+            .toList() ??
+        [];
+
+    final rawInvitations = json['invitations'] as List<dynamic>?;
+    if (rawInvitations != null && rawInvitations.isNotEmpty) {
+      final existingUserIds = parsedMembers.map((m) => m.userId).toSet();
+      for (final inv in rawInvitations) {
+        if (inv is Map<String, dynamic>) {
+          final inviteeId = (inv['invitee_user_id'] ?? inv['inviteeUserId'] ?? '') as String;
+          final status = (inv['status'] ?? 'PENDING').toString().toUpperCase();
+          if (status == 'PENDING' && inviteeId.isNotEmpty && !existingUserIds.contains(inviteeId)) {
+            final inviteeName = (inv['invitee_name'] ?? inv['inviteeName'] ?? 'Invited Player') as String;
+            parsedMembers.add(
+              TeamMemberModel(
+                userId: inviteeId,
+                name: inviteeName,
+                role: TeamRole.member,
+                rosterType: RosterType.main,
+                status: TeamMemberStatus.pending,
+              ),
+            );
+            existingUserIds.add(inviteeId);
+          }
+        }
+      }
+    }
+
     return TournamentTeamModel(
       id: (json['id'] ?? '') as String,
       tournamentId: (json['tournament_id'] ?? json['tournamentId'] ?? '') as String,
@@ -178,15 +213,13 @@ class TournamentTeamModel {
       captainId: (json['captain_id'] ?? json['captainId'] ?? '') as String,
       ownerRole: ownerRoleParsed,
       viewerUserId: (json['viewerUserId'] ?? '') as String,
-      members: (json['members'] as List<dynamic>?)
-          ?.map((e) => TeamMemberModel.fromJson(e as Map<String, dynamic>))
-          .toList() ??
-          const [],
+      members: parsedMembers,
       maxMainPlayers: (rosterInfo?['max_main_players'] ?? json['maxMainPlayers'] as num?)?.toInt() ?? 4,
       maxSubstitutes: (rosterInfo?['max_substitutes'] ?? json['maxSubstitutes'] as num?)?.toInt() ?? 2,
       status: parsedStatus,
       registrationOpen: (json['registrationOpen'] as bool?) ?? true,
       acceptingSubstitutes: (json['accepting_substitutes'] ?? json['acceptingSubstitutes'] as bool?) ?? false,
+      isBackendReady: parsedIsReady,
     );
   }
 
@@ -207,5 +240,6 @@ class TournamentTeamModel {
     'status': status.name.toUpperCase(),
     'registrationOpen': registrationOpen,
     'acceptingSubstitutes': acceptingSubstitutes,
+    'is_ready': isBackendReady,
   };
 }
