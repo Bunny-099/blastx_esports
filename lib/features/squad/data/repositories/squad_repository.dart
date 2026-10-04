@@ -6,13 +6,13 @@ import '../models/squad_model.dart';
 /// Abstract Squad Repository Interface
 abstract class SquadRepository {
   Future<SquadModel?> getMySquad();
-  Future<SquadModel> createOrSaveSquad(SquadModel squad);
+  Future<SquadModel> createOrSaveSquad([SquadModel? squad]);
   Future<SquadModel> removeMember(String squadId, String userId);
   Future<SquadModel> transferLeadership(String squadId, String newLeaderId);
   Future<SquadModel> updateMemberRole(String squadId, String userId, SquadRosterType newRosterType);
   Future<SquadModel> swapPlayers(String squadId, String mainUserId, String subUserId);
   Future<List<SquadInvitationModel>> getPendingInvitations();
-  Future<void> sendPreviousTeamInvitations(String squadId, String tournamentId);
+  Future<Map<String, dynamic>> sendPreviousTeamInvitations(String squadId, String tournamentId);
   Future<SquadInvitationModel> respondToInvitation(String invitationId, bool accept);
 }
 
@@ -27,7 +27,10 @@ class RealSquadRepository implements SquadRepository {
     try {
       final data = await _api.get(ApiEndpoints.mySquad);
       if (data == null) return null;
-      final map = (data is Map && data['squad'] is Map) ? data['squad'] : data;
+      final map = (data is Map && data['squad'] is Map)
+          ? data['squad']
+          : (data is Map ? data : null);
+      if (map == null) return null;
       return SquadModel.fromJson(Map<String, dynamic>.from(map as Map));
     } catch (_) {
       return null;
@@ -35,8 +38,9 @@ class RealSquadRepository implements SquadRepository {
   }
 
   @override
-  Future<SquadModel> createOrSaveSquad(SquadModel squad) async {
-    final data = await _api.post(ApiEndpoints.createSquad, data: squad.toJson());
+  Future<SquadModel> createOrSaveSquad([SquadModel? squad]) async {
+    final payload = squad != null ? squad.toJson() : {};
+    final data = await _api.post(ApiEndpoints.createSquad, data: payload);
     final map = (data is Map && data['squad'] is Map) ? data['squad'] : data;
     return SquadModel.fromJson(Map<String, dynamic>.from(map as Map));
   }
@@ -88,18 +92,29 @@ class RealSquadRepository implements SquadRepository {
 
   @override
   Future<List<SquadInvitationModel>> getPendingInvitations() async {
-    final data = await _api.get(ApiEndpoints.pendingInvitations);
-    if (data is List) {
-      return data
+    try {
+      final data = await _api.get(ApiEndpoints.pendingInvitations);
+      final rawList = (data is Map && data['invitations'] is List)
+          ? data['invitations'] as List
+          : (data is List ? data : []);
+      return rawList
           .map((e) => SquadInvitationModel.fromJson(Map<String, dynamic>.from(e as Map)))
           .toList();
+    } catch (_) {
+      return [];
     }
-    return [];
   }
 
   @override
-  Future<void> sendPreviousTeamInvitations(String squadId, String tournamentId) async {
-    await _api.post(ApiEndpoints.sendSquadInvitations(squadId, tournamentId));
+  Future<Map<String, dynamic>> sendPreviousTeamInvitations(
+    String squadId,
+    String tournamentId,
+  ) async {
+    final data = await _api.post(ApiEndpoints.sendSquadInvitations(squadId, tournamentId));
+    if (data is Map) {
+      return Map<String, dynamic>.from(data);
+    }
+    return {};
   }
 
   @override
@@ -111,6 +126,7 @@ class RealSquadRepository implements SquadRepository {
       ApiEndpoints.respondInvitation(invitationId),
       data: {'action': accept ? 'ACCEPT' : 'REJECT'},
     );
-    return SquadInvitationModel.fromJson(Map<String, dynamic>.from(data as Map));
+    final map = (data is Map && data['invitation'] is Map) ? data['invitation'] : data;
+    return SquadInvitationModel.fromJson(Map<String, dynamic>.from(map as Map));
   }
 }

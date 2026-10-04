@@ -205,11 +205,18 @@ class MockSquadRepository implements SquadRepository {
   }
 
   @override
-  Future<SquadModel> createOrSaveSquad(SquadModel squad) async {
+  Future<SquadModel> createOrSaveSquad([SquadModel? squad]) async {
     await Future.delayed(const Duration(milliseconds: 400));
-    _currentSquad = squad;
+    if (squad != null) {
+      _currentSquad = squad;
+    }
     forceEmptySquad = false;
-    return squad;
+    return _currentSquad ??
+        SquadModel(
+          id: 'squad_${DateTime.now().millisecondsSinceEpoch}',
+          name: 'NEW SQUAD',
+          leaderId: 'user_001',
+        );
   }
 
   @override
@@ -311,39 +318,47 @@ class MockSquadRepository implements SquadRepository {
   }
 
   @override
-  Future<void> sendPreviousTeamInvitations(String squadId, String tournamentId) async {
+  Future<Map<String, dynamic>> sendPreviousTeamInvitations(
+    String squadId,
+    String tournamentId,
+  ) async {
     await Future.delayed(const Duration(milliseconds: 400));
-    if (_currentSquad == null) return;
+    if (_currentSquad == null) return {};
 
     final now = DateTime.now();
-    // For Leader: send invitations to other 3 main members (excluding Leader)
-    // For Manager: send invitations to all 4 main playing members (Manager is non-playing)
     final inviteCandidates = _currentSquad!.isManagerOwned
         ? _currentSquad!.mainPlayers
         : _currentSquad!.mainPlayers.where((m) => m.userId != _currentSquad!.leaderId);
+
+    final generatedInvites = <Map<String, dynamic>>[];
 
     for (final member in inviteCandidates) {
       final exists = _invitations.any(
         (i) => i.squadId == squadId && i.tournamentId == tournamentId && i.inviteeUserId == member.userId,
       );
       if (!exists) {
-        _invitations.add(
-          SquadInvitationModel(
-            id: 'inv_${DateTime.now().millisecondsSinceEpoch}_${member.userId}',
-            squadId: squadId,
-            squadName: _currentSquad!.name,
-            leaderId: _currentSquad!.leaderId,
-            leaderName: _currentSquad!.owner?.name ?? 'Squad Owner',
-            tournamentId: tournamentId,
-            tournamentName: 'Tournament #$tournamentId',
-            inviteeUserId: member.userId,
-            inviteeName: member.name,
-            status: InvitationStatus.pending,
-            createdAt: now,
-          ),
+        final inv = SquadInvitationModel(
+          id: 'inv_${DateTime.now().millisecondsSinceEpoch}_${member.userId}',
+          squadId: squadId,
+          squadName: _currentSquad!.name,
+          leaderId: _currentSquad!.leaderId,
+          leaderName: _currentSquad!.owner?.name ?? 'Squad Owner',
+          tournamentId: tournamentId,
+          tournamentName: 'Tournament #$tournamentId',
+          inviteeUserId: member.userId,
+          inviteeName: member.name,
+          status: InvitationStatus.pending,
+          createdAt: now,
         );
+        _invitations.add(inv);
+        generatedInvites.add(inv.toJson());
       }
     }
+
+    return {
+      'team_id': 'team_lobby_${DateTime.now().millisecondsSinceEpoch}',
+      'invitations': generatedInvites,
+    };
   }
 
   @override

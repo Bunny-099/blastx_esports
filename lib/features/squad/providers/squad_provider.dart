@@ -6,10 +6,11 @@ import '../data/models/squad_model.dart';
 import '../data/repositories/mock_squad_repository.dart';
 import '../data/repositories/squad_repository.dart';
 
-/// Toggle Flag to switch between Mock and Real Squad Repository
-final useMockSquadRepositoryProvider = StateProvider<bool>((ref) => true);
+/// Toggle Flag to switch between Mock and Real Squad Repository.
+/// Set to false so real backend API integration is active by default.
+final useMockSquadRepositoryProvider = StateProvider<bool>((ref) => false);
 
-/// Single Instance of MockSquadRepository so state persists during app runtime
+/// Single Instance of MockSquadRepository so state persists during app runtime when mock testing
 final mockSquadRepositoryProvider = Provider<MockSquadRepository>((ref) {
   return MockSquadRepository();
 });
@@ -111,29 +112,32 @@ class SquadNotifier extends Notifier<SquadState> {
   }
 
   Future<bool> createOrSaveSquadFromRoster({
-    required String squadName,
-    required String tag,
-    required List<SquadMemberModel> members,
+    String? squadName,
+    String? tag,
+    List<SquadMemberModel>? members,
     SquadRole ownerRole = SquadRole.leader,
   }) async {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
       final now = DateTime.now();
-      final squad = SquadModel(
-        id: 'squad_${now.millisecondsSinceEpoch}',
-        name: squadName,
-        tag: tag,
-        leaderId: state.viewerUserId,
-        ownerRole: ownerRole,
-        members: members,
-        createdAt: now,
-      );
+      SquadModel? squadPayload;
+      if (squadName != null && members != null) {
+        squadPayload = SquadModel(
+          id: 'squad_${now.millisecondsSinceEpoch}',
+          name: squadName,
+          tag: tag ?? '',
+          leaderId: state.viewerUserId,
+          ownerRole: ownerRole,
+          members: members,
+          createdAt: now,
+        );
+      }
 
-      final saved = await _repo.createOrSaveSquad(squad);
+      final saved = await _repo.createOrSaveSquad(squadPayload);
       state = state.copyWith(
         squad: saved,
         isLoading: false,
-        successMessage: 'Squad "$squadName" saved successfully!',
+        successMessage: 'Persistent squad saved successfully!',
       );
       return true;
     } catch (e) {
@@ -245,29 +249,29 @@ class SquadNotifier extends Notifier<SquadState> {
     }
   }
 
-  Future<bool> sendPreviousTeamInvitations(String tournamentId) async {
-    if (state.squad == null) return false;
+  Future<Map<String, dynamic>?> sendPreviousTeamInvitations(String tournamentId) async {
+    if (state.squad == null) return null;
     if (!state.isOwner) {
       state = state.copyWith(errorMessage: 'Only squad leader/manager can invite previous team members.');
-      return false;
+      return null;
     }
 
     state = state.copyWith(isLoading: true, clearError: true);
     try {
-      await _repo.sendPreviousTeamInvitations(state.squad!.id, tournamentId);
+      final res = await _repo.sendPreviousTeamInvitations(state.squad!.id, tournamentId);
       final invites = await _repo.getPendingInvitations();
       state = state.copyWith(
         pendingInvitations: invites,
         isLoading: false,
         successMessage: 'Invitations sent to your squad members for tournament!',
       );
-      return true;
+      return res;
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
         errorMessage: e.toString().replaceAll('Exception: ', ''),
       );
-      return false;
+      return null;
     }
   }
 
@@ -283,7 +287,7 @@ class SquadNotifier extends Notifier<SquadState> {
         pendingInvitations: invites,
         isLoading: false,
         successMessage: accept
-            ? 'Invitation accepted! You joined the tournament lobby.'
+            ? 'Invitation accepted! Joined tournament lobby.'
             : 'Invitation rejected and removed from squad.',
       );
       return true;
