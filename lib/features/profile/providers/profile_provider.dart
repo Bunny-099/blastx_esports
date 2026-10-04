@@ -160,6 +160,62 @@ class ProfileNotifier extends Notifier<ProfileState> {
     }
   }
 
+  /// Update initial profile setup: name and phone number
+  Future<bool> updateNameAndPhone({
+    required String name,
+    required String phone,
+  }) async {
+    state = state.copyWith(isLoading: true);
+    final storage = ref.read(storageServiceProvider);
+
+    try {
+      final repo = ref.read(userRepositoryProvider);
+      final updatedUser = await repo.updateProfile(
+        name: name,
+        phone: phone,
+      );
+
+      // Persist locally
+      await storage.saveString('user_profile_data', jsonEncode(updatedUser.toJson()));
+      if (updatedUser.id.isNotEmpty) {
+        await storage.saveString('profile_setup_completed_${updatedUser.id}', 'true');
+      }
+
+      state = state.copyWith(
+        user: updatedUser,
+        isLoading: false,
+      );
+      return true;
+    } catch (e, stackTrace) {
+      debugPrint('ProfileNotifier updateNameAndPhone error: $e');
+      debugPrint(stackTrace.toString());
+
+      // Local fallback
+      if (state.user != null) {
+        final fallbackUser = state.user!.copyWith(
+          name: name,
+          phone: phone,
+        );
+        await storage.saveString('user_profile_data', jsonEncode(fallbackUser.toJson()));
+        if (fallbackUser.id.isNotEmpty) {
+          await storage.saveString('profile_setup_completed_${fallbackUser.id}', 'true');
+        }
+
+        state = state.copyWith(
+          user: fallbackUser,
+          isLoading: false,
+        );
+        return true;
+      }
+
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: 'Failed to save profile. Please try again.',
+      );
+      return false;
+    }
+  }
+
   /// Returns null on success or cancellation, or error message String on failure.
   Future<String?> pickImage(ImageSource source) async {
     try {
@@ -208,9 +264,10 @@ class ProfileNotifier extends Notifier<ProfileState> {
     state = state.copyWith(clearLocalImage: true, isLoading: false);
   }
 
-  /// Update full profile: name, profile image path, Free Fire UID, and IGN
+  /// Update full profile: name, phone, profile image path, Free Fire UID, and IGN
   Future<bool> updateFullProfile({
     required String name,
+    String? phone,
     required String freeFireUid,
     String? inGameName,
     String? localImagePath,
@@ -227,6 +284,7 @@ class ProfileNotifier extends Notifier<ProfileState> {
 
       final updatedUser = await repo.updateFullUserProfile(
         name: name,
+        phone: phone,
         profilePic: localImagePath ?? state.user?.profilePic,
         freeFireUid: freeFireUid,
         inGameName: inGameName,
@@ -257,6 +315,7 @@ class ProfileNotifier extends Notifier<ProfileState> {
         );
         final fallbackUser = state.user!.copyWith(
           name: name,
+          phone: phone ?? state.user!.phone,
           profilePic: localImagePath ?? state.user!.profilePic,
           gameProfile: newGp,
         );

@@ -13,9 +13,17 @@ class UserApiService {
     return UserProfileModel.fromJson(Map<String, dynamic>.from(responseData as Map));
   }
 
-  Future<UserProfileModel> updateProfile({String? name, String? profilePic}) async {
+  Future<UserProfileModel> updateProfile({
+    String? name,
+    String? phone,
+    String? profilePic,
+  }) async {
     final body = <String, dynamic>{};
     if (name != null) body['name'] = name;
+    if (phone != null) {
+      body['phone'] = phone;
+      body['phone_number'] = phone;
+    }
     if (profilePic != null) body['profile_pic'] = profilePic;
 
     final responseData = await _apiClient.patch(

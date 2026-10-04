@@ -18,6 +18,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   final _formKey = GlobalKey<FormState>();
 
   late final TextEditingController _nameController;
+  late final TextEditingController _phoneController;
   late final TextEditingController _ffUidController;
   late final TextEditingController _ffIgnController;
 
@@ -31,6 +32,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     final user = profileState.user;
 
     _nameController = TextEditingController(text: user?.name ?? '');
+    _phoneController = TextEditingController(text: user?.phone ?? '');
     _ffUidController = TextEditingController(
       text: user?.gameProfile?.inGameUid ?? '',
     );
@@ -44,6 +46,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   @override
   void dispose() {
     _nameController.dispose();
+    _phoneController.dispose();
     _ffUidController.dispose();
     _ffIgnController.dispose();
     super.dispose();
@@ -199,11 +202,13 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     setState(() => _isSaving = true);
 
     final name = _nameController.text.trim();
+    final phone = _phoneController.text.trim();
     final ffUid = _ffUidController.text.trim();
     final ffIgn = _ffIgnController.text.trim();
 
     final success = await ref.read(profileProvider.notifier).updateFullProfile(
           name: name,
+          phone: phone,
           freeFireUid: ffUid,
           inGameName: ffIgn.isNotEmpty ? ffIgn : name,
           localImagePath: _selectedImagePath,
@@ -405,6 +410,33 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                     }
                     if (value.trim().length < 2) {
                       return 'Name must be at least 2 characters';
+                    }
+                    return null;
+                  },
+                ),
+
+                const SizedBox(height: 20),
+
+                // ---------------------------------------------------------
+                // 2.5. Phone Number Input
+                // ---------------------------------------------------------
+                _buildFieldLabel('Phone Number', isRequired: true),
+                const SizedBox(height: 8),
+                _buildGamerTextField(
+                  controller: _phoneController,
+                  hintText: '10-digit mobile number',
+                  prefixIcon: Icons.phone_android_rounded,
+                  keyboardType: TextInputType.phone,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    LengthLimitingTextInputFormatter(10),
+                  ],
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Please enter your phone number';
+                    }
+                    if (value.trim().length != 10) {
+                      return 'Phone number must be exactly 10 digits';
                     }
                     return null;
                   },

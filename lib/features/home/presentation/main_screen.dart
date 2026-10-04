@@ -8,15 +8,64 @@ import '../../../core/theme/app_colors.dart';
 import '../../challenges/presentation/challenges_screen.dart';
 import '../../live/presentation/live_screen.dart';
 import '../../profile/presentation/profile_screen.dart';
+import '../../profile/presentation/widgets/first_time_profile_dialog.dart';
+import '../../profile/providers/profile_provider.dart';
+import '../../splash/providers/splash_providers.dart';
 import '../../tournaments/presentation/tournaments_screen.dart';
 import '../providers/navigation_provider.dart';
 import 'home_screen.dart';
 
-class MainScreen extends ConsumerWidget {
+class MainScreen extends ConsumerStatefulWidget {
   const MainScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<MainScreen> createState() => _MainScreenState();
+}
+
+class _MainScreenState extends ConsumerState<MainScreen> {
+  bool _isDialogShowing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkInitialProfileSetup();
+    });
+  }
+
+  void _checkInitialProfileSetup() {
+    if (!mounted || _isDialogShowing) return;
+
+    final profileState = ref.read(profileProvider);
+    final user = profileState.user;
+    if (profileState.isLoading || user == null) return;
+
+    final storage = ref.read(storageServiceProvider);
+    final isAlreadyCompleted = storage.getString('profile_setup_completed_${user.id}') == 'true';
+
+    final isPhoneMissing = user.phone == null || user.phone!.trim().isEmpty;
+    final isNameMissing = user.name.trim().isEmpty || user.name.trim() == 'Gamer';
+
+    if ((isPhoneMissing || isNameMissing) && !isAlreadyCompleted) {
+      _isDialogShowing = true;
+      FirstTimeProfileDialog.show(context, user).then((_) {
+        if (mounted) {
+          setState(() {
+            _isDialogShowing = false;
+          });
+        }
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    ref.listen(profileProvider, (previous, next) {
+      if (!next.isLoading && next.user != null) {
+        _checkInitialProfileSetup();
+      }
+    });
+
     final selectedIndex = ref.watch(navigationIndexProvider);
 
     final List<Widget> screens = [

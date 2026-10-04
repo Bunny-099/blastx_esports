@@ -30,8 +30,16 @@ class UserRepository {
     return user;
   }
 
-  Future<UserProfileModel> updateProfile({String? name, String? profilePic}) =>
-      _apiService.updateProfile(name: name, profilePic: profilePic);
+  Future<UserProfileModel> updateProfile({
+    String? name,
+    String? phone,
+    String? profilePic,
+  }) =>
+      _apiService.updateProfile(
+        name: name,
+        phone: phone,
+        profilePic: profilePic,
+      );
 
   Future<GameProfileModel?> getGameProfile({String gameSlug = 'free_fire'}) =>
       _apiService.getGameProfile(gameSlug: gameSlug);
@@ -49,15 +57,18 @@ class UserRepository {
 
   Future<UserProfileModel> updateFullUserProfile({
     String? name,
+    String? phone,
     String? profilePic,
     String? freeFireUid,
     String? inGameName,
   }) async {
     UserProfileModel updatedUser;
     final cleanName = (name != null && name.trim().isNotEmpty) ? name.trim() : null;
+    final cleanPhone = (phone != null && phone.trim().isNotEmpty) ? phone.trim() : null;
     try {
       updatedUser = await _apiService.updateProfile(
         name: cleanName,
+        phone: cleanPhone,
         profilePic: profilePic,
       );
     } catch (_) {
@@ -66,6 +77,7 @@ class UserRepository {
         var user = await getUserProfile();
         updatedUser = user.copyWith(
           name: cleanName ?? user.name,
+          phone: cleanPhone ?? user.phone,
           profilePic: profilePic ?? user.profilePic,
         );
       } catch (_) {
@@ -73,6 +85,7 @@ class UserRepository {
           id: '',
           name: cleanName ?? 'Gamer',
           email: '',
+          phone: cleanPhone,
           profilePic: profilePic,
         );
       }

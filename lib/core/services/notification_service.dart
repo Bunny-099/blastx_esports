@@ -49,8 +49,9 @@ class NotificationService {
         iOS: iosInit,
       );
 
+      // Using named parameter 'settings:' for flutter_local_notifications v22+
       await _localNotifications.initialize(
-        initSettings,
+        settings: initSettings,
         onDidReceiveNotificationResponse: (NotificationResponse response) {
           if (response.payload != null && response.payload!.isNotEmpty) {
             _handleNotificationClick(response.payload!);
@@ -113,11 +114,12 @@ class NotificationService {
 
     final android = message.notification?.android;
 
+    // Using named parameters for flutter_local_notifications v22+
     _localNotifications.show(
-      notification.hashCode,
-      notification.title,
-      notification.body,
-      NotificationDetails(
+      id: notification.hashCode,
+      title: notification.title,
+      body: notification.body,
+      notificationDetails: NotificationDetails(
         android: AndroidNotificationDetails(
           _channel.id,
           _channel.name,
@@ -149,7 +151,6 @@ class NotificationService {
     try {
       final data = jsonDecode(payloadJson) as Map<String, dynamic>;
       debugPrint("Notification payload tapped: $data");
-      // Handle deep linking or screen navigation if needed
     } catch (e) {
       debugPrint("Error parsing notification payload: $e");
     }

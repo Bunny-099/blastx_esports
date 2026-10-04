@@ -195,6 +195,9 @@ class ProfileScreen extends ConsumerWidget {
         ? user.gameProfile!.inGameName
         : 'Not Set';
     final userEmail = user?.email ?? '';
+    final userPhone = (user?.phone != null && user!.phone!.isNotEmpty)
+        ? user.phone!
+        : 'Not set';
     final userRole = user?.role ?? 'Player';
     final gameName = user?.gameProfile?.gameName ?? 'Free Fire';
 
@@ -428,6 +431,8 @@ class ProfileScreen extends ConsumerWidget {
                       _buildDetailRow('In-Game Name', inGameName, Icons.badge_rounded),
                       const Divider(height: 24, color: AppColors.surfaceNavy),
                       _buildDetailRow('Main Game', gameName, Icons.gamepad_rounded),
+                      const Divider(height: 24, color: AppColors.surfaceNavy),
+                      _buildDetailRow('Phone', userPhone, Icons.phone_android_rounded),
                       const Divider(height: 24, color: AppColors.surfaceNavy),
                       _buildDetailRow('Email', userEmail.isNotEmpty ? userEmail : 'Not set', Icons.email_rounded),
                       const Divider(height: 24, color: AppColors.surfaceNavy),

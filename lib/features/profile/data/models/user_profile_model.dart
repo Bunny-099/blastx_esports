@@ -6,6 +6,7 @@ class UserProfileModel {
   final String id;
   final String name;
   final String email;
+  final String? phone;
   final String? profilePic;
   final String role;
   final bool isActive;
@@ -22,6 +23,7 @@ class UserProfileModel {
     required this.id,
     required this.name,
     required this.email,
+    this.phone,
     this.profilePic,
     this.role = 'USER',
     this.isActive = true,
@@ -69,6 +71,9 @@ class UserProfileModel {
       id: json['id']?.toString() ?? json['_id']?.toString() ?? '',
       name: json['name'] as String? ?? json['username'] as String? ?? '',
       email: json['email'] as String? ?? '',
+      phone: json['phone'] as String? ??
+          json['phone_number'] as String? ??
+          json['phoneNumber'] as String?,
       profilePic: json['profile_pic'] as String? ??
           json['profilePic'] as String? ??
           json['avatar'] as String?,
@@ -100,6 +105,7 @@ class UserProfileModel {
       'id': id,
       'name': name,
       'email': email,
+      'phone': phone,
       'profile_pic': profilePic,
       'role': role,
       'is_active': isActive,
@@ -116,6 +122,7 @@ class UserProfileModel {
 
   UserProfileModel copyWith({
     String? name,
+    String? phone,
     String? profilePic,
     GameProfileModel? gameProfile,
     int? tournamentsPlayed,
@@ -132,6 +139,7 @@ class UserProfileModel {
       id: id,
       name: name ?? this.name,
       email: email,
+      phone: phone ?? this.phone,
       profilePic: profilePic ?? this.profilePic,
       role: role,
       isActive: isActive,
