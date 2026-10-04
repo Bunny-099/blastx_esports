@@ -1,0 +1,294 @@
+================================================================================
+BLASTIX ESPORTS - BACKEND HANDOFF DOCUMENTATION
+FEATURE: PERSISTENT SQUAD SYSTEM WITH TOURNAMENT REGISTRATION
+================================================================================
+
+--------------------------------------------------------------------------------
+SECTION 1: FEATURE OVERVIEW
+--------------------------------------------------------------------------------
+The Persistent Squad System allows players on BlastiX Arena to form long-term esports
+squads (1 Leader + 3 Main Players + 2 Substitutes = max 6 players total) that persist
+across multiple tournaments.
+
+When a team registers for a tournament for the first time, their roster is saved
+as a persistent squad. In future tournaments, squad leaders can quickly register by selecting
+"Join with Previous Team", which creates a tournament team lobby and dispatches
+tournament invitations to the squad members. Invited members receive Accept/Reject
+options. Accepting confirms their slot in the tournament lobby; rejecting removes them
+from the squad so their slot can be replaced.
+
+--------------------------------------------------------------------------------
+SECTION 2: OLD FLOW VS NEW FLOW (STEP-BY-STEP)
+--------------------------------------------------------------------------------
+OLD FLOW:
+1. User goes to Home -> E-Sports Hub -> "My Squad".
+   (Previously navigated to the Profile tab; now replaced with dedicated My Squad Screen).
+2. User taps "Register" on a tournament -> sees 2 options: "Create a Team" or "Join a Team".
+3. User creates/joins, fills 4 player slots, and registers.
+4. Roster data was disposable after tournament completion and had to be re-entered every time.
+
+NEW FLOW:
+1. "My Squad" Screen (Home -> E-Sports Hub -> My Squad):
+   - Shows user's persistent squad name, tag, logo, leader, 4 main players, and 2 substitutes.
+   - Handles empty state if user has no squad ("You don't have a squad yet...").
+   - Squad Leader has management permissions (remove member, transfer leadership, swap main/sub, promote/demote).
+   - Squad Members have view-only access.
+2. Tournament Registration Flow:
+   - First-time users / users without a saved squad: See 2 default options ("Create a New Team", "Join an Existing Team").
+   - Leaders of a stored squad: See a 3rd option, "Join with Previous Team".
+3. "Join with Previous Team" Execution:
+   - Leader taps "Join with Previous Team".
+   - Leader navigates to the Team Lobby screen with leader's slot filled as Captain.
+   - The remaining 3 slots show squad members in a "Pending / Invited" state.
+   - A tournament-specific invitation is sent to each of the 3 squad members.
+   - Invited members see "ACCEPT" and "REJECT" buttons on their invitation/lobby screen.
+   - ACCEPT: Member is marked as confirmed in the tournament lobby.
+   - REJECT: Member is NOT counted in the lobby AND is permanently removed from the persistent squad (slot becomes empty).
+   - Once all 4 main players have ACCEPTED, the "Register Tournament" button is enabled to complete registration.
+4. Persistent Squad Creation:
+   - When a team completes its first tournament registration, their roster is saved persistently as a squad on the backend.
+
+--------------------------------------------------------------------------------
+SECTION 3: ROLES AND PERMISSIONS TABLE
+--------------------------------------------------------------------------------
++--------------------------+-----------------------+-----------------------+-----------------------+
+| Action / Permission      | Squad Leader          | Main Squad Member     | Substitute Member     |
++--------------------------+-----------------------+-----------------------+-----------------------+
+| View Squad Roster        | YES                   | YES                   | YES                   |
+| View Pending Invites     | YES                   | YES                   | YES                   |
+| Join with Previous Team  | YES                   | NO                    | NO                    |
+| Remove Member from Squad | YES (Leader Only)     | NO (View Only)        | NO (View Only)        |
+| Transfer Leadership      | YES (Leader Only)     | NO (View Only)        | NO (View Only)        |
+| Swap Main / Substitute   | YES (Leader Only)     | NO (View Only)        | NO (View Only)        |
+| Promote Sub / Demote Main| YES (Leader Only)     | NO (View Only)        | NO (View Only)        |
+| Accept / Reject Invite   | YES (as invitee)      | YES (as invitee)      | YES (as invitee)      |
++--------------------------+-----------------------+-----------------------+-----------------------+
+
+CRITICAL NOTE FOR BACKEND DEVELOPER:
+The frontend UI enforces permission visibility for user experience, but THE BACKEND MUST
+ENFORCE ALL LEADER-ONLY PERMISSIONS via JWT authentication and database checks. Never rely
+on frontend validation alone.
+
+--------------------------------------------------------------------------------
+SECTION 4: SUGGESTED DATA MODELS / DB SCHEMA
+--------------------------------------------------------------------------------
+
+1. TABLE: `squads`
+   - `id`: UUID (Primary Key)
+   - `name`: VARCHAR(50) (NOT NULL)
+   - `tag`: VARCHAR(10) (e.g. "AEL")
+   - `logo_url`: VARCHAR(255)
+   - `leader_id`: UUID (FK -> users.id, NOT NULL)
+   - `max_main_players`: INT (Default: 4)
+   - `max_substitutes`: INT (Default: 2)
+   - `created_at`: TIMESTAMP (Default: NOW())
+   - `updated_at`: TIMESTAMP (Default: NOW())
+
+2. TABLE: `squad_members`
+   - `id`: UUID (Primary Key)
+   - `squad_id`: UUID (FK -> squads.id ON DELETE CASCADE)
+   - `user_id`: UUID (FK -> users.id)
+   - `role`: ENUM ('LEADER', 'MEMBER') (Default: 'MEMBER')
+   - `roster_type`: ENUM ('MAIN', 'SUBSTITUTE') (Default: 'MAIN')
+   - `joined_at`: TIMESTAMP (Default: NOW())
+   - UNIQUE CONSTRAINT (`squad_id`, `user_id`)
+
+3. TABLE: `tournament_invitations`
+   - `id`: UUID (Primary Key)
+   - `squad_id`: UUID (FK -> squads.id)
+   - `tournament_id`: UUID (FK -> tournaments.id)
+   - `leader_id`: UUID (FK -> users.id)
+   - `invitee_user_id`: UUID (FK -> users.id)
+   - `status`: ENUM ('PENDING', 'ACCEPTED', 'REJECTED', 'EXPIRED') (Default: 'PENDING')
+   - `created_at`: TIMESTAMP (Default: NOW())
+   - `updated_at`: TIMESTAMP (Default: NOW())
+   - UNIQUE CONSTRAINT (`squad_id`, `tournament_id`, `invitee_user_id`)
+
+4. TABLE: `tournament_teams` (Existing / Updated)
+   - `id`: UUID (Primary Key)
+   - `tournament_id`: UUID (FK -> tournaments.id)
+   - `squad_id`: UUID (FK -> squads.id, NULLABLE)
+   - `name`: VARCHAR(50)
+   - `tag`: VARCHAR(10)
+   - `invite_code`: VARCHAR(20) (UNIQUE)
+   - `captain_id`: UUID (FK -> users.id)
+   - `status`: ENUM ('FORMING', 'READY', 'REGISTERED', 'LOCKED')
+
+5. TABLE: `tournament_team_members`
+   - `id`: UUID (Primary Key)
+   - `team_id`: UUID (FK -> tournament_teams.id ON DELETE CASCADE)
+   - `user_id`: UUID (FK -> users.id)
+   - `role`: ENUM ('CAPTAIN', 'MEMBER')
+   - `roster_type`: ENUM ('MAIN', 'SUBSTITUTE')
+   - `status`: ENUM ('CONFIRMED', 'PENDING', 'REJECTED')
+
+--------------------------------------------------------------------------------
+SECTION 5: INVITATION LIFECYCLE & TRANSITIONS
+--------------------------------------------------------------------------------
+LIFECYCLE STATES:
+- `PENDING`: Invitation issued by Squad Leader when selecting "Join with Previous Team".
+  - Player slot in tournament team lobby displays as "INVITED • PENDING".
+- `ACCEPTED`: Invitee taps "ACCEPT".
+  - Invitation status -> `ACCEPTED`.
+  - Player status in tournament team lobby -> `CONFIRMED`.
+  - When all 4 main players are CONFIRMED, tournament team lobby status becomes `READY` -> registration unlocked.
+- `REJECTED`: Invitee taps "REJECT".
+  - Invitation status -> `REJECTED`.
+  - Player status in tournament lobby -> `REJECTED` (removed from lobby slot).
+  - CRITICAL SQUAD RULE: The player is PERMANENTLY REMOVED from the persistent squad (`squad_members` table record deleted). The slot becomes empty and can be filled via normal join code/invite.
+- `EXPIRED`: Tournament registration closes before invitation response.
+  - Invitation status -> `EXPIRED`.
+
+--------------------------------------------------------------------------------
+SECTION 6: COMPLETE API SPECIFICATION
+--------------------------------------------------------------------------------
+
+1. GET `/v1/squads/me`
+   - Description: Fetch the current user's stored squad and roster.
+   - Auth: Required (Bearer Token)
+   - Who can call: Any authenticated user
+   - Response (200 OK):
+     {
+       "status": "success",
+       "data": {
+         "squad": {
+           "id": "squad_alpha_001",
+           "name": "ALPHA ELITE",
+           "tag": "AEL",
+           "logo_url": "https://cdn.blastix.app/logos/alpha.png",
+           "leader_id": "user_001",
+           "max_main_players": 4,
+           "max_substitutes": 2,
+           "members": [
+             {
+               "user_id": "user_001",
+               "name": "Phoenix Captain",
+               "role": "LEADER",
+               "roster_type": "MAIN",
+               "user": {
+                 "id": "user_001",
+                 "name": "Phoenix Captain",
+                 "game_profile": { "in_game_name": "★PHOENIX★", "in_game_uid": "827364129" }
+               }
+             }
+           ]
+         }
+       }
+     }
+   - Response when no squad: `{ "status": "success", "data": { "squad": null } }`
+
+2. POST `/v1/squads`
+   - Description: Create or save persistent squad (called automatically after first tournament registration).
+   - Auth: Required
+   - Request Body:
+     {
+       "name": "ALPHA ELITE",
+       "tag": "AEL",
+       "logo_url": "",
+       "members": [
+         { "user_id": "user_001", "role": "LEADER", "roster_type": "MAIN" },
+         { "user_id": "user_002", "role": "MEMBER", "roster_type": "MAIN" }
+       ]
+     }
+   - Response (201 Created): Returns saved squad JSON object.
+
+3. POST `/v1/squads/:squadId/members/:userId` (DELETE/REMOVE)
+   - Description: Remove a member from persistent squad.
+   - Auth: Required (Leader Only)
+   - Error Codes: `403 FORBIDDEN` (not squad leader), `400 BAD_REQUEST` (cannot remove leader).
+
+4. POST `/v1/squads/:squadId/transfer-leader`
+   - Description: Transfer squad leadership to another squad member.
+   - Auth: Required (Leader Only)
+   - Request Body: `{ "new_leader_id": "user_002" }`
+   - Business Logic: Sets `leader_id` to new user. Old leader's role becomes `MEMBER`, new leader's role becomes `LEADER`.
+
+5. PATCH `/v1/squads/:squadId/members/:userId/role`
+   - Description: Promote substitute to main OR demote main to substitute.
+   - Request Body: `{ "roster_type": "MAIN" }`
+   - Business Rule: Enforce max 4 main players and max 2 substitutes. Return `400 MAIN_ROSTER_FULL` if full.
+
+6. POST `/v1/squads/:squadId/swap`
+   - Description: Atomically swap a main player and a substitute player.
+   - Request Body: `{ "main_user_id": "user_002", "sub_user_id": "user_005" }`
+
+7. GET `/v1/invitations/pending`
+   - Description: Get pending tournament invitations for the logged-in user.
+   - Auth: Required
+   - Response: Array of invitation objects with tournament and squad details.
+
+8. POST `/v1/squads/:squadId/tournaments/:tournamentId/invite`
+   - Description: Send tournament invitations to squad members ("Join with Previous Team").
+   - Auth: Required (Leader Only)
+
+9. POST `/v1/invitations/:invitationId/respond`
+   - Description: Accept or reject a tournament invitation.
+   - Request Body: `{ "action": "ACCEPT" }` or `{ "action": "REJECT" }`
+   - Business Logic:
+     - ACCEPT: Updates invitation -> `ACCEPTED`, confirms user in tournament lobby.
+     - REJECT: Updates invitation -> `REJECTED`, removes user from tournament lobby AND removes user from `squad_members` table.
+
+--------------------------------------------------------------------------------
+SECTION 7: BUSINESS RULES AND VALIDATIONS
+--------------------------------------------------------------------------------
+1. Squad Capacity: Maximum 4 Main Players + 2 Substitutes (Total max 6 members per squad).
+2. One Team Per Tournament: A user CANNOT be in two different teams in the same tournament. If an invited player is already registered with another team, reject invitation with error `ALREADY_IN_TOURNAMENT`.
+3. No Automatic Joining: "Join with Previous Team" must NEVER automatically register old squad members without their explicit consent. Invitations with Accept/Reject actions are mandatory.
+4. Leader Rejection Rule: Rejection of a tournament invitation PERMANENTLY removes that member from the persistent squad.
+5. Leader Transfer Rule: Transferring leadership updates roles immediately. The previous leader stays as a squad member.
+6. Tournament Registration Requirement: Exactly 4 confirmed main players are required to register a team for a Squad mode tournament.
+
+--------------------------------------------------------------------------------
+SECTION 8: REAL-TIME UPDATES / PUSH NOTIFICATIONS / POLLING
+--------------------------------------------------------------------------------
+1. Push Notification Trigger 1: When a Leader selects "Join with Previous Team", send FCM push notification to the 3 squad members:
+   - Title: "Tournament Invite from [Squad Leader]"
+   - Body: "You have been invited to join [Tournament Name] with [Squad Name]."
+2. Push Notification Trigger 2: When an invited member ACCEPTS or REJECTS, notify the Leader:
+   - Body: "[Player Name] accepted your tournament invitation." / "[Player Name] declined."
+3. Real-Time Sync: The frontend uses a 10-second smart auto-refresh polling manager (`RealTimeSyncManager`). Websocket/Socket.io event emission (`team:updated`, `invitation:received`) can be added on backend for real-time lobby UI updates.
+
+--------------------------------------------------------------------------------
+SECTION 9: EDGE CASES TO HANDLE ON BACKEND
+--------------------------------------------------------------------------------
+1. Concurrent Invites: Handle race condition if a player receives invitations for two different tournaments simultaneously.
+2. Deleted User / Deactivated Account: Filter out deleted/banned users when generating invitations.
+3. Mid-Registration Leave: If a confirmed player leaves the team while registration is pending, update lobby status back from `READY` to `FORMING`.
+4. Leader Leaves / Deletes Account: Prevent squad leader from leaving squad without transferring leadership first. Return error `LEADER_MUST_TRANSFER`.
+5. Closed Tournaments: Automatically expire pending invitations if tournament registration closes.
+
+--------------------------------------------------------------------------------
+SECTION 10: SUMMARY OF FRONTEND CHANGES MADE
+--------------------------------------------------------------------------------
+- Created `lib/features/squad/data/models/squad_model.dart`: Persistent Squad & Squad Member domain models with capacity rules.
+- Created `lib/features/squad/data/models/squad_invitation_model.dart`: Tournament invitation model with status states.
+- Created `lib/features/squad/data/repositories/squad_repository.dart`: Abstract repository & production API implementation.
+- Created `lib/features/squad/data/repositories/mock_squad_repository.dart`: Realistic fake/mock implementation covering leader view, member view, empty squad, accept/reject flows, and edge cases.
+- Created `lib/features/squad/providers/squad_provider.dart`: Riverpod state management & toggle flag `useMockSquadRepositoryProvider`.
+- Created `lib/features/squad/presentation/my_squad_screen.dart`: Complete "My Squad" UI with Leader controls (remove member, transfer leadership, swap main/sub, promote/demote), Member view-only mode, and empty state handling.
+- Updated `lib/features/home/presentation/home_screen.dart`: Updated "My Squad" quick action tile in E-Sports Hub to open `MySquadScreen`.
+- Updated `lib/features/live/presentation/team/join_tournament_screen.dart`: Added 3rd option card "Join with Previous Team" visible *only* to Leaders of a stored squad.
+- Updated `lib/features/live/presentation/team/team_lobby_screen.dart` & `team_member_card.dart`: Added support for pending/invited player slots, Accept/Reject actions, and persistent squad saving upon registration completion.
+- Updated `lib/core/api/api_endpoints.dart`: Added squad & invitation endpoint paths.
+
+--------------------------------------------------------------------------------
+SECTION 11: HOW TO SWITCH MOCK DATA TO REAL APIS ON FRONTEND
+--------------------------------------------------------------------------------
+The frontend has a built-in single flag in `lib/features/squad/providers/squad_provider.dart`:
+
+```dart
+final useMockSquadRepositoryProvider = StateProvider<bool>((ref) => false);
+```
+
+To connect the frontend to the real backend APIs:
+1. Change `useMockSquadRepositoryProvider` value from `true` to `false` in `squad_provider.dart` (or select "Use Mock Repository" toggle in the top-right menu on My Squad Screen).
+2. The `squadRepositoryProvider` automatically switches to `RealSquadRepository`, sending standard HTTP requests via Dio to the `ApiEndpoints.baseUrl`.
+
+--------------------------------------------------------------------------------
+SECTION 12: ASSUMPTIONS MADE & OPEN QUESTIONS
+--------------------------------------------------------------------------------
+1. Assumption: Squad size is fixed at 4 Main Players + 2 Substitutes (6 total).
+2. Assumption: Rejecting a tournament invitation permanently removes the member from the persistent squad so leaders can fill the slot with an active player.
+3. Open Question: Should substitute players also receive tournament invitations during "Join with Previous Team", or only the 3 main players? (Currently only the 3 main players receive tournament invitations by default).
+4. Open Question: Does the backend intend to support custom squad avatar uploads in the future, or reuse the Leader's profile picture?
+================================================================================
