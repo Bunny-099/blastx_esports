@@ -1,5 +1,6 @@
 import 'package:blastix_esports/core/theme/app_colors.dart';
 import 'package:blastix_esports/core/theme/app_text_styles.dart';
+import 'package:blastix_esports/features/live/data/models/team_model.dart';
 import 'package:blastix_esports/features/live/presentation/widgets/player_info_form.dart';
 import 'package:blastix_esports/features/live/providers/team_provider.dart';
 import 'package:blastix_esports/features/profile/providers/profile_provider.dart';
@@ -22,6 +23,8 @@ class _CreateTeamScreenState extends ConsumerState<CreateTeamScreen> {
   final _player = TextEditingController();
   final _ign = TextEditingController();
   final _uid = TextEditingController();
+
+  TeamOwnerRole _selectedRole = TeamOwnerRole.leader;
   String? _localError;
 
   @override
@@ -90,6 +93,7 @@ class _CreateTeamScreenState extends ConsumerState<CreateTeamScreen> {
       playerName: playerName,
       ign: ign,
       uid: uid,
+      ownerRole: _selectedRole,
     );
     if (ok && mounted) {
       ref.read(profileProvider.notifier).updateFullProfile(
@@ -106,6 +110,86 @@ class _CreateTeamScreenState extends ConsumerState<CreateTeamScreen> {
     child: Text(t, style: AppTextStyles.overline),
   );
 
+  Widget _buildRoleCard({
+    required TeamOwnerRole role,
+    required String title,
+    required String subtitle,
+    required IconData icon,
+  }) {
+    final isSelected = _selectedRole == role;
+    return InkWell(
+      onTap: () => setState(() => _selectedRole = role),
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.primaryNeon.withValues(alpha: 0.12) : AppColors.surfaceNavy,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isSelected ? AppColors.primaryNeon : AppColors.borderSubtle,
+            width: isSelected ? 2 : 1,
+          ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: AppColors.primaryNeon.withValues(alpha: 0.15),
+                    blurRadius: 10,
+                  ),
+                ]
+              : null,
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: isSelected ? AppColors.primaryNeon : AppColors.surfaceElevated,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                icon,
+                color: isSelected ? AppColors.bgNavy : AppColors.primaryNeon,
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        title,
+                        style: AppTextStyles.headingMd.copyWith(
+                          color: isSelected ? AppColors.primaryNeon : Colors.white,
+                        ),
+                      ),
+                      const Spacer(),
+                      Radio<TeamOwnerRole>(
+                        value: role,
+                        groupValue: _selectedRole,
+                        activeColor: AppColors.primaryNeon,
+                        onChanged: (val) {
+                          if (val != null) setState(() => _selectedRole = val);
+                        },
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: AppTextStyles.bodySm.copyWith(color: AppColors.textSecondary),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     ref.listen<ProfileState>(profileProvider, (previous, next) {
@@ -116,6 +200,7 @@ class _CreateTeamScreenState extends ConsumerState<CreateTeamScreen> {
 
     final s = ref.watch(teamProvider(widget.tournamentId));
     final error = _localError ?? s.error;
+    final isManager = _selectedRole == TeamOwnerRole.manager;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -128,6 +213,8 @@ class _CreateTeamScreenState extends ConsumerState<CreateTeamScreen> {
           children: [
             Text('CREATE TEAM', style: AppTextStyles.display),
             const SizedBox(height: 12),
+
+            // Banner Notice
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
@@ -142,19 +229,50 @@ class _CreateTeamScreenState extends ConsumerState<CreateTeamScreen> {
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                        'You will become the Captain. The entry fee is paid by you, not by each player.',
-                        style: AppTextStyles.bodySm),
+                      isManager
+                          ? 'You will join as Manager. You manage the team without occupying a player slot and need 4 players.'
+                          : 'You will join as Leader. You occupy 1 player slot and need 3 more players.',
+                      style: AppTextStyles.bodySm,
+                    ),
                   ),
                 ],
               ),
             ),
+
+            const SizedBox(height: 18),
+            Text('CHOOSE YOUR ROLE', style: AppTextStyles.headingMd),
+            const SizedBox(height: 10),
+
+            // Role Choice 1: Leader
+            _buildRoleCard(
+              role: TeamOwnerRole.leader,
+              title: 'Join as Leader (Playing Member)',
+              subtitle: 'Occupies 1 of 4 main player slots. Needs 3 more players to complete team.',
+              icon: Icons.sports_esports_rounded,
+            ),
+
+            const SizedBox(height: 10),
+
+            // Role Choice 2: Manager
+            _buildRoleCard(
+              role: TeamOwnerRole.manager,
+              title: 'Join as Manager (Non-Playing Owner)',
+              subtitle: 'Manages squad without taking a player slot. Needs 4 players to complete team.',
+              icon: Icons.admin_panel_settings_rounded,
+            ),
+
+            const SizedBox(height: 16),
             _label('TEAM NAME'),
             CustomTextField(
                 controller: _teamName, hintText: 'e.g. BLX Warriors', maxLength: 20),
             _label('TEAM TAG (OPTIONAL)'),
             CustomTextField(controller: _tag, hintText: 'e.g. BLX', maxLength: 5),
+
             const SizedBox(height: 22),
-            Text('YOUR FREE FIRE DETAILS', style: AppTextStyles.headingMd),
+            Text(
+              isManager ? 'YOUR MANAGER DETAILS' : 'YOUR FREE FIRE DETAILS (SLOT 1)',
+              style: AppTextStyles.headingMd,
+            ),
             PlayerInfoForm(
                 nameController: _player, ignController: _ign, uidController: _uid),
             if (error != null) ...[
@@ -164,7 +282,10 @@ class _CreateTeamScreenState extends ConsumerState<CreateTeamScreen> {
             ],
             const SizedBox(height: 24),
             CustomButton(
-                text: 'CREATE TEAM', isLoading: s.isLoading, onPressed: _submit),
+              text: isManager ? 'CREATE TEAM AS MANAGER' : 'CREATE TEAM AS LEADER',
+              isLoading: s.isLoading,
+              onPressed: _submit,
+            ),
           ],
         ),
       ),

@@ -60,8 +60,8 @@ class _JoinTournamentScreenState extends ConsumerState<JoinTournamentScreen> {
     final error = ref.watch(teamProvider(widget.tournamentId)).error;
     final squadState = ref.watch(squadProvider);
 
-    // Requirement 4: Show "Join with Previous Team" ONLY to squad Leaders who have a stored squad
-    final showJoinWithPrevious = squadState.hasSquad && squadState.isLeader;
+    // Requirement 4: Show "Join with Previous Team" to squad Leaders or Managers who have a stored squad
+    final showJoinWithPrevious = squadState.hasSquad && squadState.isOwner;
     final squad = squadState.squad;
 
     return Scaffold(
@@ -89,12 +89,14 @@ class _JoinTournamentScreenState extends ConsumerState<JoinTournamentScreen> {
             ],
             const SizedBox(height: 24),
 
-            // Option 1 (LEADER ONLY): JOIN WITH PREVIOUS TEAM
+            // Option 1 (LEADER OR MANAGER): JOIN WITH PREVIOUS TEAM
             if (showJoinWithPrevious && squad != null) ...[
               JoinOptionCard(
                 icon: Icons.replay_rounded,
                 title: 'JOIN WITH PREVIOUS TEAM',
-                subtitle: 'Invite your saved squad "${squad.name}" members to this tournament',
+                subtitle: squad.isManagerOwned
+                    ? 'Invite all 4 stored members from squad "${squad.name}" (Manager non-playing)'
+                    : 'Invite stored squad "${squad.name}" members (3 players) to this tournament',
                 highlighted: true,
                 onTap: () async {
                   await ref
@@ -110,7 +112,7 @@ class _JoinTournamentScreenState extends ConsumerState<JoinTournamentScreen> {
             JoinOptionCard(
               icon: Icons.add_moderator_rounded,
               title: 'CREATE A NEW TEAM',
-              subtitle: 'Become captain and invite new squad members',
+              subtitle: 'Choose role (Leader or Manager) and invite new squad members',
               highlighted: !showJoinWithPrevious,
               onTap: () => _open(
                   CreateTeamScreen(tournamentId: widget.tournamentId)),
@@ -121,7 +123,7 @@ class _JoinTournamentScreenState extends ConsumerState<JoinTournamentScreen> {
             JoinOptionCard(
               icon: Icons.group_add_rounded,
               title: 'JOIN AN EXISTING TEAM',
-              subtitle: 'Enter a team code from your captain',
+              subtitle: 'Enter a team code from your leader or manager',
               onTap: () => _open(
                   JoinTeamScreen(tournamentId: widget.tournamentId)),
             ),

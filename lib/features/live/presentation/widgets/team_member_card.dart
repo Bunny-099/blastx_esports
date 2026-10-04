@@ -18,7 +18,7 @@ class TeamMemberCard extends StatelessWidget {
   final String slotLabel; // e.g. "1", "S1"
   final TeamMemberModel? member;
   final bool isMe;
-  final VoidCallback? onRemove; // shown only for captain controls
+  final VoidCallback? onRemove; // shown only for captain/manager controls
   final VoidCallback? onAcceptInvite;
   final VoidCallback? onRejectInvite;
 
@@ -41,7 +41,9 @@ class TeamMemberCard extends StatelessWidget {
         border: Border.all(
           color: m.isCaptain
               ? AppColors.glowLight.withValues(alpha: 0.5)
-              : (m.isPending ? AppColors.glowSoft.withValues(alpha: 0.6) : AppColors.borderSubtle),
+              : (m.isManager
+                  ? AppColors.primaryNeon.withValues(alpha: 0.5)
+                  : (m.isPending ? AppColors.glowSoft.withValues(alpha: 0.6) : AppColors.borderSubtle)),
         ),
       ),
       child: Column(
@@ -75,9 +77,11 @@ class TeamMemberCard extends StatelessWidget {
                                 .copyWith(fontWeight: FontWeight.w700)),
                         if (m.isCaptain)
                           const _Badge('CAPTAIN', AppColors.glowLight),
+                        if (m.isManager)
+                          const _Badge('MANAGER', AppColors.primaryNeon),
                         if (m.isPending)
                           const _Badge('INVITED • PENDING', AppColors.glowSoft)
-                        else
+                        else if (!m.isManager)
                           _Badge(
                             m.isSubstitute ? 'SUB' : 'MAIN',
                             m.isSubstitute ? AppColors.glowSoft : AppColors.primaryNeon,

@@ -38,9 +38,18 @@ class TeamLobbyScreen extends ConsumerWidget {
     return r == true;
   }
 
-  Future<void> _changeCaptain(
+  Future<void> _changeOwner(
       BuildContext context, WidgetRef ref, TournamentTeamModel team) async {
-    final others = team.members.where((m) => !m.isCaptain).toList();
+    final isManager = team.isManagerOwned;
+    final others = team.members.where((m) => !(m.isCaptain || m.isManager)).toList();
+
+    if (others.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No other members available in team.')),
+      );
+      return;
+    }
+
     final picked = await showModalBottomSheet<TeamMemberModel>(
       context: context,
       backgroundColor: AppColors.surface,
@@ -50,7 +59,10 @@ class TeamLobbyScreen extends ConsumerWidget {
           children: [
             Padding(
               padding: const EdgeInsets.all(16),
-              child: Text('Select new captain', style: AppTextStyles.headingLg),
+              child: Text(
+                isManager ? 'Select new Manager' : 'Select new Captain',
+                style: AppTextStyles.headingLg,
+              ),
             ),
             ...others.map((m) => ListTile(
                   leading: const Icon(Icons.person_rounded,
@@ -67,8 +79,8 @@ class TeamLobbyScreen extends ConsumerWidget {
     if (picked == null || !context.mounted) return;
     final ok = await _confirm(
         context,
-        'Change captain?',
-        '${picked.name} will become captain and you will become a normal member.',
+        isManager ? 'Transfer Management?' : 'Change Captain?',
+        '${picked.name} will become the new ${isManager ? "Manager" : "Captain"}.',
         'Confirm');
     if (ok) {
       await ref
@@ -79,15 +91,21 @@ class TeamLobbyScreen extends ConsumerWidget {
 
   Future<void> _leave(
       BuildContext context, WidgetRef ref, TournamentTeamModel team) async {
-    if (team.viewerIsCaptain) {
+    if (team.viewerIsOwner) {
       await showDialog<void>(
         context: context,
         builder: (c) => AlertDialog(
           backgroundColor: AppColors.surface,
-          title: Text('Transfer captaincy first', style: AppTextStyles.headingLg),
+          title: Text(
+            team.isManagerOwned ? 'Transfer management first' : 'Transfer captaincy first',
+            style: AppTextStyles.headingLg,
+          ),
           content: Text(
-              'The captain cannot leave the team. Use "Change Captain" first, then you can leave.',
-              style: AppTextStyles.bodyMd),
+            team.isManagerOwned
+                ? 'The manager cannot leave without transferring management. Use "Transfer Management" first.'
+                : 'The captain cannot leave without transferring captaincy. Use "Change Captain" first.',
+            style: AppTextStyles.bodyMd,
+          ),
           actions: [
             TextButton(
                 onPressed: () => Navigator.pop(c), child: const Text('OK')),
@@ -130,10 +148,11 @@ class TeamLobbyScreen extends ConsumerWidget {
       );
     }
 
-    final isCaptain = team.viewerIsCaptain;
+    final isOwner = team.viewerIsOwner;
     final canEdit = !team.isLocked && !team.isRegistered;
     final mains = team.mainPlayers;
     final subs = team.substitutes;
+    final manager = team.manager;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -148,7 +167,7 @@ class TeamLobbyScreen extends ConsumerWidget {
         team: team,
         tournament: tournament,
         isLoading: s.isLoading,
-        isCaptain: isCaptain,
+        isOwner: isOwner,
       ),
       body: RefreshIndicator(
         color: AppColors.primary,
@@ -163,11 +182,32 @@ class TeamLobbyScreen extends ConsumerWidget {
             const SizedBox(height: 14),
             TeamCodeCard(code: team.code, shareText: team.shareText),
             const SizedBox(height: 20),
+
+            // Manager Section (If Manager-created team)
+            if (team.isManagerOwned && manager != null) ...[
+              Row(
+                children: [
+                  const Icon(Icons.admin_panel_settings_rounded,
+                      color: AppColors.primaryNeon, size: 20),
+                  const SizedBox(width: 8),
+                  Text('MANAGED BY', style: AppTextStyles.headingMd),
+                ],
+              ),
+              const SizedBox(height: 6),
+              TeamMemberCard(
+                slotLabel: 'MGR',
+                member: manager,
+                isMe: manager.userId == team.viewerUserId,
+              ),
+              const SizedBox(height: 16),
+            ],
+
+            // Main Playing Members Section
             Row(
               children: [
                 Text('MAIN PLAYERS', style: AppTextStyles.headingMd),
                 const Spacer(),
-                Text('${team.mainCount}/${team.maxMainPlayers}',
+                Text('${team.confirmedMainCount}/${team.maxMainPlayers}',
                     style: AppTextStyles.headingMd
                         .copyWith(color: AppColors.primaryLight)),
               ],
@@ -176,7 +216,7 @@ class TeamLobbyScreen extends ConsumerWidget {
             ClipRRect(
               borderRadius: BorderRadius.circular(4),
               child: LinearProgressIndicator(
-                value: team.mainCount / team.maxMainPlayers,
+                value: team.confirmedMainCount / team.maxMainPlayers,
                 minHeight: 6,
                 backgroundColor: AppColors.surfaceMuted,
                 color: team.isReady ? AppColors.success : AppColors.primary,
@@ -189,9 +229,10 @@ class TeamLobbyScreen extends ConsumerWidget {
                 member: i < mains.length ? mains[i] : null,
                 isMe: i < mains.length && mains[i].userId == team.viewerUserId,
                 onRemove: i < mains.length &&
-                        isCaptain &&
+                        isOwner &&
                         canEdit &&
-                        !mains[i].isCaptain
+                        !mains[i].isCaptain &&
+                        !mains[i].isManager
                     ? () async {
                         if (await _confirm(
                             context,
@@ -204,6 +245,8 @@ class TeamLobbyScreen extends ConsumerWidget {
                     : null,
               ),
             const SizedBox(height: 12),
+
+            // Substitute Members Section
             Row(
               children: [
                 Text('SUBSTITUTES', style: AppTextStyles.headingMd),
@@ -217,7 +260,7 @@ class TeamLobbyScreen extends ConsumerWidget {
             Text('Optional • up to ${team.maxSubstitutes}',
                 style: AppTextStyles.bodySm),
             const SizedBox(height: 10),
-            if (isCaptain && canEdit && team.isMainFull)
+            if (isOwner && canEdit && team.isMainFull)
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
                 activeThumbColor: AppColors.primaryNeon,
@@ -235,7 +278,7 @@ class TeamLobbyScreen extends ConsumerWidget {
                 slotLabel: 'S${i + 1}',
                 member: i < subs.length ? subs[i] : null,
                 isMe: i < subs.length && subs[i].userId == team.viewerUserId,
-                onRemove: i < subs.length && isCaptain && canEdit
+                onRemove: i < subs.length && isOwner && canEdit
                     ? () async {
                         if (await _confirm(
                             context,
@@ -248,15 +291,17 @@ class TeamLobbyScreen extends ConsumerWidget {
                     : null,
               ),
             const SizedBox(height: 16),
-            if (isCaptain && canEdit && team.members.length > 1)
+
+            // Ownership / Captain Transfer Action
+            if (isOwner && canEdit && team.members.length > 1)
               Padding(
                 padding: const EdgeInsets.only(bottom: 10),
                 child: CustomButton(
-                  text: 'CHANGE CAPTAIN',
+                  text: team.isManagerOwned ? 'TRANSFER MANAGEMENT' : 'CHANGE CAPTAIN',
                   isOutlined: true,
                   icon: const Icon(Icons.swap_horiz_rounded,
                       size: 18, color: Colors.white),
-                  onPressed: () => _changeCaptain(context, ref, team),
+                  onPressed: () => _changeOwner(context, ref, team),
                 ),
               ),
             if (canEdit) ...[
@@ -282,10 +327,10 @@ class TeamLobbyScreen extends ConsumerWidget {
     required TournamentTeamModel team,
     required TournamentModel? tournament,
     required bool isLoading,
-    required bool isCaptain,
+    required bool isOwner,
   }) {
-    final mainCount = team.mainCount;
-    final slotsNeeded = 4 - mainCount;
+    final confirmedCount = team.confirmedMainCount;
+    final slotsNeeded = 4 - confirmedCount;
 
     return SafeArea(
       child: Container(
@@ -344,8 +389,8 @@ class TeamLobbyScreen extends ConsumerWidget {
                 ),
               ),
             ]
-            // 2. Not Registered: Fewer than 4 players -> Floating Waiting Banner
-            else if (mainCount < 4) ...[
+            // 2. Not Registered: Fewer than 4 confirmed main playing members -> Floating Waiting Banner
+            else if (confirmedCount < 4) ...[
               Container(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -379,7 +424,7 @@ class TeamLobbyScreen extends ConsumerWidget {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            '4 players are compulsory to register for tournament',
+                            '4 main playing members are compulsory to register for tournament',
                             style: AppTextStyles.caption.copyWith(
                               color: AppColors.textSecondary,
                             ),
@@ -391,7 +436,7 @@ class TeamLobbyScreen extends ConsumerWidget {
                 ),
               ),
             ]
-            // 3. Not Registered: Exactly 4 players -> Floating Register Button
+            // 3. Not Registered: Exactly 4 playing members confirmed -> Floating Register Button
             else ...[
               CustomButton(
                 text: tournament == null
@@ -437,10 +482,10 @@ class TeamLobbyScreen extends ConsumerWidget {
                         }
                       },
               ),
-              if (!isCaptain) ...[
+              if (!isOwner) ...[
                 const SizedBox(height: 6),
                 Text(
-                  'Waiting for the captain to click Register.',
+                  'Waiting for the team leader/manager to click Register.',
                   textAlign: TextAlign.center,
                   style: AppTextStyles.caption
                       .copyWith(color: AppColors.textMuted),
@@ -475,8 +520,12 @@ class TeamLobbyScreen extends ConsumerWidget {
                         ? team.name.toUpperCase()
                         : '[${team.tag}] ${team.name.toUpperCase()}',
                     style: AppTextStyles.headingXl),
-                Text('Captain: ${team.captainName}',
-                    style: AppTextStyles.bodyMd),
+                Text(
+                  team.isManagerOwned
+                      ? 'Manager: ${team.ownerName}'
+                      : 'Captain: ${team.captainName}',
+                  style: AppTextStyles.bodyMd,
+                ),
                 if (team.tournamentName.isNotEmpty)
                   Text(team.tournamentName, style: AppTextStyles.bodySm),
               ],
@@ -506,7 +555,7 @@ class TeamLobbyScreen extends ConsumerWidget {
     } else if (team.isReady) {
       color = AppColors.success;
       icon = Icons.check_circle_rounded;
-      text = 'Team is ready! 4/4 main players.';
+      text = 'Team is ready! 4/4 main playing members confirmed.';
     } else {
       color = AppColors.warning;
       icon = Icons.hourglass_top_rounded;
