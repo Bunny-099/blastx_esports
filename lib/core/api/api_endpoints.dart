@@ -54,4 +54,18 @@ class ApiEndpoints {
   static const String challenges = '/challenges';
   static String claimChallenge(String id) => '/challenges/$id/claim';
   static String submitChallengeProof(String id) => '/challenges/$id/submit-proof';
+
+  // Persistent Squad & Invitations Endpoints
+  static const String mySquad = '/squads/me';
+  static const String createSquad = '/squads';
+  static String squadDetail(String squadId) => '/squads/$squadId';
+  static String removeSquadMember(String squadId, String userId) => '/squads/$squadId/members/$userId';
+  static String transferSquadLeader(String squadId) => '/squads/$squadId/transfer-leader';
+  static String updateSquadMemberRole(String squadId, String userId) => '/squads/$squadId/members/$userId/role';
+  static String swapSquadMembers(String squadId) => '/squads/$squadId/swap';
+
+  // Tournament Invitations Endpoints
+  static const String pendingInvitations = '/invitations/pending';
+  static String sendSquadInvitations(String squadId, String tournamentId) => '/squads/$squadId/tournaments/$tournamentId/invite';
+  static String respondInvitation(String invitationId) => '/invitations/$invitationId/respond';
 }

@@ -12,8 +12,8 @@ import '../../live/presentation/tournament_detail_screen.dart';
 import '../../live/providers/live_provider.dart';
 import '../../notifications/presentation/notifications_screen.dart';
 import '../../notifications/providers/notification_provider.dart';
-import '../../profile/domain/rank_system.dart';
 import '../../profile/providers/profile_provider.dart';
+import '../../squad/presentation/my_squad_screen.dart';
 import '../data/models/home_data_models.dart';
 import '../providers/home_provider.dart';
 import '../providers/navigation_provider.dart';
@@ -154,7 +154,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 parent: AlwaysScrollableScrollPhysics(),
               ),
               slivers: [
-                // Top Collapsing Header with Username & Greeting
+                // Top Collapsing Header with Username, Greeting & BlastiX Logo
                 SliverPersistentHeader(
                   pinned: true,
                   delegate: _CollapsingHeaderDelegate(
@@ -165,19 +165,67 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   ),
                 ),
 
-                // Gamer Rank & XP Progress Banner Widget
+                // 2. DAILY ESPORTS QUEST
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 10, 20, 8),
-                    child: _UserGamerCard(user: user),
+                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 10),
+                    child: _DailyQuestsTeaserCard(),
                   ),
                 ),
+
+                // 3. LIVE TOURNAMENTS
+                if (blastxLiveTournaments.isNotEmpty) ...[
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
+                      child: _SectionHeader(
+                        title: '🔴 BLASTX LIVE TOURNAMENTS',
+                        actionText: 'Watch All ➔',
+                        onTapAction: () {
+                          ref.read(navigationIndexProvider.notifier).state = 2; // Live tab
+                        },
+                      ),
+                    ),
+                  ),
+                  SliverToBoxAdapter(
+                    child: SizedBox(
+                      height: 215,
+                      child: ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        physics: const BouncingScrollPhysics(),
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        itemCount: blastxLiveTournaments.length,
+                        itemBuilder: (context, index) {
+                          final tournament = blastxLiveTournaments[index];
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 6),
+                            child: _EsportsTournamentCard(
+                              tournament: tournament,
+                              badgeText: '🔴 LIVE',
+                              badgeColor: AppColors.secondary,
+                              buttonText: 'WATCH',
+                              onTap: () {
+                                Navigator.of(context).push(
+                                  FirePageRoute(
+                                    page: TournamentDetailScreen(
+                                      tournamentId: tournament.id,
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                ],
 
                 // Live Announcement Ticker
                 if (announcements.isNotEmpty)
                   SliverToBoxAdapter(
                     child: Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
+                      padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
                       child: _AnnouncementTicker(announcements: announcements),
                     ),
                   ),
@@ -235,93 +283,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                       ],
                     ),
                   ),
-
-                // Esports Hub Shortcuts Grid
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Container(
-                              width: 4,
-                              height: 18,
-                              decoration: BoxDecoration(
-                                gradient: AppColors.fireGradient,
-                                borderRadius: BorderRadius.circular(2),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Text('ESPORTS HUB', style: AppTextStyles.headingMd),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        _QuickActionGrid(),
-                      ],
-                    ),
-                  ),
-                ),
-
-                // Daily Quests Teaser Card (Side Feature Addition)
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
-                    child: _DailyQuestsTeaserCard(),
-                  ),
-                ),
-
-                // ============================================================
-                // DYNAMIC SECTION 1: BLASTX LIVE TOURNAMENTS
-                // (Only visible when blastxLiveTournaments is NOT empty)
-                // ============================================================
-                if (blastxLiveTournaments.isNotEmpty) ...[
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 12, 20, 10),
-                      child: _SectionHeader(
-                        title: '🔴 BLASTX LIVE TOURNAMENTS',
-                        actionText: 'Watch All ➔',
-                        onTapAction: () {
-                          ref.read(navigationIndexProvider.notifier).state = 2; // Live tab
-                        },
-                      ),
-                    ),
-                  ),
-                  SliverToBoxAdapter(
-                    child: SizedBox(
-                      height: 215,
-                      child: ListView.builder(
-                        scrollDirection: Axis.horizontal,
-                        physics: const BouncingScrollPhysics(),
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        itemCount: blastxLiveTournaments.length,
-                        itemBuilder: (context, index) {
-                          final tournament = blastxLiveTournaments[index];
-                          return Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 6),
-                            child: _EsportsTournamentCard(
-                              tournament: tournament,
-                              badgeText: '🔴 LIVE',
-                              badgeColor: AppColors.secondary,
-                              buttonText: 'WATCH',
-                              onTap: () {
-                                Navigator.of(context).push(
-                                  FirePageRoute(
-                                    page: TournamentDetailScreen(
-                                      tournamentId: tournament.id,
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  ),
-                ],
 
                 // ============================================================
                 // DYNAMIC SECTION 2: BLASTX UPCOMING TOURNAMENTS
@@ -450,7 +411,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
                   // Notice Items List
                   SliverPadding(
-                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
                     sliver: SliverList(
                       delegate: SliverChildBuilderDelegate(
                         (context, index) {
@@ -467,11 +428,37 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                       ),
                     ),
                   ),
-                ] else ...[
-                  const SliverToBoxAdapter(
-                    child: SizedBox(height: 32),
-                  ),
                 ],
+
+                // ============================================================
+                // ESPORTS HUB SHORTCUTS GRID (SABSE NICHE / AT THE VERY BOTTOM)
+                // ============================================================
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 36),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              width: 4,
+                              height: 18,
+                              decoration: BoxDecoration(
+                                gradient: AppColors.fireGradient,
+                                borderRadius: BorderRadius.circular(2),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text('ESPORTS HUB', style: AppTextStyles.headingMd),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        _QuickActionGrid(),
+                      ],
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
@@ -541,162 +528,7 @@ class _SectionHeader extends StatelessWidget {
   }
 }
 
-/// ------------------------------------------------------------
-/// Gamer Rank & Stats Profile Banner
-/// ------------------------------------------------------------
-class _UserGamerCard extends StatelessWidget {
-  const _UserGamerCard({required this.user});
 
-  final dynamic user;
-
-  @override
-  Widget build(BuildContext context) {
-    final xp = user?.xp ?? 0;
-    final rankTier = RankSystem.getRankFromXP(xp);
-    final progress = RankSystem.getXPProgress(xp);
-    final nextRank = RankSystem.getNextRank(xp);
-
-    final played = user?.tournamentsPlayed ?? 0;
-    final won = user?.tournamentsWon ?? 0;
-    final winRate = played > 0 ? ((won / played) * 100).toStringAsFixed(0) : '0';
-
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.primary.withValues(alpha: 0.25)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.3),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              // Rank Icon Badge
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  gradient: AppColors.fireGradient,
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.primary.withValues(alpha: 0.4),
-                      blurRadius: 10,
-                    ),
-                  ],
-                ),
-                child: Icon(
-                  rankTier.icon,
-                  color: Colors.white,
-                  size: 22,
-                ),
-              ),
-              const SizedBox(width: 12),
-              // Rank & XP Progress
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'RANK: ${rankTier.name.toUpperCase()}',
-                          style: GoogleFonts.rajdhani(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.textPrimary,
-                          ),
-                        ),
-                        Text(
-                          '$xp XP',
-                          style: AppTextStyles.caption.copyWith(
-                            color: AppColors.primaryLight,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(4),
-                      child: LinearProgressIndicator(
-                        value: progress,
-                        minHeight: 6,
-                        backgroundColor: AppColors.surfaceMuted,
-                        valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary),
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      nextRank != null
-                          ? 'Next: ${nextRank.name} (${RankSystem.getXPRemaining(xp)} XP remaining)'
-                          : 'MAX RANK REACHED 🏆',
-                      style: AppTextStyles.caption.copyWith(
-                        fontSize: 9.5,
-                        color: AppColors.textMuted,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          const Divider(height: 1, color: AppColors.border),
-          const SizedBox(height: 10),
-          // Stats Row
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _GamerStatChip(label: 'MATCHES', value: '$played'),
-              Container(width: 1, height: 20, color: AppColors.border),
-              _GamerStatChip(label: 'VICTORIES', value: '$won'),
-              Container(width: 1, height: 20, color: AppColors.border),
-              _GamerStatChip(label: 'WIN RATE', value: '$winRate%'),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _GamerStatChip extends StatelessWidget {
-  const _GamerStatChip({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Text(
-          value,
-          style: GoogleFonts.rajdhani(
-            fontSize: 16,
-            fontWeight: FontWeight.w800,
-            color: Colors.white,
-          ),
-        ),
-        Text(
-          label,
-          style: AppTextStyles.caption.copyWith(
-            fontSize: 9.5,
-            color: AppColors.textMuted,
-          ),
-        ),
-      ],
-    );
-  }
-}
 
 /// ------------------------------------------------------------
 /// Daily Quests Teaser Banner Card
@@ -918,6 +750,14 @@ class _CollapsingHeaderDelegate extends SliverPersistentHeaderDelegate {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // BlastiX App Logo
+                      Image.asset(
+                        'assets/logos/app_logo.png',
+                        height: 36,
+                        width: 36,
+                        fit: BoxFit.contain,
+                      ),
+                      const SizedBox(width: 12),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1385,7 +1225,11 @@ class _QuickActionGrid extends ConsumerWidget {
         subtitle: 'Manage Roster',
         icon: Icons.groups_rounded,
         color: AppColors.glowLight,
-        onTap: () => ref.read(navigationIndexProvider.notifier).state = 4,
+        onTap: () {
+          Navigator.of(context).push(
+            FirePageRoute(page: const MySquadScreen()),
+          );
+        },
       ),
     ];
 

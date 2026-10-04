@@ -1,5 +1,4 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../features/auth/providers/auth_provider.dart';
 import '../../../features/profile/providers/profile_provider.dart';
 import '../../../features/splash/providers/splash_providers.dart';
 import '../data/models/squad_invitation_model.dart';

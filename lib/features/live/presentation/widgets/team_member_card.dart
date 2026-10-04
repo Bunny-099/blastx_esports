@@ -11,12 +11,16 @@ class TeamMemberCard extends StatelessWidget {
     this.member,
     this.isMe = false,
     this.onRemove,
+    this.onAcceptInvite,
+    this.onRejectInvite,
   });
 
   final String slotLabel; // e.g. "1", "S1"
   final TeamMemberModel? member;
   final bool isMe;
   final VoidCallback? onRemove; // shown only for captain controls
+  final VoidCallback? onAcceptInvite;
+  final VoidCallback? onRejectInvite;
 
   @override
   Widget build(BuildContext context) {
@@ -35,83 +39,128 @@ class TeamMemberCard extends StatelessWidget {
         color: AppColors.surfaceElevated,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-            color: m.isCaptain
-                ? AppColors.glowLight.withValues(alpha: 0.5)
-                : AppColors.borderSubtle),
+          color: m.isCaptain
+              ? AppColors.glowLight.withValues(alpha: 0.5)
+              : (m.isPending ? AppColors.glowSoft.withValues(alpha: 0.6) : AppColors.borderSubtle),
+        ),
       ),
-      child: Row(
+      child: Column(
         children: [
-          CircleAvatar(
-            radius: 20,
-            backgroundColor: AppColors.surfaceNavy,
-            backgroundImage:
-            m.avatarUrl.isNotEmpty ? NetworkImage(m.avatarUrl) : null,
-            child: m.avatarUrl.isEmpty
-                ? Text(
-              m.name.isNotEmpty ? m.name[0].toUpperCase() : '?',
-              style: AppTextStyles.headingMd,
-            )
-                : null,
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Wrap(
-                  spacing: 6,
-                  runSpacing: 4,
-                  crossAxisAlignment: WrapCrossAlignment.center,
+          Row(
+            children: [
+              CircleAvatar(
+                radius: 20,
+                backgroundColor: AppColors.surfaceNavy,
+                backgroundImage:
+                    m.avatarUrl.isNotEmpty ? NetworkImage(m.avatarUrl) : null,
+                child: m.avatarUrl.isEmpty
+                    ? Text(
+                        m.name.isNotEmpty ? m.name[0].toUpperCase() : '?',
+                        style: AppTextStyles.headingMd,
+                      )
+                    : null,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(isMe ? '${m.name} (You)' : m.name,
-                        style: AppTextStyles.bodyLg
-                            .copyWith(fontWeight: FontWeight.w700)),
-                    if (m.isCaptain)
-                      const _Badge('CAPTAIN', AppColors.glowLight),
-                    _Badge(m.isSubstitute ? 'SUB' : 'MAIN',
-                        m.isSubstitute ? AppColors.glowSoft : AppColors.primaryNeon),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 4,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        Text(isMe ? '${m.name} (You)' : m.name,
+                            style: AppTextStyles.bodyLg
+                                .copyWith(fontWeight: FontWeight.w700)),
+                        if (m.isCaptain)
+                          const _Badge('CAPTAIN', AppColors.glowLight),
+                        if (m.isPending)
+                          const _Badge('INVITED • PENDING', AppColors.glowSoft)
+                        else
+                          _Badge(
+                            m.isSubstitute ? 'SUB' : 'MAIN',
+                            m.isSubstitute ? AppColors.glowSoft : AppColors.primaryNeon,
+                          ),
+                      ],
+                    ),
+                    if (details.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 2),
+                        child: Text(details, style: AppTextStyles.caption),
+                      ),
                   ],
                 ),
-                if (details.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 2),
-                    child: Text(details, style: AppTextStyles.caption),
+              ),
+              if (onRemove != null && !m.isPending)
+                IconButton(
+                  tooltip: 'Remove',
+                  onPressed: onRemove,
+                  icon: const Icon(Icons.person_remove_rounded,
+                      color: AppColors.primaryDeep, size: 20),
+                ),
+            ],
+          ),
+
+          // Accept / Reject Actions for invited pending member
+          if (m.isPending && (isMe || onAcceptInvite != null)) ...[
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryNeon,
+                      foregroundColor: AppColors.bgNavy,
+                      padding: const EdgeInsets.symmetric(vertical: 6),
+                      minimumSize: const Size(0, 32),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                    onPressed: onAcceptInvite,
+                    child: Text('ACCEPT', style: AppTextStyles.button.copyWith(color: AppColors.bgNavy, fontSize: 11)),
                   ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: AppColors.error),
+                      padding: const EdgeInsets.symmetric(vertical: 6),
+                      minimumSize: const Size(0, 32),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                    onPressed: onRejectInvite,
+                    child: Text('REJECT', style: AppTextStyles.button.copyWith(color: AppColors.error, fontSize: 11)),
+                  ),
+                ),
               ],
             ),
-          ),
-          if (onRemove != null)
-            IconButton(
-              tooltip: 'Remove',
-              onPressed: onRemove,
-              icon: const Icon(Icons.person_remove_rounded,
-                  color: AppColors.primaryDeep, size: 20),
-            ),
+          ],
         ],
       ),
     );
   }
 
   Widget _empty() => Container(
-    margin: const EdgeInsets.only(bottom: 10),
-    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-    decoration: BoxDecoration(
-      color: AppColors.surfaceElevated.withValues(alpha: 0.5),
-      borderRadius: BorderRadius.circular(14),
-      border: Border.all(color: AppColors.borderSubtle),
-    ),
-    child: Row(
-      children: [
-        CircleAvatar(
-          radius: 20,
-          backgroundColor: AppColors.surfaceNavy,
-          child: Text(slotLabel, style: AppTextStyles.caption),
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceElevated.withValues(alpha: 0.5),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.borderSubtle),
         ),
-        const SizedBox(width: 12),
-        Text('Waiting for player…', style: AppTextStyles.bodySm),
-      ],
-    ),
-  );
+        child: Row(
+          children: [
+            CircleAvatar(
+              radius: 20,
+              backgroundColor: AppColors.surfaceNavy,
+              child: Text(slotLabel, style: AppTextStyles.caption),
+            ),
+            const SizedBox(width: 12),
+            Text('Waiting for player…', style: AppTextStyles.bodySm),
+          ],
+        ),
+      );
 }
 
 class _Badge extends StatelessWidget {
@@ -121,13 +170,13 @@ class _Badge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-    decoration: BoxDecoration(
-      color: color.withValues(alpha: 0.15),
-      borderRadius: BorderRadius.circular(10),
-    ),
-    child: Text(text,
-        style: AppTextStyles.caption
-            .copyWith(color: color, fontSize: 9.5, fontWeight: FontWeight.w800)),
-  );
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Text(text,
+            style: AppTextStyles.caption
+                .copyWith(color: color, fontSize: 9.5, fontWeight: FontWeight.w800)),
+      );
 }

@@ -51,9 +51,12 @@ class TournamentTeamModel {
 
   int get mainCount => mainPlayers.length;
   int get substituteCount => substitutes.length;
+  int get confirmedMainCount => mainPlayers.where((m) => m.isConfirmed).length;
+  int get pendingMainCount => mainPlayers.where((m) => m.isPending).length;
+
   bool get isMainFull => mainCount >= maxMainPlayers;
-  bool get isReady => isMainFull;
-  int get mainSlotsLeft => (maxMainPlayers - mainCount).clamp(0, maxMainPlayers);
+  bool get isReady => confirmedMainCount >= maxMainPlayers;
+  int get mainSlotsLeft => (maxMainPlayers - confirmedMainCount).clamp(0, maxMainPlayers);
   bool get canJoinAsSubstitute =>
       isMainFull && acceptingSubstitutes && substituteCount < maxSubstitutes;
   bool get isLocked =>
@@ -74,6 +77,42 @@ class TournamentTeamModel {
   String get shareText =>
       'Join my team "$name" for ${tournamentName.isEmpty ? 'the tournament' : tournamentName} '
           'on BlastiX Arena! 🔥\nTeam Code: $code';
+
+  TournamentTeamModel copyWith({
+    String? id,
+    String? tournamentId,
+    String? tournamentName,
+    String? code,
+    String? name,
+    String? tag,
+    String? logoUrl,
+    String? captainId,
+    String? viewerUserId,
+    List<TeamMemberModel>? members,
+    int? maxMainPlayers,
+    int? maxSubstitutes,
+    TeamRegistrationStatus? status,
+    bool? registrationOpen,
+    bool? acceptingSubstitutes,
+  }) {
+    return TournamentTeamModel(
+      id: id ?? this.id,
+      tournamentId: tournamentId ?? this.tournamentId,
+      tournamentName: tournamentName ?? this.tournamentName,
+      code: code ?? this.code,
+      name: name ?? this.name,
+      tag: tag ?? this.tag,
+      logoUrl: logoUrl ?? this.logoUrl,
+      captainId: captainId ?? this.captainId,
+      viewerUserId: viewerUserId ?? this.viewerUserId,
+      members: members ?? this.members,
+      maxMainPlayers: maxMainPlayers ?? this.maxMainPlayers,
+      maxSubstitutes: maxSubstitutes ?? this.maxSubstitutes,
+      status: status ?? this.status,
+      registrationOpen: registrationOpen ?? this.registrationOpen,
+      acceptingSubstitutes: acceptingSubstitutes ?? this.acceptingSubstitutes,
+    );
+  }
 
   factory TournamentTeamModel.fromJson(Map<String, dynamic> json) {
     final statusRaw = ((json['registration_status'] ?? json['status']) as String? ?? 'forming').toLowerCase();
