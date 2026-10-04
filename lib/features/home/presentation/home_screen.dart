@@ -10,6 +10,8 @@ import '../../../core/transitions/fire_page_route.dart';
 import '../../live/data/models/tournament_model.dart';
 import '../../live/presentation/tournament_detail_screen.dart';
 import '../../live/providers/live_provider.dart';
+import '../../notifications/presentation/notifications_screen.dart';
+import '../../notifications/providers/notification_provider.dart';
 import '../../profile/domain/rank_system.dart';
 import '../../profile/providers/profile_provider.dart';
 import '../data/models/home_data_models.dart';
@@ -912,25 +914,32 @@ class _CollapsingHeaderDelegate extends SliverPersistentHeaderDelegate {
                 offset: Offset(0, -collapseFraction * 20),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Column(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Hey, $username 👋', style: AppTextStyles.headingXl),
-                      const SizedBox(height: 2),
-                      Text(greetingText, style: AppTextStyles.bodyMd),
-                      const SizedBox(height: 4),
-                      SizedBox(
-                        width: MediaQuery.of(context).size.width * 0.75,
-                        child: Text(
-                          quote,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: AppTextStyles.bodySm.copyWith(
-                            fontStyle: FontStyle.italic,
-                            color: AppColors.primaryLight,
-                          ),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Hey, $username 👋', style: AppTextStyles.headingXl),
+                            const SizedBox(height: 2),
+                            Text(greetingText, style: AppTextStyles.bodyMd),
+                            const SizedBox(height: 4),
+                            Text(
+                              quote,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: AppTextStyles.bodySm.copyWith(
+                                fontStyle: FontStyle.italic,
+                                color: AppColors.primaryLight,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
+                      const SizedBox(width: 12),
+                      const _HeaderNotificationBell(),
                     ],
                   ),
                 ),
@@ -948,6 +957,80 @@ class _CollapsingHeaderDelegate extends SliverPersistentHeaderDelegate {
         oldDelegate.username != username ||
         oldDelegate.greetingText != greetingText ||
         oldDelegate.quote != quote;
+  }
+}
+
+class _HeaderNotificationBell extends ConsumerWidget {
+  const _HeaderNotificationBell();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final unreadCount = ref.watch(unreadNotificationCountProvider);
+
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          FirePageRoute(page: const NotificationsScreen()),
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceNavy.withValues(alpha: 0.8),
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: AppColors.borderCyan,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.primaryNeon.withValues(alpha: 0.1),
+              blurRadius: 10,
+              spreadRadius: 1,
+            ),
+          ],
+        ),
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            const Icon(
+              Icons.notifications_none_rounded,
+              color: AppColors.primaryNeon,
+              size: 22,
+            ),
+            if (unreadCount > 0)
+              Positioned(
+                right: -4,
+                top: -4,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Colors.redAccent,
+                    borderRadius: BorderRadius.circular(10),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.redAccent.withValues(alpha: 0.5),
+                        blurRadius: 6,
+                      ),
+                    ],
+                  ),
+                  constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                  child: Text(
+                    unreadCount > 9 ? '9+' : '$unreadCount',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      height: 1,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
   }
 }
 
