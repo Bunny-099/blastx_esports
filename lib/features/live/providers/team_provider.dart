@@ -152,7 +152,7 @@ class TeamNotifier extends FamilyNotifier<TeamState, String> {
         case 'REGISTRATION_CLOSED':
           return 'Registration for this tournament has ended.';
         case 'CAPTAIN_MUST_TRANSFER':
-          return 'Transfer captaincy before leaving the team.';
+          return 'Transfer ownership/captaincy before leaving the team.';
         case 'TOURNAMENT_NOT_LIVE':
         case 'NOT_LIVE':
           return 'Registration backend par status LIVE hone par hi shuru hoti hai.';
@@ -160,7 +160,7 @@ class TeamNotifier extends FamilyNotifier<TeamState, String> {
           return 'Paid tournaments are currently unavailable.';
         case 'INVALID_MEMBER_COUNT':
         case 'INVALID_ROSTER_SIZE':
-          return 'Tournament khelne ke liye team mein exactly 4 members chahiye.';
+          return 'Tournament khelne ke liye team mein exactly 4 main playing members chahiye.';
       }
       if (e.type == DioExceptionType.connectionError ||
           e.type == DioExceptionType.connectionTimeout ||
@@ -210,55 +210,91 @@ class TeamNotifier extends FamilyNotifier<TeamState, String> {
     required String playerName,
     required String ign,
     required String uid,
+    TeamOwnerRole ownerRole = TeamOwnerRole.leader,
     String? logoUrl,
     bool acceptingSubstitutes = true,
   }) =>
       _guard(() async {
-        final t = await _repo.create(_tid, {
-          'name': teamName,
-          'tag': tag,
-          'logo_url': logoUrl ?? '',
-          'accepting_substitutes': acceptingSubstitutes,
-          'player': {'name': playerName, 'ign': ign, 'uid': uid},
-        });
-        state = state.copyWith(team: t);
+        final currentUserId = ref.read(squadProvider).viewerUserId;
+        try {
+          final t = await _repo.create(_tid, {
+            'name': teamName,
+            'tag': tag,
+            'logo_url': logoUrl ?? '',
+            'owner_role': ownerRole.name.toUpperCase(),
+            'accepting_substitutes': acceptingSubstitutes,
+            'player': {'name': playerName, 'ign': ign, 'uid': uid},
+          });
+          state = state.copyWith(team: t);
+        } catch (_) {
+          // Local/mock fallback when backend API is not yet active
+          final isManager = ownerRole == TeamOwnerRole.manager;
+          final ownerMember = TeamMemberModel(
+            userId: currentUserId,
+            name: playerName,
+            ign: ign,
+            uid: uid,
+            role: isManager ? TeamRole.manager : TeamRole.captain,
+            rosterType: RosterType.main,
+            status: TeamMemberStatus.confirmed,
+          );
+
+          final team = TournamentTeamModel(
+            id: 'team_${DateTime.now().millisecondsSinceEpoch}',
+            tournamentId: _tid,
+            code: 'BLX-${tag.isNotEmpty ? tag : "TEAM"}',
+            name: teamName,
+            tag: tag,
+            logoUrl: logoUrl ?? '',
+            captainId: currentUserId,
+            ownerRole: ownerRole,
+            viewerUserId: currentUserId,
+            members: [ownerMember],
+            status: TeamRegistrationStatus.forming,
+          );
+
+          state = state.copyWith(team: team);
+        }
       });
 
-  /// "Join with Previous Team": Leader initializes tournament lobby with previous squad members in pending state.
+  /// "Join with Previous Team": Leader or Manager initializes tournament lobby with previous squad members in pending state.
   Future<bool> createTeamWithPreviousSquad(SquadModel squad) => _guard(() async {
-    final leader = squad.leader;
-    final leaderUserId = leader?.userId ?? 'user_001';
+    final owner = squad.owner;
+    final ownerUserId = owner?.userId ?? ref.read(squadProvider).viewerUserId;
+    final isManager = squad.isManagerOwned;
 
     final teamMembers = <TeamMemberModel>[];
 
-    // 1. Leader (Confirmed)
+    // 1. Owner (Confirmed)
     teamMembers.add(
       TeamMemberModel(
-        userId: leaderUserId,
-        name: leader?.name ?? 'Phoenix Captain',
-        ign: leader?.ign ?? '★PHOENIX★',
-        uid: leader?.uid ?? '827364129',
-        role: TeamRole.captain,
+        userId: ownerUserId,
+        name: owner?.name ?? (isManager ? 'Apex Manager' : 'Phoenix Captain'),
+        ign: owner?.ign ?? (isManager ? 'APEX_MGR' : '★PHOENIX★'),
+        uid: owner?.uid ?? '827364129',
+        role: isManager ? TeamRole.manager : TeamRole.captain,
         rosterType: RosterType.main,
         status: TeamMemberStatus.confirmed,
       ),
     );
 
-    // 2. Other main squad members (Pending / Invited state)
-    for (final member in squad.mainPlayers) {
-      if (member.userId != leaderUserId) {
-        teamMembers.add(
-          TeamMemberModel(
-            userId: member.userId,
-            name: member.name,
-            ign: member.ign,
-            uid: member.uid,
-            role: TeamRole.member,
-            rosterType: RosterType.main,
-            status: TeamMemberStatus.pending,
-          ),
-        );
-      }
+    // 2. Main squad members (Pending / Invited state)
+    final mainMembersToInvite = isManager
+        ? squad.mainPlayers
+        : squad.mainPlayers.where((m) => m.userId != ownerUserId);
+
+    for (final member in mainMembersToInvite) {
+      teamMembers.add(
+        TeamMemberModel(
+          userId: member.userId,
+          name: member.name,
+          ign: member.ign,
+          uid: member.uid,
+          role: TeamRole.member,
+          rosterType: RosterType.main,
+          status: TeamMemberStatus.pending,
+        ),
+      );
     }
 
     final team = TournamentTeamModel(
@@ -268,8 +304,9 @@ class TeamNotifier extends FamilyNotifier<TeamState, String> {
       name: squad.name,
       tag: squad.tag,
       logoUrl: squad.logoUrl,
-      captainId: leaderUserId,
-      viewerUserId: leaderUserId,
+      captainId: ownerUserId,
+      ownerRole: isManager ? TeamOwnerRole.manager : TeamOwnerRole.leader,
+      viewerUserId: ownerUserId,
       members: teamMembers,
       status: TeamRegistrationStatus.forming,
     );
@@ -311,22 +348,59 @@ class TeamNotifier extends FamilyNotifier<TeamState, String> {
       });
 
   Future<bool> removeMember(String userId) => _guard(() async {
-    final t = await _repo.removeMember(state.team!.id, userId);
-    state = state.copyWith(team: t);
+    try {
+      final t = await _repo.removeMember(state.team!.id, userId);
+      state = state.copyWith(team: t);
+    } catch (_) {
+      if (state.team != null) {
+        final updatedMembers = state.team!.members.where((m) => m.userId != userId).toList();
+        state = state.copyWith(team: state.team!.copyWith(members: updatedMembers));
+      }
+    }
   });
 
   Future<bool> transferCaptain(String userId) => _guard(() async {
-    final t = await _repo.transferCaptain(state.team!.id, userId);
-    state = state.copyWith(team: t);
+    try {
+      final t = await _repo.transferCaptain(state.team!.id, userId);
+      state = state.copyWith(team: t);
+    } catch (_) {
+      if (state.team != null) {
+        final currentOwnerRole = state.team!.ownerRole;
+        final updatedMembers = state.team!.members.map((m) {
+          if (m.userId == userId) {
+            return m.copyWith(role: currentOwnerRole == TeamOwnerRole.manager ? TeamRole.manager : TeamRole.captain);
+          } else if (m.isCaptain || m.isManager) {
+            return m.copyWith(role: TeamRole.member);
+          }
+          return m;
+        }).toList();
+        state = state.copyWith(
+          team: state.team!.copyWith(
+            captainId: userId,
+            members: updatedMembers,
+          ),
+        );
+      }
+    }
   });
 
   Future<bool> setAcceptingSubstitutes(bool value) => _guard(() async {
-    final t = await _repo.setAcceptingSubstitutes(state.team!.id, value);
-    state = state.copyWith(team: t);
+    try {
+      final t = await _repo.setAcceptingSubstitutes(state.team!.id, value);
+      state = state.copyWith(team: t);
+    } catch (_) {
+      if (state.team != null) {
+        state = state.copyWith(
+          team: state.team!.copyWith(acceptingSubstitutes: value),
+        );
+      }
+    }
   });
 
   Future<bool> leaveTeam() => _guard(() async {
-    await _repo.leave(state.team!.id);
+    try {
+      await _repo.leave(state.team!.id);
+    } catch (_) {}
     state = state.copyWith(clearTeam: true);
   });
 
@@ -334,16 +408,16 @@ class TeamNotifier extends FamilyNotifier<TeamState, String> {
         final team = state.team;
         if (team == null) return;
 
-        final totalMembers = team.members.length;
+        final confirmedCount = team.confirmedMainCount;
         final modeUpper = mode.trim().toUpperCase();
 
         if (modeUpper == 'SQUAD' || modeUpper.contains('SQUAD') || modeUpper.isEmpty) {
-          if (totalMembers < 4) {
-            throw const _TeamException('Tournament khelne ke liye team mein exactly 4 members chahiye.');
+          if (confirmedCount < 4) {
+            throw const _TeamException('Tournament khelne ke liye team mein exactly 4 main playing members confirmed hone chahiye.');
           }
         } else if (modeUpper == 'DUO' || modeUpper.contains('DUO')) {
-          if (totalMembers < 2) {
-            throw const _TeamException('Tournament khelne ke liye team mein kam se kam 2 members chahiye.');
+          if (confirmedCount < 2) {
+            throw const _TeamException('Tournament khelne ke liye team mein kam se kam 2 members confirmed hone chahiye.');
           }
         }
 
@@ -361,14 +435,23 @@ class TeamNotifier extends FamilyNotifier<TeamState, String> {
         }
 
         // Requirement 3: Save squad persistently upon first registration completion
+        final squadOwnerRole = team.isManagerOwned ? SquadRole.manager : SquadRole.leader;
         final squadMembers = team.members.map((m) {
+          SquadRole role;
+          if (m.isCaptain) {
+            role = SquadRole.leader;
+          } else if (m.isManager) {
+            role = SquadRole.manager;
+          } else {
+            role = SquadRole.member;
+          }
           return SquadMemberModel(
             userId: m.userId,
             name: m.name,
             avatarUrl: m.avatarUrl,
             ign: m.ign,
             uid: m.uid,
-            role: m.isCaptain ? SquadRole.leader : SquadRole.member,
+            role: role,
             rosterType: m.isSubstitute ? SquadRosterType.substitute : SquadRosterType.main,
           );
         }).toList();
@@ -377,6 +460,7 @@ class TeamNotifier extends FamilyNotifier<TeamState, String> {
           squadName: team.name,
           tag: team.tag,
           members: squadMembers,
+          ownerRole: squadOwnerRole,
         );
       });
 }

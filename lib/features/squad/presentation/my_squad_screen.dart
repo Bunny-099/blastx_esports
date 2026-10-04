@@ -13,7 +13,7 @@ import '../providers/squad_provider.dart';
 /// MY SQUAD SCREEN (Home -> E-Sports Hub -> My Squad)
 /// ============================================================
 /// Displays user's persistent squad (4 main + 2 substitutes).
-/// Leader permissions: Remove member, Transfer leadership, Swap main/sub.
+/// Leader & Manager permissions: Remove member, Transfer leadership/ownership, Swap main/sub.
 /// Member permissions: View-only mode.
 /// Empty state handling for users without a squad.
 /// ============================================================
@@ -63,11 +63,12 @@ class MySquadScreen extends ConsumerWidget {
     WidgetRef ref,
     SquadModel squad,
   ) async {
-    final otherMembers = squad.members.where((m) => !m.isLeader).toList();
+    final isManager = squad.isManagerOwned;
+    final otherMembers = squad.members.where((m) => !(m.isLeader || m.isManager)).toList();
 
     if (otherMembers.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No other squad members available to transfer leadership.')),
+        const SnackBar(content: Text('No other squad members available to transfer ownership.')),
       );
       return;
     }
@@ -96,9 +97,15 @@ class MySquadScreen extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: 16),
-              Text('TRANSFER LEADERSHIP', style: AppTextStyles.headingXl),
+              Text(
+                isManager ? 'TRANSFER MANAGEMENT' : 'TRANSFER LEADERSHIP',
+                style: AppTextStyles.headingXl,
+              ),
               const SizedBox(height: 4),
-              Text('Select a member to become the new squad leader:', style: AppTextStyles.bodySm),
+              Text(
+                'Select a member to become the new squad ${isManager ? "manager" : "leader"}:',
+                style: AppTextStyles.bodySm,
+              ),
               const SizedBox(height: 16),
               Flexible(
                 child: ListView.builder(
@@ -132,8 +139,8 @@ class MySquadScreen extends ConsumerWidget {
     if (selectedMember != null && context.mounted) {
       final confirmed = await _confirmDialog(
         context: context,
-        title: 'Transfer Leadership?',
-        message: 'Are you sure you want to transfer leadership to ${selectedMember.name}? You will become a squad member.',
+        title: isManager ? 'Transfer Management?' : 'Transfer Leadership?',
+        message: 'Are you sure you want to transfer ${isManager ? "management" : "leadership"} to ${selectedMember.name}?',
         confirmText: 'Transfer',
       );
 
@@ -295,7 +302,7 @@ class MySquadScreen extends ConsumerWidget {
 
     final squadState = ref.watch(squadProvider);
     final squad = squadState.squad;
-    final isLeader = squadState.isLeader;
+    final isOwner = squadState.isOwner;
     final pendingInvitations = squadState.pendingInvitations;
 
     return Scaffold(
@@ -319,6 +326,9 @@ class MySquadScreen extends ConsumerWidget {
               } else if (value == 'mock_leader') {
                 mockRepo.resetToDefaultSquad();
                 ref.read(squadProvider.notifier).loadSquad();
+              } else if (value == 'mock_manager') {
+                mockRepo.resetToManagerSquad();
+                ref.read(squadProvider.notifier).loadSquad();
               } else if (value == 'mock_empty') {
                 mockRepo.resetToEmpty();
                 ref.read(squadProvider.notifier).loadSquad();
@@ -331,7 +341,17 @@ class MySquadScreen extends ConsumerWidget {
                   children: [
                     const Icon(Icons.supervisor_account_rounded, size: 18, color: AppColors.primaryNeon),
                     const SizedBox(width: 10),
-                    Text('Load Leader View (Default)', style: AppTextStyles.bodyMd),
+                    Text('Load Leader Squad (Default)', style: AppTextStyles.bodyMd),
+                  ],
+                ),
+              ),
+              PopupMenuItem(
+                value: 'mock_manager',
+                child: Row(
+                  children: [
+                    const Icon(Icons.admin_panel_settings_rounded, size: 18, color: AppColors.primaryNeon),
+                    const SizedBox(width: 10),
+                    Text('Load Manager Squad', style: AppTextStyles.bodyMd),
                   ],
                 ),
               ),
@@ -391,9 +411,32 @@ class MySquadScreen extends ConsumerWidget {
                     _buildEmptySquadState(context)
                   else ...[
                     // Squad Header Banner Card
-                    _buildSquadHeaderCard(squad, isLeader),
+                    _buildSquadHeaderCard(squad, isOwner),
 
                     const SizedBox(height: 20),
+
+                    // Manager Section (If Manager Squad)
+                    if (squad.isManagerOwned && squad.manager != null) ...[
+                      Row(
+                        children: [
+                          const Icon(Icons.admin_panel_settings_rounded,
+                              color: AppColors.primaryNeon, size: 18),
+                          const SizedBox(width: 8),
+                          Text('SQUAD MANAGER', style: AppTextStyles.headingMd),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      _buildMemberCard(
+                        context: context,
+                        ref: ref,
+                        slotLabel: 'MGR',
+                        member: squad.manager,
+                        squad: squad,
+                        isOwner: isOwner,
+                        isMain: false,
+                      ),
+                      const SizedBox(height: 20),
+                    ],
 
                     // Main Players Section Header
                     Row(
@@ -425,7 +468,7 @@ class MySquadScreen extends ConsumerWidget {
                         slotLabel: 'MAIN ${i + 1}',
                         member: i < squad.mainPlayers.length ? squad.mainPlayers[i] : null,
                         squad: squad,
-                        isLeader: isLeader,
+                        isOwner: isOwner,
                         isMain: true,
                       ),
 
@@ -466,14 +509,14 @@ class MySquadScreen extends ConsumerWidget {
                         slotLabel: 'SUB ${i + 1}',
                         member: i < squad.substitutes.length ? squad.substitutes[i] : null,
                         squad: squad,
-                        isLeader: isLeader,
+                        isOwner: isOwner,
                         isMain: false,
                       ),
 
                     const SizedBox(height: 24),
 
-                    // Leader Management Actions Panel (ONLY for Leader)
-                    if (isLeader) ...[
+                    // Management Actions Panel (ONLY for Leader / Manager Owner)
+                    if (isOwner) ...[
                       Text('SQUAD MANAGEMENT', style: AppTextStyles.headingMd),
                       const SizedBox(height: 10),
                       Row(
@@ -489,7 +532,7 @@ class MySquadScreen extends ConsumerWidget {
                           const SizedBox(width: 12),
                           Expanded(
                             child: CustomButton(
-                              text: 'TRANSFER LEADER',
+                              text: squad.isManagerOwned ? 'TRANSFER MANAGER' : 'TRANSFER LEADER',
                               isOutlined: true,
                               icon: const Icon(Icons.shield_outlined, size: 18, color: AppColors.primaryNeon),
                               onPressed: () => _showTransferLeadershipModal(context, ref, squad),
@@ -543,7 +586,7 @@ class MySquadScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Register for a tournament as a team captain or join an existing team. Your squad will be saved persistently for all future tournaments!',
+            'Register for a tournament as a Leader or Manager, or join an existing team. Your squad will be saved persistently for all future tournaments!',
             textAlign: TextAlign.center,
             style: AppTextStyles.bodyMd.copyWith(color: AppColors.textSecondary),
           ),
@@ -553,7 +596,10 @@ class MySquadScreen extends ConsumerWidget {
   }
 
   /// Squad Header Card with name, tag, role badge
-  Widget _buildSquadHeaderCard(SquadModel squad, bool isLeader) {
+  Widget _buildSquadHeaderCard(SquadModel squad, bool isOwner) {
+    final ownerName = squad.owner?.name ?? "Leader";
+    final isManager = squad.isManagerOwned;
+
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
@@ -611,7 +657,7 @@ class MySquadScreen extends ConsumerWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      'Leader: ${squad.leader?.name ?? "Leader"}',
+                      isManager ? 'Manager: $ownerName' : 'Leader: $ownerName',
                       style: AppTextStyles.bodyMd.copyWith(color: AppColors.primaryNeon),
                     ),
                   ],
@@ -623,27 +669,29 @@ class MySquadScreen extends ConsumerWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
-              color: isLeader ? AppColors.primaryNeon.withValues(alpha: 0.15) : AppColors.surfaceNavy,
+              color: isOwner ? AppColors.primaryNeon.withValues(alpha: 0.15) : AppColors.surfaceNavy,
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
-                color: isLeader ? AppColors.primaryNeon.withValues(alpha: 0.4) : AppColors.borderSubtle,
+                color: isOwner ? AppColors.primaryNeon.withValues(alpha: 0.4) : AppColors.borderSubtle,
               ),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(
-                  isLeader ? Icons.admin_panel_settings_rounded : Icons.visibility_rounded,
+                  isOwner ? Icons.admin_panel_settings_rounded : Icons.visibility_rounded,
                   size: 16,
-                  color: isLeader ? AppColors.primaryNeon : AppColors.textMuted,
+                  color: isOwner ? AppColors.primaryNeon : AppColors.textMuted,
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  isLeader
-                      ? 'LEADER PRIVILEGES • Full squad management access'
-                      : 'MEMBER VIEW • View only (Leader manages roster)',
+                  isOwner
+                      ? (isManager
+                          ? 'MANAGER PRIVILEGES • Full squad management access'
+                          : 'LEADER PRIVILEGES • Full squad management access')
+                      : 'MEMBER VIEW • View only (Owner manages roster)',
                   style: AppTextStyles.caption.copyWith(
-                    color: isLeader ? AppColors.primaryNeon : AppColors.textMuted,
+                    color: isOwner ? AppColors.primaryNeon : AppColors.textMuted,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -662,7 +710,7 @@ class MySquadScreen extends ConsumerWidget {
     required String slotLabel,
     required SquadMemberModel? member,
     required SquadModel squad,
-    required bool isLeader,
+    required bool isOwner,
     required bool isMain,
   }) {
     if (member == null) {
@@ -692,6 +740,8 @@ class MySquadScreen extends ConsumerWidget {
     }
 
     final isLeaderMember = member.isLeader;
+    final isManagerMember = member.isManager;
+    final isOwnerMember = isLeaderMember || isManagerMember;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
@@ -700,7 +750,7 @@ class MySquadScreen extends ConsumerWidget {
         color: AppColors.surfaceNavy,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isLeaderMember ? AppColors.primaryNeon.withValues(alpha: 0.5) : AppColors.borderCyan,
+          color: isOwnerMember ? AppColors.primaryNeon.withValues(alpha: 0.5) : AppColors.borderCyan,
         ),
       ),
       child: Row(
@@ -743,16 +793,16 @@ class MySquadScreen extends ConsumerWidget {
                         style: AppTextStyles.bodyLg.copyWith(fontWeight: FontWeight.bold),
                       ),
                     ),
-                    if (isLeaderMember) ...[
+                    if (isLeaderMember || isManagerMember) ...[
                       const SizedBox(width: 6),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
                         decoration: BoxDecoration(
-                          color: AppColors.primaryNeon,
+                          color: isManagerMember ? AppColors.primaryNeon : AppColors.primaryNeon,
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(
-                          'LEADER',
+                          isManagerMember ? 'MANAGER' : 'LEADER',
                           style: AppTextStyles.caption.copyWith(
                             fontSize: 8.5,
                             color: AppColors.bgNavy,
@@ -771,8 +821,8 @@ class MySquadScreen extends ConsumerWidget {
             ),
           ),
 
-          // Leader Controls on Member Card
-          if (isLeader && !isLeaderMember) ...[
+          // Controls on Member Card for Squad Owner
+          if (isOwner && !isOwnerMember) ...[
             PopupMenuButton<String>(
               icon: const Icon(Icons.more_vert_rounded, color: AppColors.textSecondary, size: 20),
               color: AppColors.surfaceElevated,
@@ -881,7 +931,7 @@ class _InvitationCard extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            'Your team leader ${invitation.leaderName} has invited you to join this tournament with ${invitation.squadName}.',
+            'Your squad leader ${invitation.leaderName} has invited you to join this tournament with ${invitation.squadName}.',
             style: AppTextStyles.bodyMd,
           ),
           const SizedBox(height: 12),

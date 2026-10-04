@@ -24,6 +24,7 @@ class MockSquadRepository implements SquadRepository {
       tag: 'AEL',
       logoUrl: 'assets/images/top_banner.jpg',
       leaderId: 'user_001',
+      ownerRole: SquadRole.leader,
       createdAt: now.subtract(const Duration(days: 30)),
       members: [
         SquadMemberModel(
@@ -117,6 +118,82 @@ class MockSquadRepository implements SquadRepository {
     _initSampleData();
   }
 
+  void resetToManagerSquad() {
+    forceEmptySquad = false;
+    final now = DateTime.now();
+    _currentSquad = SquadModel(
+      id: 'squad_omega_999',
+      name: 'OMEGA LEGENDS',
+      tag: 'OMG',
+      logoUrl: 'assets/images/top_banner.jpg',
+      leaderId: 'user_001',
+      ownerRole: SquadRole.manager,
+      createdAt: now.subtract(const Duration(days: 45)),
+      members: [
+        SquadMemberModel(
+          userId: 'user_001',
+          name: 'Apex Manager (You)',
+          avatarUrl: '',
+          ign: 'APEX_MGR',
+          uid: '100000001',
+          role: SquadRole.manager,
+          rosterType: SquadRosterType.main, // non-playing manager
+          joinedAt: now.subtract(const Duration(days: 45)),
+        ),
+        SquadMemberModel(
+          userId: 'user_002',
+          name: 'Phoenix Pro',
+          avatarUrl: '',
+          ign: '★PHOENIX★',
+          uid: '827364129',
+          role: SquadRole.member,
+          rosterType: SquadRosterType.main,
+          joinedAt: now.subtract(const Duration(days: 40)),
+        ),
+        SquadMemberModel(
+          userId: 'user_003',
+          name: 'Viper Speed',
+          avatarUrl: '',
+          ign: 'VIPER⚡99',
+          uid: '918237465',
+          role: SquadRole.member,
+          rosterType: SquadRosterType.main,
+          joinedAt: now.subtract(const Duration(days: 38)),
+        ),
+        SquadMemberModel(
+          userId: 'user_004',
+          name: 'Shadow Aim',
+          avatarUrl: '',
+          ign: 'SHADOW🎯',
+          uid: '736182940',
+          role: SquadRole.member,
+          rosterType: SquadRosterType.main,
+          joinedAt: now.subtract(const Duration(days: 35)),
+        ),
+        SquadMemberModel(
+          userId: 'user_005',
+          name: 'Ghost Force',
+          avatarUrl: '',
+          ign: 'GHOST👻',
+          uid: '625143987',
+          role: SquadRole.member,
+          rosterType: SquadRosterType.main,
+          joinedAt: now.subtract(const Duration(days: 30)),
+        ),
+        SquadMemberModel(
+          userId: 'user_006',
+          name: 'Blaze Sub',
+          avatarUrl: '',
+          ign: 'BLAZE🔥',
+          uid: '514238976',
+          role: SquadRole.member,
+          rosterType: SquadRosterType.substitute,
+          joinedAt: now.subtract(const Duration(days: 20)),
+        ),
+      ],
+    );
+  }
+
   @override
   Future<SquadModel?> getMySquad() async {
     await Future.delayed(const Duration(milliseconds: 300));
@@ -150,10 +227,11 @@ class MockSquadRepository implements SquadRepository {
     await Future.delayed(const Duration(milliseconds: 300));
     if (_currentSquad == null) throw Exception('Squad not found.');
 
+    final newRole = _currentSquad!.ownerRole;
     final updatedMembers = _currentSquad!.members.map((m) {
       if (m.userId == newLeaderId) {
-        return m.copyWith(role: SquadRole.leader);
-      } else if (m.isLeader) {
+        return m.copyWith(role: newRole);
+      } else if (m.isLeader || m.isManager) {
         return m.copyWith(role: SquadRole.member);
       }
       return m;
@@ -238,10 +316,13 @@ class MockSquadRepository implements SquadRepository {
     if (_currentSquad == null) return;
 
     final now = DateTime.now();
-    // Send invitations to the other main squad members
-    final otherMainMembers = _currentSquad!.mainPlayers.where((m) => m.userId != _currentSquad!.leaderId);
+    // For Leader: send invitations to other 3 main members (excluding Leader)
+    // For Manager: send invitations to all 4 main playing members (Manager is non-playing)
+    final inviteCandidates = _currentSquad!.isManagerOwned
+        ? _currentSquad!.mainPlayers
+        : _currentSquad!.mainPlayers.where((m) => m.userId != _currentSquad!.leaderId);
 
-    for (final member in otherMainMembers) {
+    for (final member in inviteCandidates) {
       final exists = _invitations.any(
         (i) => i.squadId == squadId && i.tournamentId == tournamentId && i.inviteeUserId == member.userId,
       );
@@ -252,7 +333,7 @@ class MockSquadRepository implements SquadRepository {
             squadId: squadId,
             squadName: _currentSquad!.name,
             leaderId: _currentSquad!.leaderId,
-            leaderName: _currentSquad!.leader?.name ?? 'Squad Leader',
+            leaderName: _currentSquad!.owner?.name ?? 'Squad Owner',
             tournamentId: tournamentId,
             tournamentName: 'Tournament #$tournamentId',
             inviteeUserId: member.userId,
@@ -280,7 +361,7 @@ class MockSquadRepository implements SquadRepository {
     );
     _invitations[index] = updated;
 
-    // Requirement 4 & 6: "Reject: the player is NOT counted, and is removed from the squad"
+    // Requirement: "Reject: the player is NOT counted, and is removed from the squad"
     if (!accept && _currentSquad != null) {
       await removeMember(_currentSquad!.id, inv.inviteeUserId);
     }

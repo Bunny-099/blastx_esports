@@ -43,7 +43,8 @@ class SquadState {
   });
 
   bool get hasSquad => squad != null;
-  bool get isLeader => squad != null && squad!.isLeader(viewerUserId);
+  bool get isLeader => squad != null && squad!.isOwner(viewerUserId);
+  bool get isOwner => isLeader;
   bool get isMember => squad != null && squad!.isMember(viewerUserId);
 
   SquadState copyWith({
@@ -113,6 +114,7 @@ class SquadNotifier extends Notifier<SquadState> {
     required String squadName,
     required String tag,
     required List<SquadMemberModel> members,
+    SquadRole ownerRole = SquadRole.leader,
   }) async {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
@@ -122,6 +124,7 @@ class SquadNotifier extends Notifier<SquadState> {
         name: squadName,
         tag: tag,
         leaderId: state.viewerUserId,
+        ownerRole: ownerRole,
         members: members,
         createdAt: now,
       );
@@ -144,8 +147,8 @@ class SquadNotifier extends Notifier<SquadState> {
 
   Future<bool> removeMember(String userId) async {
     if (state.squad == null) return false;
-    if (!state.isLeader) {
-      state = state.copyWith(errorMessage: 'Only the squad leader can remove members.');
+    if (!state.isOwner) {
+      state = state.copyWith(errorMessage: 'Only the squad leader/manager can remove members.');
       return false;
     }
 
@@ -169,8 +172,8 @@ class SquadNotifier extends Notifier<SquadState> {
 
   Future<bool> transferLeadership(String newLeaderId) async {
     if (state.squad == null) return false;
-    if (!state.isLeader) {
-      state = state.copyWith(errorMessage: 'Only the current leader can transfer leadership.');
+    if (!state.isOwner) {
+      state = state.copyWith(errorMessage: 'Only the current leader/manager can transfer ownership.');
       return false;
     }
 
@@ -180,7 +183,7 @@ class SquadNotifier extends Notifier<SquadState> {
       state = state.copyWith(
         squad: updated,
         isLoading: false,
-        successMessage: 'Leadership transferred successfully!',
+        successMessage: 'Leadership/Ownership transferred successfully!',
       );
       return true;
     } catch (e) {
@@ -194,8 +197,8 @@ class SquadNotifier extends Notifier<SquadState> {
 
   Future<bool> swapPlayers(String mainUserId, String subUserId) async {
     if (state.squad == null) return false;
-    if (!state.isLeader) {
-      state = state.copyWith(errorMessage: 'Only the squad leader can swap players.');
+    if (!state.isOwner) {
+      state = state.copyWith(errorMessage: 'Only the squad leader/manager can swap players.');
       return false;
     }
 
@@ -219,8 +222,8 @@ class SquadNotifier extends Notifier<SquadState> {
 
   Future<bool> updateMemberRole(String userId, SquadRosterType newRosterType) async {
     if (state.squad == null) return false;
-    if (!state.isLeader) {
-      state = state.copyWith(errorMessage: 'Only the squad leader can update player roles.');
+    if (!state.isOwner) {
+      state = state.copyWith(errorMessage: 'Only the squad leader/manager can update player roles.');
       return false;
     }
 
@@ -244,8 +247,8 @@ class SquadNotifier extends Notifier<SquadState> {
 
   Future<bool> sendPreviousTeamInvitations(String tournamentId) async {
     if (state.squad == null) return false;
-    if (!state.isLeader) {
-      state = state.copyWith(errorMessage: 'Only squad leaders can invite previous team members.');
+    if (!state.isOwner) {
+      state = state.copyWith(errorMessage: 'Only squad leader/manager can invite previous team members.');
       return false;
     }
 
