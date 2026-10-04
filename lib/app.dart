@@ -1,3 +1,4 @@
+import 'package:blastix_esports/core/sync/real_time_sync_manager.dart';
 import 'package:blastix_esports/core/theme/app_theme.dart';
 import 'package:blastix_esports/features/auth/presentation/login_screen.dart';
 import 'package:blastix_esports/features/home/presentation/main_screen.dart';
@@ -11,6 +12,9 @@ class MyApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Eagerly initialize RealTimeSyncManager for global 10-second smart auto-refresh & lifecycle observer
+    ref.watch(realTimeSyncManagerProvider);
+
     return MaterialApp(
       title: 'BlastiX Arena',
       debugShowCheckedModeBanner: false,

@@ -1,5 +1,6 @@
 import 'package:blastix_esports/core/api/api_client.dart';
 import 'package:blastix_esports/core/api/api_endpoints.dart';
+import 'package:blastix_esports/core/sync/real_time_sync_manager.dart';
 import 'package:blastix_esports/features/splash/providers/splash_providers.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -106,8 +107,30 @@ class TeamState {
 }
 
 class TeamNotifier extends FamilyNotifier<TeamState, String> {
+  String get _taskKey => 'my_team_$arg';
+
   @override
-  TeamState build(String arg) => const TeamState();
+  TeamState build(String arg) {
+    final syncManager = ref.watch(realTimeSyncManagerProvider);
+
+    ref.onDispose(() {
+      syncManager.unregister(_taskKey);
+    });
+
+    syncManager.register(
+      key: _taskKey,
+      fetcher: () => _repo.myTeam(arg),
+      onChanged: (data) {
+        if (data == null) {
+          state = state.copyWith(clearTeam: true);
+        } else if (data is TournamentTeamModel) {
+          state = state.copyWith(team: data);
+        }
+      },
+    );
+
+    return const TeamState();
+  }
 
   String get _tid => arg;
   TeamRepository get _repo => ref.read(teamRepositoryProvider);

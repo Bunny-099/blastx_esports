@@ -1,3 +1,4 @@
+import 'package:blastix_esports/core/sync/real_time_sync_manager.dart';
 import 'package:blastix_esports/features/live/data/models/room_details_model.dart';
 import 'package:blastix_esports/features/live/data/models/team_model.dart';
 import 'package:blastix_esports/features/live/data/models/tournament_model.dart';
@@ -9,6 +10,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 /// ============================================================
 /// Riverpod providers that supply Free Fire Live and BlastX Esports
 /// tournament data directly from dedicated API endpoints.
+/// Integrated with RealTimeSyncManager for 10-second smart auto-refresh.
 /// ============================================================
 
 /// Status filter enum for live screen filter chips
@@ -27,16 +29,29 @@ final tournamentSearchQueryProvider = searchQueryProvider;
 
 // ── 1. FREE FIRE LIVE SECTION PROVIDERS ──
 
-/// Async provider for dedicated Free Fire Live API (`/free-fire-live`)
+/// Async provider for dedicated Free Fire Live API (`/free-fire-live`) with RealTimeSyncManager auto-refresh
 final apiTournamentsProvider = FutureProvider<List<TournamentModel>>((ref) async {
   final repo = ref.watch(tournamentRepositoryProvider);
   final filter = ref.watch(statusFilterProvider);
+  final syncManager = ref.watch(realTimeSyncManagerProvider);
   final statusParam = filter == TournamentStatusFilter.all ? null : filter.name.toUpperCase();
-  final list = await repo.getFreeFireLiveTournaments(
+
+  final taskKey = 'free_fire_live_${filter.name}';
+  syncManager.register(
+    key: taskKey,
+    fetcher: () => repo.getFreeFireLiveTournaments(limit: 50, status: statusParam),
+    onChanged: (_) {
+      ref.invalidateSelf();
+    },
+  );
+  ref.onDispose(() {
+    syncManager.unregister(taskKey);
+  });
+
+  return await repo.getFreeFireLiveTournaments(
     limit: 50,
     status: statusParam,
   );
-  return list;
 });
 
 /// Main provider - list of all Free Fire Live tournaments returned from Free Fire Live API endpoint
@@ -94,6 +109,20 @@ final filteredOfficialTournamentsProvider = visibleTournamentsProvider;
 /// Async provider for dedicated BlastX LIVE Tournaments API (`/tournaments?status=LIVE`)
 final blastxLiveTournamentsApiProvider = FutureProvider<List<TournamentModel>>((ref) async {
   final repo = ref.watch(tournamentRepositoryProvider);
+  final syncManager = ref.watch(realTimeSyncManagerProvider);
+
+  const taskKey = 'blastx_tournaments_live';
+  syncManager.register(
+    key: taskKey,
+    fetcher: () => repo.getTournaments(limit: 50, status: 'LIVE'),
+    onChanged: (_) {
+      ref.invalidateSelf();
+    },
+  );
+  ref.onDispose(() {
+    syncManager.unregister(taskKey);
+  });
+
   final list = await repo.getTournaments(
     limit: 50,
     status: 'LIVE',
@@ -104,6 +133,20 @@ final blastxLiveTournamentsApiProvider = FutureProvider<List<TournamentModel>>((
 /// Async provider for dedicated BlastX UPCOMING Tournaments API (`/tournaments?status=UPCOMING`)
 final blastxUpcomingTournamentsApiProvider = FutureProvider<List<TournamentModel>>((ref) async {
   final repo = ref.watch(tournamentRepositoryProvider);
+  final syncManager = ref.watch(realTimeSyncManagerProvider);
+
+  const taskKey = 'blastx_tournaments_upcoming';
+  syncManager.register(
+    key: taskKey,
+    fetcher: () => repo.getTournaments(limit: 50, status: 'UPCOMING'),
+    onChanged: (_) {
+      ref.invalidateSelf();
+    },
+  );
+  ref.onDispose(() {
+    syncManager.unregister(taskKey);
+  });
+
   final list = await repo.getTournaments(
     limit: 50,
     status: 'UPCOMING',
@@ -114,6 +157,20 @@ final blastxUpcomingTournamentsApiProvider = FutureProvider<List<TournamentModel
 /// Async provider for dedicated BlastX Tournaments API (`/tournaments`)
 final blastxTournamentsApiProvider = FutureProvider<List<TournamentModel>>((ref) async {
   final repo = ref.watch(tournamentRepositoryProvider);
+  final syncManager = ref.watch(realTimeSyncManagerProvider);
+
+  const taskKey = 'blastx_tournaments_all';
+  syncManager.register(
+    key: taskKey,
+    fetcher: () => repo.getTournaments(limit: 50),
+    onChanged: (_) {
+      ref.invalidateSelf();
+    },
+  );
+  ref.onDispose(() {
+    syncManager.unregister(taskKey);
+  });
+
   final list = await repo.getTournaments(
     limit: 50,
   );
@@ -182,6 +239,20 @@ final filteredAppLiveTournamentsProvider = Provider<List<TournamentModel>>((ref)
 /// Async family provider - fetch / refresh a single tournament by ID directly from backend API
 final tournamentDetailApiProvider = FutureProvider.family<TournamentModel, String>((ref, id) async {
   final repo = ref.watch(tournamentRepositoryProvider);
+  final syncManager = ref.watch(realTimeSyncManagerProvider);
+
+  final taskKey = 'tournament_detail_$id';
+  syncManager.register(
+    key: taskKey,
+    fetcher: () => repo.getTournamentDetail(id),
+    onChanged: (_) {
+      ref.invalidateSelf();
+    },
+  );
+  ref.onDispose(() {
+    syncManager.unregister(taskKey);
+  });
+
   return await repo.getTournamentDetail(id);
 });
 
@@ -219,16 +290,43 @@ final filteredTournamentsProvider = Provider<List<TournamentModel>>((ref) {
   }).toList();
 });
 
-/// Family provider for fetching RoomDetailsState for a given tournament ID
+/// Family provider for fetching RoomDetailsState for a given tournament ID with real-time sync
 final roomDetailsProvider = FutureProvider.family<RoomDetailsState, String>((ref, tournamentId) async {
   final repo = ref.watch(tournamentRepositoryProvider);
+  final syncManager = ref.watch(realTimeSyncManagerProvider);
   final tournament = ref.watch(tournamentByIdProvider(tournamentId));
+
+  final taskKey = 'room_details_$tournamentId';
+  syncManager.register(
+    key: taskKey,
+    fetcher: () => repo.getRoomDetailsState(tournamentId, tournament: tournament),
+    onChanged: (_) {
+      ref.invalidateSelf();
+    },
+  );
+  ref.onDispose(() {
+    syncManager.unregister(taskKey);
+  });
+
   return repo.getRoomDetailsState(tournamentId, tournament: tournament);
 });
 
-/// Family provider for fetching registered teams list for a tournament
+/// Family provider for fetching registered teams list for a tournament with real-time sync
 final registeredTeamsProvider = FutureProvider.family<List<TournamentTeamModel>, String>((ref, tournamentId) async {
   final repo = ref.watch(tournamentRepositoryProvider);
+  final syncManager = ref.watch(realTimeSyncManagerProvider);
+
+  final taskKey = 'registered_teams_$tournamentId';
+  syncManager.register(
+    key: taskKey,
+    fetcher: () => repo.getRegisteredTeams(tournamentId),
+    onChanged: (_) {
+      ref.invalidateSelf();
+    },
+  );
+  ref.onDispose(() {
+    syncManager.unregister(taskKey);
+  });
+
   return repo.getRegisteredTeams(tournamentId);
 });
-

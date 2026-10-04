@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:blastix_esports/core/sync/real_time_sync_manager.dart';
 import '../../splash/providers/splash_providers.dart';
 import '../../tournaments/data/repositories/tournament_repository.dart';
 import '../data/models/game_profile_model.dart';
@@ -49,6 +50,8 @@ class ProfileNotifier extends Notifier<ProfileState> {
   @override
   ProfileState build() {
     final storage = ref.watch(storageServiceProvider);
+    final syncManager = ref.watch(realTimeSyncManagerProvider);
+
     final savedPath = storage.getString(_profileImageKey);
     String? initialLocalPath;
     if (savedPath != null && savedPath.isNotEmpty) {
@@ -57,6 +60,27 @@ class ProfileNotifier extends Notifier<ProfileState> {
         initialLocalPath = savedPath;
       }
     }
+
+    ref.onDispose(() {
+      syncManager.unregister('user_profile');
+    });
+
+    // Register 10s auto-refresh task for user profile with RealTimeSyncManager
+    syncManager.register(
+      key: 'user_profile',
+      fetcher: () async {
+        final repo = ref.read(userRepositoryProvider);
+        return await repo.getUserProfile();
+      },
+      onChanged: (data) {
+        if (data is UserProfileModel) {
+          state = state.copyWith(user: data);
+        } else if (data is Map) {
+          final user = UserProfileModel.fromJson(Map<String, dynamic>.from(data));
+          state = state.copyWith(user: user);
+        }
+      },
+    );
 
     // Load profile from API on initial build
     Future.microtask(() => loadProfile());

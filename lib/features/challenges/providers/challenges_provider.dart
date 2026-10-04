@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:blastix_esports/core/sync/real_time_sync_manager.dart';
 import '../../profile/data/models/rank_model.dart';
 import '../../profile/providers/profile_provider.dart';
 import '../../splash/providers/splash_providers.dart';
@@ -37,12 +38,29 @@ final activeFilterTypeProvider = StateProvider<ChallengeType?>((ref) => null);
 // Main Challenges Notifier State
 class ChallengesNotifier extends StateNotifier<List<ChallengeModel>> {
   final ChallengesRepository _repository;
+  final RealTimeSyncManager _syncManager;
   bool _isLoading = false;
 
   bool get isLoading => _isLoading;
 
-  ChallengesNotifier(this._repository) : super([]) {
+  ChallengesNotifier(this._repository, this._syncManager) : super([]) {
+    _initSync();
+  }
+
+  void _initSync() {
     loadChallenges();
+    _syncManager.register(
+      key: 'challenges',
+      fetcher: () => _repository.getChallenges(),
+      onChanged: (data) {
+        if (data is List) {
+          final list = data
+              .map((e) => e is ChallengeModel ? e : ChallengeModel.fromJson(Map<String, dynamic>.from(e as Map)))
+              .toList();
+          state = list;
+        }
+      },
+    );
   }
 
   Future<void> loadChallenges() async {
@@ -117,12 +135,19 @@ class ChallengesNotifier extends StateNotifier<List<ChallengeModel>> {
           challenge
     ];
   }
+
+  @override
+  void dispose() {
+    _syncManager.unregister('challenges');
+    super.dispose();
+  }
 }
 
 final challengesProvider =
     StateNotifierProvider<ChallengesNotifier, List<ChallengeModel>>((ref) {
   final repository = ref.watch(challengesRepositoryProvider);
-  return ChallengesNotifier(repository);
+  final syncManager = ref.watch(realTimeSyncManagerProvider);
+  return ChallengesNotifier(repository, syncManager);
 });
 
 final dailyProgressProvider = Provider<double>((ref) {

@@ -1,8 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:blastix_esports/core/sync/real_time_sync_manager.dart';
 import '../data/models/notification_item_model.dart';
 
 class NotificationNotifier extends StateNotifier<List<NotificationItemModel>> {
-  NotificationNotifier()
+  final RealTimeSyncManager? _syncManager;
+
+  NotificationNotifier([this._syncManager])
       : super([
           NotificationItemModel(
             id: '1',
@@ -28,7 +31,24 @@ class NotificationNotifier extends StateNotifier<List<NotificationItemModel>> {
             timestamp: DateTime.now().subtract(const Duration(days: 1)),
             isRead: true,
           ),
-        ]);
+        ]) {
+    _initSync();
+  }
+
+  void _initSync() {
+    _syncManager?.register(
+      key: 'notifications',
+      fetcher: () async => state.map((e) => e.toJson()).toList(),
+      onChanged: (data) {
+        if (data is List) {
+          final list = data
+              .map((e) => NotificationItemModel.fromJson(Map<String, dynamic>.from(e as Map)))
+              .toList();
+          state = list;
+        }
+      },
+    );
+  }
 
   void addNotification(NotificationItemModel item) {
     state = [item, ...state];
@@ -52,11 +72,18 @@ class NotificationNotifier extends StateNotifier<List<NotificationItemModel>> {
   void clearAll() {
     state = [];
   }
+
+  @override
+  void dispose() {
+    _syncManager?.unregister('notifications');
+    super.dispose();
+  }
 }
 
 final notificationProvider =
     StateNotifierProvider<NotificationNotifier, List<NotificationItemModel>>((ref) {
-  return NotificationNotifier();
+  final syncManager = ref.watch(realTimeSyncManagerProvider);
+  return NotificationNotifier(syncManager);
 });
 
 final unreadNotificationCountProvider = Provider<int>((ref) {
