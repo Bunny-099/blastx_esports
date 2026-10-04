@@ -56,7 +56,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                 children: [
                   const SizedBox(height: 24),
                   Text(
-                    'Create your account to join BlastIXEsports',
+                    'Create your account to join BlastiX Arena',
                     style: GoogleFonts.poppins(fontSize: 14, color: AppColors.textSecondary),
                   ),
                   const SizedBox(height: 24),

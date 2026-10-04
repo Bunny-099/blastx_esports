@@ -61,7 +61,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     children: [
                       /*
                       Text(
-                        'Login to continue to BlastIXEsports',
+                        'Login to continue to BlastiX Arena',
                         style: GoogleFonts.poppins(fontSize: 14, color: AppColors.textSecondary),
                       ),
                       const SizedBox(height: 24),
@@ -204,7 +204,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
                       Center(
                         child: Text(
-                          'Login to continue to BlastIXEsports',
+                          'Login to continue to BlastiX Arena',
                           textAlign: TextAlign.center,
                           style: GoogleFonts.poppins(
                             fontSize: 13,

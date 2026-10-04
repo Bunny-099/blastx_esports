@@ -10,7 +10,7 @@ void main() {
       ),
     );
 
-    expect(find.text('BlastIXEsports'), findsOneWidget);
+    expect(find.text('BlastiX Arena'), findsOneWidget);
     await tester.pump(const Duration(seconds: 4));
   });
 }

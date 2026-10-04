@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -6,26 +7,47 @@ class StorageService {
   SharedPreferences? _prefs;
 
   Future<void> init() async {
-    _prefs = await SharedPreferences.getInstance();
+    try {
+      _prefs = await SharedPreferences.getInstance();
+    } catch (e) {
+      debugPrint('Error initializing SharedPreferences: $e');
+    }
   }
 
   // --- Secure Token Management ---
   Future<void> saveToken(String token) async {
-    await _secureStorage.write(key: _tokenKey, value: token);
+    try {
+      await _secureStorage.write(key: _tokenKey, value: token);
+    } catch (e) {
+      debugPrint('Error saving token to secure storage: $e');
+    }
   }
 
   Future<String?> getToken() async {
-    return await _secureStorage.read(key: _tokenKey);
+    try {
+      return await _secureStorage.read(key: _tokenKey);
+    } catch (e) {
+      debugPrint('Error reading token from secure storage: $e');
+      return null;
+    }
   }
 
   Future<void> deleteToken() async {
-    await _secureStorage.delete(key: _tokenKey);
+    try {
+      await _secureStorage.delete(key: _tokenKey);
+    } catch (e) {
+      debugPrint('Error deleting token from secure storage: $e');
+    }
   }
 
   // --- General Data (JSON strings, etc.) ---
   Future<void> saveString(String key, String value) async {
-    _prefs ??= await SharedPreferences.getInstance();
-    await _prefs?.setString(key, value);
+    try {
+      _prefs ??= await SharedPreferences.getInstance();
+      await _prefs?.setString(key, value);
+    } catch (e) {
+      debugPrint('Error saving string to SharedPreferences: $e');
+    }
   }
 
   String? getString(String key) {
@@ -37,8 +59,16 @@ class StorageService {
   }
 
   Future<void> clearAll() async {
-    await _secureStorage.deleteAll();
-    await _prefs?.clear();
+    try {
+      await _secureStorage.deleteAll();
+    } catch (e) {
+      debugPrint('Error clearing secure storage: $e');
+    }
+    try {
+      await _prefs?.clear();
+    } catch (e) {
+      debugPrint('Error clearing SharedPreferences: $e');
+    }
   }
 
   static const String _tokenKey = 'auth_token';

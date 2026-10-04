@@ -49,7 +49,7 @@ class IosWaitlistDialog extends StatelessWidget {
             ),
             const SizedBox(height: 20),
             Text(
-              'BlastIX for iPhone is Coming Soon! 🚀',
+              'BlastiX Arena for iPhone is Coming Soon! 🚀',
               textAlign: TextAlign.center,
               style: GoogleFonts.poppins(
                 fontSize: 18,

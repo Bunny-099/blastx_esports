@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import '../services/device_info_service.dart';
 import '../services/storage_service.dart';
 import 'api_endpoints.dart';
@@ -23,9 +24,12 @@ class ApiClient {
 
     _dio.interceptors.add(InterceptorsWrapper(
       onRequest: (options, handler) async {
-        final token = await _storageService.getToken();
-        if (token != null) {
-          options.headers['Authorization'] = 'Bearer $token';
+        final isPublicConfig = options.path == ApiEndpoints.appInit;
+        if (!isPublicConfig) {
+          final token = await _storageService.getToken();
+          if (token != null && token.isNotEmpty) {
+            options.headers['Authorization'] = 'Bearer $token';
+          }
         }
 
         try {
@@ -36,9 +40,9 @@ class ApiClient {
         return handler.next(options);
       },
       onError: (DioException e, handler) async {
-        print('Dio Error: ${e.type} -> ${e.message}');
-        if (e.error != null) print('Dio Error Detail: ${e.error}');
-        if (e.response != null) print('Dio Error Data: ${e.response?.data}');
+        debugPrint('Dio Error: ${e.type} -> ${e.message}');
+        if (e.error != null) debugPrint('Dio Error Detail: ${e.error}');
+        if (e.response != null) debugPrint('Dio Error Data: ${e.response?.data}');
 
         if (e.response?.statusCode == 401) {
           // Auto logout on token expiry

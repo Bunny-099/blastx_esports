@@ -18,6 +18,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   late Animation<double> _logoFade;
   late Animation<double> _glowPulse;
   late Animation<double> _textFade;
+  Timer? _navTimer;
 
   @override
   void initState() {
@@ -62,6 +63,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   }
 
   Future<void> _initializeApp() async {
+    bool isLoggedIn = false;
     try {
       // 1. Fetch App Config (Maintenance/Update)
       final repository = ref.read(splashRepositoryProvider);
@@ -72,31 +74,28 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       }
 
       // 2. Check Auth Session
-      final isLoggedIn = await repository.checkUserAuth();
-
-      // 3. Navigation Logic
-      Timer(const Duration(milliseconds: 2800), () {
-        if (mounted) {
-          if (isLoggedIn) {
-            Navigator.pushReplacementNamed(context, '/home');
-          } else {
-            Navigator.pushReplacementNamed(context, '/login');
-          }
-        }
-      });
+      isLoggedIn = await repository.checkUserAuth();
     } catch (e) {
       debugPrint('Initialization Error: $e');
-      // Fallback navigation if API fails
-      Timer(const Duration(milliseconds: 2800), () {
-        if (mounted) {
-          Navigator.pushReplacementNamed(context, '/login');
-        }
-      });
+    } finally {
+      if (mounted) {
+        _navTimer?.cancel();
+        _navTimer = Timer(const Duration(milliseconds: 2200), () {
+          if (mounted) {
+            if (isLoggedIn) {
+              Navigator.pushReplacementNamed(context, '/home');
+            } else {
+              Navigator.pushReplacementNamed(context, '/login');
+            }
+          }
+        });
+      }
     }
   }
 
   @override
   void dispose() {
+    _navTimer?.cancel();
     _controller.dispose();
     super.dispose();
   }
@@ -155,7 +154,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                         shaderCallback: (bounds) => AppColors.blastixCoreGradient
                             .createShader(bounds),
                         child: const Text(
-                          'BlastIXEsports',
+                          'BlastiX Arena',
                           style: TextStyle(
                             fontSize: 30,
                             fontWeight: FontWeight.bold,

@@ -29,7 +29,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ),
         ),
         content: Text(
-          'Are you sure you want to log out of BlastIX Esports?',
+          'Are you sure you want to log out of BlastiX Arena?',
           style: GoogleFonts.poppins(
             color: AppColors.textSecondary,
             fontSize: 14,

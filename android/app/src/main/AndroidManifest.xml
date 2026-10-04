@@ -17,7 +17,7 @@
 
     <uses-feature android:name="android.hardware.camera" android:required="false" />
     <application
-        android:label="BlastIX Esports"
+        android:label="BlastiX Arena"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:usesCleartextTraffic="true"

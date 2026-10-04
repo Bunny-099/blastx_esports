@@ -261,10 +261,10 @@ class ScreenRecordService : Service() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 CHANNEL_ID,
-                "BlastIX Match Recording",
+                "BlastiX Arena Match Recording",
                 NotificationManager.IMPORTANCE_LOW
             ).apply {
-                description = "Notification displayed while BlastIX records match gameplay"
+                description = "Notification displayed while BlastiX Arena records match gameplay"
             }
             val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             manager.createNotificationChannel(channel)
@@ -273,7 +273,7 @@ class ScreenRecordService : Service() {
 
     private fun buildNotification(): Notification {
         return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("BlastIX Match Recording Active")
+            .setContentTitle("BlastiX Arena Match Recording Active")
             .setContentText("Recording Free Fire gameplay in background...")
             .setSmallIcon(applicationInfo.icon)
             .setOngoing(true)

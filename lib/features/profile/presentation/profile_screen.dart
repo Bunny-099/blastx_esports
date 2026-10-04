@@ -397,7 +397,7 @@ class ProfileScreen extends ConsumerWidget {
                         icon: Icons.ios_share_rounded,
                         onTap: () async {
                           await Clipboard.setData(
-                            ClipboardData(text: 'Blastix Esports • $username • Free Fire UID: $ffUidDisplay'),
+                            ClipboardData(text: 'BlastiX Arena • $username • Free Fire UID: $ffUidDisplay'),
                           );
                           if (context.mounted) {
                             _showSnack(context, 'Profile details & Free Fire UID copied!');

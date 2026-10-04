@@ -73,7 +73,7 @@ class TournamentTeamModel {
 
   String get shareText =>
       'Join my team "$name" for ${tournamentName.isEmpty ? 'the tournament' : tournamentName} '
-          'on BLASTX Esports! 🔥\nTeam Code: $code';
+          'on BlastiX Arena! 🔥\nTeam Code: $code';
 
   factory TournamentTeamModel.fromJson(Map<String, dynamic> json) {
     final statusRaw = ((json['registration_status'] ?? json['status']) as String? ?? 'forming').toLowerCase();
