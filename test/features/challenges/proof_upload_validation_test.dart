@@ -43,7 +43,12 @@ void main() {
     });
 
     test('ScreenRecordingService start and stop recording generates valid non-empty mp4 file', () async {
-      final service = ScreenRecordingService();
+      final service = ScreenRecordingService()..testMode = true..stopDelayMs = 0;
+
+      final tempFile = File('${tempDir.path}/test_rec_valid.mp4');
+      await tempFile.create(recursive: true);
+      await tempFile.writeAsBytes(List.filled(150 * 1024, 0));
+      service.mockRecordedFile = tempFile;
 
       final started = await service.startRecording(challengeId: 'c123');
       expect(started, isTrue);
