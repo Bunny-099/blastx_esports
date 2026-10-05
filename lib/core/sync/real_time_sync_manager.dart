@@ -102,7 +102,10 @@ class RealTimeSyncManager with WidgetsBindingObserver {
     }
   }
 
+  static bool isTestMode = false;
+
   void _startTimer() {
+    if (isTestMode) return;
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(milliseconds: SYNC_INTERVAL_MS), (_) {
       if (_isAppInForeground) {
