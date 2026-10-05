@@ -61,8 +61,16 @@ class GameLauncherService {
     }
   }
 
+  // Testing / Fake Support
+  bool testMode = false;
+  String? mockInstalledPackage = freeFireMaxPackage;
+  bool mockLaunchSuccess = true;
+
   /// Returns the installed Free Fire package name (MAX or Standard), or null if neither is installed.
   Future<String?> getInstalledPackageName({String? preferredPackage}) async {
+    if (testMode) {
+      return mockInstalledPackage;
+    }
     if (kIsWeb) return null;
 
     final packagesToCheck = <String>[];
@@ -94,6 +102,9 @@ class GameLauncherService {
 
   /// Launches the installed Free Fire game package
   Future<bool> launchGame({String packageName = freeFirePackage}) async {
+    if (testMode) {
+      return mockLaunchSuccess;
+    }
     final String? installedPkg = await getInstalledPackageName(preferredPackage: packageName);
 
     if (installedPkg != null) {

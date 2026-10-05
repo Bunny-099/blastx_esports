@@ -19,9 +19,31 @@ class ScreenRecordingService {
   int get elapsedSeconds => _elapsedSeconds;
   File? get currentVideoFile => _currentVideoFile;
 
+  // Testing / Fake Support
+  bool testMode = false;
+  bool mockPermissionGranted = true;
+  int stopDelayMs = 1500;
+  File? mockRecordedFile;
+
   /// Starts 480p match recording session
   Future<bool> startRecording({required String challengeId}) async {
     if (_isRecording) return false;
+
+    if (testMode) {
+      if (!mockPermissionGranted) {
+        _isRecording = false;
+        return false;
+      }
+      _isRecording = true;
+      _elapsedSeconds = 0;
+      if (mockRecordedFile != null) {
+        _currentVideoFile = mockRecordedFile;
+      } else {
+        final tempDir = Directory.systemTemp;
+        _currentVideoFile = File('${tempDir.path}/test_match_record_$challengeId.mp4');
+      }
+      return true;
+    }
 
     try {
       Directory tempDir;
@@ -94,6 +116,13 @@ class ScreenRecordingService {
 
     _timer?.cancel();
     _isRecording = false;
+
+    if (testMode) {
+      if (stopDelayMs > 0) {
+        await Future.delayed(Duration(milliseconds: stopDelayMs));
+      }
+      return _currentVideoFile;
+    }
 
     String? nativeStoppedPath;
     if (!kIsWeb && Platform.isAndroid) {
