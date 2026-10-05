@@ -154,7 +154,7 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 500));
 
-      expect(find.textContaining('RANK:'), findsOneWidget);
+      expect(find.textContaining('ProGamer'), findsOneWidget);
       expect(find.text('DAILY ESPORTS QUEST'), findsOneWidget);
     });
   });
