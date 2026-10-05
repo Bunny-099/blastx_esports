@@ -25,9 +25,19 @@ class _ActiveRecordingOverlayState extends ConsumerState<ActiveRecordingOverlay>
   }
 
   void _startTimer() {
+    _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (t) {
       if (mounted) {
-        setState(() => _seconds++);
+        final activeId = ref.read(activeRecordingChallengeIdProvider);
+        if (activeId != null) {
+          setState(() => _seconds++);
+        } else {
+          _timer?.cancel();
+          _timer = null;
+        }
+      } else {
+        _timer?.cancel();
+        _timer = null;
       }
     });
   }
@@ -45,7 +55,10 @@ class _ActiveRecordingOverlayState extends ConsumerState<ActiveRecordingOverlay>
   }
 
   Future<void> _handleStopAndUpload(String challengeId) async {
-    if (_seconds < 5) {
+    final hasExistingFile = ref.read(recordedVideoFileProvider) != null;
+    final recordingService = ref.read(screenRecordingServiceProvider);
+
+    if (_seconds < 5 && !hasExistingFile && !recordingService.testMode) {
       final bool? proceed = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
@@ -75,15 +88,21 @@ class _ActiveRecordingOverlayState extends ConsumerState<ActiveRecordingOverlay>
       if (proceed != true) return;
     }
 
-    final recordingService = ref.read(screenRecordingServiceProvider);
     final repository = ref.read(challengesRepositoryProvider);
 
     // 1. Loading state on karein via Riverpod taaki user wait kare
     ref.read(isUploadingProofProvider.notifier).state = true;
 
     try {
-      // 2. STOP RECORDING ko properly AWAIT karein
-      File? uploadFile = await recordingService.stopRecording();
+      // 2. Obtain recording file (reuse existing file if retrying, or stop active recorder)
+      File? uploadFile = ref.read(recordedVideoFileProvider);
+
+      if (uploadFile == null || !await uploadFile.exists()) {
+        uploadFile = await recordingService.stopRecording();
+        if (uploadFile != null && await uploadFile.exists()) {
+          ref.read(recordedVideoFileProvider.notifier).state = uploadFile;
+        }
+      }
 
       if (uploadFile == null || !await uploadFile.exists()) {
         if (mounted) {
@@ -94,6 +113,8 @@ class _ActiveRecordingOverlayState extends ConsumerState<ActiveRecordingOverlay>
             ),
           );
         }
+        ref.read(activeRecordingChallengeIdProvider.notifier).state = null;
+        ref.read(recordedVideoFileProvider.notifier).state = null;
         return;
       }
 
@@ -112,26 +133,25 @@ class _ActiveRecordingOverlayState extends ConsumerState<ActiveRecordingOverlay>
             ),
           );
         }
+        ref.read(activeRecordingChallengeIdProvider.notifier).state = null;
+        ref.read(recordedVideoFileProvider.notifier).state = null;
         return;
       }
 
       // Show Uploading SnackBar
       if (mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             backgroundColor: AppColors.surfaceNavy,
             content: Row(
               children: [
-                SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primaryNeon),
-                ),
+                Icon(Icons.cloud_upload_outlined, color: AppColors.primaryNeon, size: 20),
                 SizedBox(width: 12),
                 Text('Uploading 480p match recording to server...'),
               ],
             ),
-            duration: Duration(seconds: 3),
+            duration: Duration(seconds: 2),
           ),
         );
       }
@@ -145,8 +165,10 @@ class _ActiveRecordingOverlayState extends ConsumerState<ActiveRecordingOverlay>
       // 5. Update Challenge State to PROOF_SUBMITTED
       ref.read(challengesProvider.notifier).markProofSubmitted(challengeId);
       ref.read(activeRecordingChallengeIdProvider.notifier).state = null;
+      ref.read(recordedVideoFileProvider.notifier).state = null;
 
       if (mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             backgroundColor: AppColors.success,
@@ -162,17 +184,18 @@ class _ActiveRecordingOverlayState extends ConsumerState<ActiveRecordingOverlay>
                 ),
               ],
             ),
-            duration: const Duration(seconds: 4),
+            duration: const Duration(seconds: 3),
           ),
         );
       }
     } catch (e) {
       debugPrint('Upload proof error: $e');
       if (mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             backgroundColor: Colors.red,
-            content: Text('Upload error: $e'),
+            content: Text('Upload error: $e. Tap RETRY UPLOAD to try again.'),
           ),
         );
       }
@@ -186,9 +209,16 @@ class _ActiveRecordingOverlayState extends ConsumerState<ActiveRecordingOverlay>
   Widget build(BuildContext context) {
     final activeChallengeId = ref.watch(activeRecordingChallengeIdProvider);
     final isUploading = ref.watch(isUploadingProofProvider);
+    final recordedFile = ref.watch(recordedVideoFileProvider);
 
     if (activeChallengeId == null && !isUploading) {
+      _timer?.cancel();
+      _timer = null;
       return const SizedBox.shrink();
+    }
+
+    if (activeChallengeId != null && _timer == null) {
+      _startTimer();
     }
 
     return Container(
@@ -212,7 +242,7 @@ class _ActiveRecordingOverlayState extends ConsumerState<ActiveRecordingOverlay>
       ),
       child: Row(
         children: [
-          // Blinking REC or Cyan Uploading Indicator
+          // REC / Uploading Status Indicator
           Container(
             width: 12,
             height: 12,
@@ -220,9 +250,7 @@ class _ActiveRecordingOverlayState extends ConsumerState<ActiveRecordingOverlay>
               shape: BoxShape.circle,
               color: isUploading ? AppColors.primaryNeon : Colors.redAccent,
             ),
-          ).animate(onPlay: (c) => c.repeat(reverse: true))
-           .scale(begin: const Offset(0.8, 0.8), end: const Offset(1.2, 1.2), duration: 800.ms)
-           .fade(begin: 0.4, end: 1.0),
+          ),
 
           const SizedBox(width: 12),
 
@@ -326,7 +354,7 @@ class _ActiveRecordingOverlayState extends ConsumerState<ActiveRecordingOverlay>
                     const Icon(Icons.cloud_upload_rounded, color: AppColors.bgNavy, size: 15),
                     const SizedBox(width: 4),
                     Text(
-                      'STOP & UPLOAD',
+                      recordedFile != null ? 'RETRY UPLOAD' : 'STOP & UPLOAD',
                       style: AppTextStyles.button.copyWith(
                         color: AppColors.bgNavy,
                         fontSize: 11,

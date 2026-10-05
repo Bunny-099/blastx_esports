@@ -40,6 +40,38 @@ class _TournamentMatchRoomScreenState
       // Check game installation first
       final installedPkg = await gameLauncher.getInstalledPackageName();
 
+      if (installedPkg == null) {
+        if (mounted) {
+          final bool? openStore = await showDialog<bool>(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              backgroundColor: AppColors.surface,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              title: const Text('Free Fire Not Installed', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              content: const Text(
+                'Free Fire or Free Fire MAX is not installed on this device. Please install Free Fire to participate in tournament matches.',
+                style: TextStyle(color: AppColors.textSecondary),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx, false),
+                  child: const Text('Cancel', style: TextStyle(color: AppColors.textMuted)),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx, true),
+                  child: const Text('Open Play Store', style: TextStyle(color: AppColors.primaryNeon, fontWeight: FontWeight.bold)),
+                ),
+              ],
+            ),
+          );
+
+          if (openStore == true) {
+            await gameLauncher.openPlayStoreForFreeFire();
+          }
+        }
+        return;
+      }
+
       // 1. Start 480p Match Screen Recording FIRST
       final recordingStarted = await recordingService.startRecording(
         challengeId: widget.tournamentId,
@@ -79,12 +111,7 @@ class _TournamentMatchRoomScreenState
         }
 
         // 2. Launch Free Fire game SECOND
-        if (installedPkg != null) {
-          await gameLauncher.launchGame(packageName: installedPkg);
-        } else {
-          // Attempt fallback launch
-          await gameLauncher.launchGame(packageName: 'com.dts.freefiremax');
-        }
+        await gameLauncher.launchGame(packageName: installedPkg);
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
