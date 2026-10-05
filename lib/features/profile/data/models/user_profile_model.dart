@@ -10,6 +10,8 @@ class UserProfileModel {
   final String? profilePic;
   final String role;
   final bool isActive;
+  final bool isVip;
+  final bool crownBadgeUnlocked;
   final DateTime? createdAt;
   final GameProfileModel? gameProfile;
   final int tournamentsPlayed;
@@ -27,6 +29,8 @@ class UserProfileModel {
     this.profilePic,
     this.role = 'USER',
     this.isActive = true,
+    this.isVip = false,
+    this.crownBadgeUnlocked = false,
     this.createdAt,
     this.gameProfile,
     this.tournamentsPlayed = 0,
@@ -67,6 +71,9 @@ class UserProfileModel {
     final parsedRank = (json['rank'] as num?)?.toInt();
     final userRank = (parsedRank != null && parsedRank > 0) ? parsedRank : calculatedRank;
 
+    final parsedIsVip = (json['is_vip'] as bool?) ?? (json['isVip'] as bool?) ?? false;
+    final parsedCrownBadge = (json['crown_badge_unlocked'] as bool?) ?? (json['crownBadgeUnlocked'] as bool?) ?? false;
+
     return UserProfileModel(
       id: json['id']?.toString() ?? json['_id']?.toString() ?? '',
       name: json['name'] as String? ?? json['username'] as String? ?? '',
@@ -79,6 +86,8 @@ class UserProfileModel {
           json['avatar'] as String?,
       role: json['role'] as String? ?? 'USER',
       isActive: json['is_active'] as bool? ?? json['isActive'] as bool? ?? true,
+      isVip: parsedIsVip,
+      crownBadgeUnlocked: parsedCrownBadge,
       createdAt: json['created_at'] != null
           ? DateTime.tryParse(json['created_at'].toString())
           : (json['createdAt'] != null
@@ -109,6 +118,8 @@ class UserProfileModel {
       'profile_pic': profilePic,
       'role': role,
       'is_active': isActive,
+      'is_vip': isVip,
+      'crown_badge_unlocked': crownBadgeUnlocked,
       'created_at': createdAt?.toIso8601String(),
       if (gameProfile != null) 'game_profile': gameProfile!.toJson(),
       'tournaments_played': tournamentsPlayed,
@@ -124,6 +135,8 @@ class UserProfileModel {
     String? name,
     String? phone,
     String? profilePic,
+    bool? isVip,
+    bool? crownBadgeUnlocked,
     GameProfileModel? gameProfile,
     int? tournamentsPlayed,
     int? tournamentsWon,
@@ -143,6 +156,8 @@ class UserProfileModel {
       profilePic: profilePic ?? this.profilePic,
       role: role,
       isActive: isActive,
+      isVip: isVip ?? this.isVip,
+      crownBadgeUnlocked: crownBadgeUnlocked ?? this.crownBadgeUnlocked,
       createdAt: createdAt,
       gameProfile: gameProfile ?? this.gameProfile,
       tournamentsPlayed: tournamentsPlayed ?? this.tournamentsPlayed,

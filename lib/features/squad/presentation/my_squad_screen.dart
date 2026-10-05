@@ -401,7 +401,18 @@ class MySquadScreen extends ConsumerWidget {
                       _InvitationCard(
                         invitation: inv,
                         onAccept: () => ref.read(squadProvider.notifier).respondToInvitation(inv.id, true),
-                        onReject: () => ref.read(squadProvider.notifier).respondToInvitation(inv.id, false),
+                        onReject: () async {
+                          final ok = await _confirmDialog(
+                            context: context,
+                            title: 'Reject Tournament Invite?',
+                            message: 'Rejecting this tournament invite will permanently remove you from the persistent squad.',
+                            confirmText: 'Reject Invite',
+                            confirmColor: AppColors.error,
+                          );
+                          if (ok) {
+                            ref.read(squadProvider.notifier).respondToInvitation(inv.id, false);
+                          }
+                        },
                       ),
                     const SizedBox(height: 16),
                   ],
