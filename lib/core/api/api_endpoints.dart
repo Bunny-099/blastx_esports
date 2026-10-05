@@ -19,6 +19,17 @@ class ApiEndpoints {
   static const String userRank = '/users/me/rank';
   static String userRankByUserId(String userId) => '/users/$userId/rank';
 
+  // Home Landing Hub & Banners Endpoints
+  static const String homeBanners = '/home/banners';
+  static const String homeLiveStreams = '/home/live-streams';
+  static const String partnerInquire = '/partners/inquire';
+
+  // Admin Web Panel Integration Endpoints
+  static const String adminBanners = '/admin/banners';
+  static String adminBannerById(String id) => '/admin/banners/$id';
+  static const String adminLiveStreams = '/admin/live-streams';
+  static const String adminPartnerInquiries = '/admin/partners/inquiries';
+
   // Free Fire Live Dedicated Endpoints
   static const String freeFireLive = '/free-fire-live';
   static String freeFireLiveDetail(String tid) => '/free-fire-live/$tid';
