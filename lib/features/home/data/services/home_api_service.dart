@@ -39,6 +39,21 @@ class HomeApiService {
     return [];
   }
 
+  /// Fetch brand partners from GET /v1/home/partners
+  Future<List<PartnerItem>> getPartners() async {
+    try {
+      final response = await _apiClient.get(ApiEndpoints.homePartners);
+      if (response is List) {
+        return response
+            .map((e) => PartnerItem.fromJson(Map<String, dynamic>.from(e as Map)))
+            .toList();
+      }
+    } catch (e) {
+      debugPrint('HomeApiService.getPartners error: $e');
+    }
+    return [];
+  }
+
   /// Submit partner inquiry form payload to POST /v1/partners/inquire
   Future<bool> submitPartnerInquiry(PartnerInquiry inquiry) async {
     try {

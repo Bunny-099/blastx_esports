@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../live/providers/live_provider.dart';
 import '../../profile/providers/profile_provider.dart';
 import '../../splash/providers/splash_providers.dart';
 import '../data/models/home_data_models.dart';
@@ -11,87 +12,56 @@ final homeApiServiceProvider = Provider<HomeApiService>((ref) {
   return HomeApiService(apiClient);
 });
 
-const _defaultBanners = [
-  BannerItem(
-    id: 'banner_bgc_2026',
-    tagline: 'BHADRAK GAMING CHAMPIONSHIP',
-    title: 'BGC 2026',
-    subtitle: 'BIGGER SQUADS. BIGGER BATTLES. BHADRAK PRIDE.',
-    brandBadge: 'GAME COMMUNITY CULTURE',
-    imageUrl: 'assets/images/top_banner.jpg',
-    buttonText: 'KNOW MORE →',
-    targetTabIndex: 1, // Tournaments
-  ),
-  BannerItem(
-    id: 'banner_pro_series',
-    tagline: 'OFFICIAL TOURNAMENT SERIES',
-    title: 'PRO SERIES S4',
-    subtitle: '₹1,00,000 PRIZE POOL • FREE FIRE SQUAD',
-    brandBadge: 'BLASTIX ARENA',
-    imageUrl: 'assets/images/top_banner.jpg',
-    buttonText: 'REGISTER NOW →',
-    targetTabIndex: 1, // Tournaments
-  ),
-];
-
-const _defaultLiveStreams = [
-  LiveStreamCardItem(
-    id: 'live_pro_series_2026',
-    title: 'PRO SERIES 2026',
-    subtitle: 'Grand Finals – Day 2',
-    location: 'New Delhi, India',
-    viewerCount: '12.4K',
-    isLive: true,
-    isOfficial: true,
-    imageUrl: 'assets/images/top_banner.jpg',
-    streamUrl: 'https://youtube.com/live',
-    ctaText: 'Watch Now →',
-  ),
-  LiveStreamCardItem(
-    id: 'live_weekly_cup',
-    title: 'WEEKLY CUP S12',
-    subtitle: 'Quarter Finals • Map: Bermuda',
-    location: 'Online Tournament',
-    viewerCount: '8.1K',
-    isLive: true,
-    isOfficial: true,
-    imageUrl: 'assets/images/top_banner.jpg',
-    streamUrl: 'https://youtube.com/live',
-    ctaText: 'Watch Now →',
-  ),
-];
-
 /// FutureProvider for dynamic promotional hero banners
-/// Fetches real API data from GET /v1/home/banners with safe fallback
+/// Fetches real API data from GET /v1/home/banners. Returns empty list if no API data.
 final homeBannersProvider = FutureProvider<List<BannerItem>>((ref) async {
   final apiService = ref.watch(homeApiServiceProvider);
   final apiBanners = await apiService.getBanners();
   if (apiBanners.isNotEmpty) {
     return apiBanners;
   }
-  return _defaultBanners;
+  return const [];
 });
 
 /// FutureProvider for Live Tournament Streams
-/// Fetches real API data from GET /v1/home/live-streams with safe fallback
+/// Fetches real API data from GET /v1/home/live-streams or BlastX Live Tournaments.
+/// Returns empty list if no live tournaments exist.
 final liveStreamsProvider = FutureProvider<List<LiveStreamCardItem>>((ref) async {
   final apiService = ref.watch(homeApiServiceProvider);
   final apiStreams = await apiService.getLiveStreams();
   if (apiStreams.isNotEmpty) {
     return apiStreams;
   }
-  return _defaultLiveStreams;
+
+  // Also check real BlastX Live tournaments from backend API
+  final liveTournaments = ref.watch(appLiveTournamentsProvider);
+  if (liveTournaments.isNotEmpty) {
+    return liveTournaments.map((t) => LiveStreamCardItem(
+      id: t.id,
+      title: t.name,
+      subtitle: t.organizer.isNotEmpty ? 'By ${t.organizer}' : t.game,
+      location: t.mapName.isNotEmpty ? t.mapName : 'Online Tournament',
+      viewerCount: t.viewersCount > 0 ? '${t.viewersCount}' : '0',
+      isLive: t.isLive,
+      isOfficial: true,
+      imageUrl: t.bannerImageUrl.isNotEmpty ? t.bannerImageUrl : 'assets/images/top_banner.jpg',
+      streamUrl: t.streamUrl ?? '',
+      ctaText: 'Watch Now →',
+    )).toList();
+  }
+
+  return const [];
 });
 
-/// Provider for Brand Partners
-final partnersProvider = Provider<List<PartnerItem>>((ref) {
-  return const [
-    PartnerItem(id: 'redbull', name: 'Red Bull', icon: Icons.sports_kabaddi_rounded),
-    PartnerItem(id: 'intel', name: 'Intel', icon: Icons.memory_rounded),
-    PartnerItem(id: 'logitech', name: 'Logitech G', icon: Icons.mouse_rounded),
-    PartnerItem(id: 'zowie', name: 'ZOWIE', icon: Icons.desktop_windows_rounded),
-    PartnerItem(id: 'discord', name: 'Discord', icon: Icons.forum_rounded),
-  ];
+/// FutureProvider for Brand Partners
+/// Fetches real API data from GET /v1/home/partners. Returns empty list if no API data.
+final partnersProvider = FutureProvider<List<PartnerItem>>((ref) async {
+  final apiService = ref.watch(homeApiServiceProvider);
+  final apiPartners = await apiService.getPartners();
+  if (apiPartners.isNotEmpty) {
+    return apiPartners;
+  }
+  return const [];
 });
 
 /// Provider for Live Announcements

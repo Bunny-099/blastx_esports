@@ -22,6 +22,7 @@ class ApiEndpoints {
   // Home Landing Hub & Banners Endpoints
   static const String homeBanners = '/home/banners';
   static const String homeLiveStreams = '/home/live-streams';
+  static const String homePartners = '/home/partners';
   static const String partnerInquire = '/partners/inquire';
 
   // Admin Web Panel Integration Endpoints

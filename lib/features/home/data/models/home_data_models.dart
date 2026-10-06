@@ -97,13 +97,33 @@ class PartnerItem {
   final String name;
   final IconData? icon;
   final String? logoPath;
+  final String? logoUrl;
 
   const PartnerItem({
     required this.id,
     required this.name,
     this.icon,
     this.logoPath,
+    this.logoUrl,
   });
+
+  factory PartnerItem.fromJson(Map<String, dynamic> json) {
+    return PartnerItem(
+      id: json['id'] as String? ?? json['_id'] as String? ?? '',
+      name: json['name'] as String? ?? '',
+      logoUrl: json['logo_url'] as String? ?? json['logo'] as String? ?? json['logoUrl'] as String?,
+      logoPath: json['logo_path'] as String? ?? json['logoPath'] as String?,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'logo_url': logoUrl,
+      'logo_path': logoPath,
+    };
+  }
 }
 
 /// Model representing a Partner Inquiry Form Submission

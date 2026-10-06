@@ -86,11 +86,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final profileName = user?.name;
     final displayName = (profileName != null && profileName.trim().isNotEmpty)
         ? profileName.trim()
-        : (widget.username != 'Player' ? widget.username : 'Soumya Ranjan');
+        : (widget.username.isNotEmpty ? widget.username : 'Player');
 
     final banners = ref.watch(homeBannersProvider).value ?? [];
     final liveStreams = ref.watch(liveStreamsProvider).value ?? [];
-    final partners = ref.watch(partnersProvider);
+    final partners = ref.watch(partnersProvider).value ?? [];
 
     final showCrownBadge = user?.isVip == true || user?.crownBadgeUnlocked == true || true;
 
@@ -185,45 +185,53 @@ class _TopHeaderAppBar extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           // Left: BlastX Arena Logo & Styled Uppercase Branding
-          Row(
-            children: [
-              Image.asset(
-                'assets/logos/app_logo.png',
-                height: 32,
-                width: 32,
-                fit: BoxFit.contain,
-                errorBuilder: (context, error, stackTrace) => const Icon(
-                  Icons.bolt_rounded,
-                  color: Color(0xFF00F5FF),
-                  size: 32,
+          Expanded(
+            child: Row(
+              children: [
+                Image.asset(
+                  'assets/logos/app_logo.png',
+                  height: 32,
+                  width: 32,
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) => const Icon(
+                    Icons.bolt_rounded,
+                    color: Color(0xFF00F5FF),
+                    size: 32,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              RichText(
-                text: TextSpan(
-                  children: [
-                    TextSpan(
-                      text: 'BLASTIX ',
-                      style: GoogleFonts.orbitron(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w900,
-                        color: const Color(0xFF00F5FF),
-                        letterSpacing: 1.2,
+                const SizedBox(width: 8),
+                Flexible(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: RichText(
+                      text: TextSpan(
+                        children: [
+                          TextSpan(
+                            text: 'BLASTIX ',
+                            style: GoogleFonts.orbitron(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w900,
+                              color: const Color(0xFF00F5FF),
+                              letterSpacing: 1.2,
+                            ),
+                          ),
+                          TextSpan(
+                            text: 'ARENA',
+                            style: GoogleFonts.orbitron(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.white,
+                              letterSpacing: 1.2,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    TextSpan(
-                      text: 'ARENA',
-                      style: GoogleFonts.orbitron(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w800,
-                        color: Colors.white,
-                        letterSpacing: 1.2,
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
 
           // Right: Notification Bell Icon
@@ -394,15 +402,20 @@ class _HeroBannerCarousel extends ConsumerWidget {
                                     MainAxisAlignment.spaceBetween,
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(
-                                    banner.tagline,
-                                    style: GoogleFonts.rajdhani(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w800,
-                                      color: const Color(0xFFFFD200),
-                                      letterSpacing: 0.8,
+                                  Expanded(
+                                    child: Text(
+                                      banner.tagline,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: GoogleFonts.rajdhani(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w800,
+                                        color: const Color(0xFFFFD200),
+                                        letterSpacing: 0.8,
+                                      ),
                                     ),
                                   ),
+                                  const SizedBox(width: 8),
                                   Container(
                                     padding: const EdgeInsets.symmetric(
                                         horizontal: 8, vertical: 4),
@@ -879,42 +892,52 @@ class _LiveTournamentsSection extends ConsumerWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  const Icon(Icons.sensors_rounded,
-                      color: Color(0xFFFF2D55), size: 20),
-                  const SizedBox(width: 8),
-                  RichText(
-                    text: TextSpan(
-                      children: [
-                        TextSpan(
-                          text: 'LIVE TOURNAMENTS ',
-                          style: GoogleFonts.orbitron(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w900,
-                            color: Colors.white,
-                            letterSpacing: 0.5,
+              Expanded(
+                child: Row(
+                  children: [
+                    const Icon(Icons.sensors_rounded,
+                        color: Color(0xFFFF2D55), size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: RichText(
+                          text: TextSpan(
+                            children: [
+                              TextSpan(
+                                text: 'LIVE TOURNAMENTS ',
+                                style: GoogleFonts.orbitron(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w900,
+                                  color: Colors.white,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                              TextSpan(
+                                text: '[BLASTIX ARENA]',
+                                style: GoogleFonts.orbitron(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w800,
+                                  color: const Color(0xFFFFD200),
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                        TextSpan(
-                          text: '[BLASTIX ARENA]',
-                          style: GoogleFonts.orbitron(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w800,
-                            color: const Color(0xFFFFD200),
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
+              const SizedBox(width: 8),
               GestureDetector(
                 onTap: () {
                   ref.read(navigationIndexProvider.notifier).state = 2; // Live tab
                 },
                 child: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
                       'View All',
@@ -1080,42 +1103,49 @@ class _LiveTournamentsSection extends ConsumerWidget {
                                   mainAxisAlignment:
                                       MainAxisAlignment.spaceBetween,
                                   children: [
-                                    Row(
-                                      children: [
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                              horizontal: 6, vertical: 2),
-                                          decoration: BoxDecoration(
-                                            color: const Color(0xFF00F5FF)
-                                                .withValues(alpha: 0.2),
-                                            borderRadius:
-                                                BorderRadius.circular(6),
-                                            border: Border.all(
+                                    Expanded(
+                                      child: Row(
+                                        children: [
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 6, vertical: 2),
+                                            decoration: BoxDecoration(
                                               color: const Color(0xFF00F5FF)
-                                                  .withValues(alpha: 0.5),
-                                              width: 0.8,
+                                                  .withValues(alpha: 0.2),
+                                              borderRadius:
+                                                  BorderRadius.circular(6),
+                                              border: Border.all(
+                                                color: const Color(0xFF00F5FF)
+                                                    .withValues(alpha: 0.5),
+                                                width: 0.8,
+                                              ),
+                                            ),
+                                            child: Text(
+                                              '🛡️ Official Tournament',
+                                              style: GoogleFonts.rajdhani(
+                                                fontSize: 9.5,
+                                                fontWeight: FontWeight.w800,
+                                                color: const Color(0xFF00F5FF),
+                                              ),
                                             ),
                                           ),
-                                          child: Text(
-                                            '🛡️ Official Tournament',
-                                            style: GoogleFonts.rajdhani(
-                                              fontSize: 9.5,
-                                              fontWeight: FontWeight.w800,
-                                              color: const Color(0xFF00F5FF),
+                                          const SizedBox(width: 6),
+                                          Expanded(
+                                            child: Text(
+                                              '📍 ${stream.location}',
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: GoogleFonts.rajdhani(
+                                                fontSize: 9.5,
+                                                fontWeight: FontWeight.w700,
+                                                color: const Color(0xFF94A3B8),
+                                              ),
                                             ),
                                           ),
-                                        ),
-                                        const SizedBox(width: 6),
-                                        Text(
-                                          '📍 ${stream.location}',
-                                          style: GoogleFonts.rajdhani(
-                                            fontSize: 9.5,
-                                            fontWeight: FontWeight.w700,
-                                            color: const Color(0xFF94A3B8),
-                                          ),
-                                        ),
-                                      ],
+                                        ],
+                                      ),
                                     ),
+                                    const SizedBox(width: 6),
 
                                     // Yellow Watch Now CTA
                                     GestureDetector(
@@ -1199,6 +1229,8 @@ class _OurPartnersSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (partners.isEmpty) return const SizedBox.shrink();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1208,21 +1240,28 @@ class _OurPartnersSection extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  const Text('🤝', style: TextStyle(fontSize: 16)),
-                  const SizedBox(width: 8),
-                  Text(
-                    'OUR PARTNERS',
-                    style: GoogleFonts.orbitron(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w900,
-                      color: Colors.white,
-                      letterSpacing: 0.5,
+              Expanded(
+                child: Row(
+                  children: [
+                    const Text('🤝', style: TextStyle(fontSize: 16)),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'OUR PARTNERS',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.orbitron(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w900,
+                          color: Colors.white,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
+              const SizedBox(width: 8),
               Text(
                 'View All →',
                 style: GoogleFonts.rajdhani(
@@ -1260,8 +1299,26 @@ class _OurPartnersSection extends StatelessWidget {
                 ),
                 child: Row(
                   children: [
-                    if (partner.icon != null) ...[
+                    if (partner.logoUrl != null && partner.logoUrl!.isNotEmpty) ...[
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(6),
+                        child: Image.network(
+                          partner.logoUrl!,
+                          height: 22,
+                          width: 22,
+                          fit: BoxFit.contain,
+                          errorBuilder: (context, error, stackTrace) =>
+                              const Icon(Icons.handshake_rounded,
+                                  color: Color(0xFF00F5FF), size: 18),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                    ] else if (partner.icon != null) ...[
                       Icon(partner.icon, color: Colors.white, size: 18),
+                      const SizedBox(width: 8),
+                    ] else ...[
+                      const Icon(Icons.handshake_rounded,
+                          color: Color(0xFF00F5FF), size: 18),
                       const SizedBox(width: 8),
                     ],
                     Text(
