@@ -23,15 +23,24 @@ class BannerItem {
   });
 
   factory BannerItem.fromJson(Map<String, dynamic> json) {
+    final id = (json['id'] ?? json['_id'] ?? 'banner_1').toString();
+    final tagline = (json['tagline'] ?? json['tag_line'] ?? json['subtitle'] ?? 'BHADRAK GAMING CHAMPIONSHIP').toString();
+    final title = (json['title'] ?? json['name'] ?? 'BGC 2026').toString();
+    final subtitle = (json['subtitle'] ?? json['description'] ?? 'BIGGER SQUADS. BIGGER BATTLES. BHADRAK PRIDE.').toString();
+    final brandBadge = (json['brand_badge'] ?? json['brandBadge'] ?? json['tag'] ?? 'GAME COMMUNITY CULTURE').toString();
+    final imageUrl = (json['image_url'] ?? json['imageUrl'] ?? json['image'] ?? json['bannerUrl'] ?? json['banner_url'] ?? 'assets/images/top_banner.jpg').toString();
+    final buttonText = (json['button_text'] ?? json['buttonText'] ?? json['ctaText'] ?? json['cta_text'] ?? 'KNOW MORE →').toString();
+    final targetTabIndex = json['target_tab_index'] as int? ?? json['targetTabIndex'] as int? ?? json['targetTab'] as int? ?? 1;
+
     return BannerItem(
-      id: json['id'] as String? ?? 'banner_1',
-      tagline: json['tagline'] as String? ?? 'BHADRAK GAMING CHAMPIONSHIP',
-      title: json['title'] as String? ?? 'BGC 2026',
-      subtitle: json['subtitle'] as String? ?? 'BIGGER SQUADS. BIGGER BATTLES. BHADRAK PRIDE.',
-      brandBadge: json['brand_badge'] as String? ?? 'GAME COMMUNITY CULTURE',
-      imageUrl: json['image_url'] as String? ?? 'assets/images/top_banner.jpg',
-      buttonText: json['button_text'] as String? ?? 'KNOW MORE →',
-      targetTabIndex: json['target_tab_index'] as int? ?? 1,
+      id: id,
+      tagline: tagline,
+      title: title,
+      subtitle: subtitle,
+      brandBadge: brandBadge,
+      imageUrl: imageUrl,
+      buttonText: buttonText,
+      targetTabIndex: targetTabIndex,
     );
   }
 

@@ -209,5 +209,28 @@ void main() {
       expect(find.byType(BlastIXTournamentCard), findsOneWidget);
       expect(find.text('BlastX Grand Showdown'), findsOneWidget);
     });
+
+    testWidgets('Hero banner section is HIDDEN when backend returns empty banners',
+        (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            homeBannersProvider.overrideWith((ref) async => []),
+          ],
+          child: const MaterialApp(
+            home: HomeScreen(username: 'ProGamer'),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+
+      expect(find.text('BHADRAK GAMING CHAMPIONSHIP'), findsNothing);
+      expect(find.text('BGC 2026'), findsNothing);
+    });
   });
 }

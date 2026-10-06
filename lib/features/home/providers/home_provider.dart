@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/sync/real_time_sync_manager.dart';
 import '../../live/data/models/tournament_model.dart';
 import '../../live/providers/live_provider.dart';
 import '../../profile/providers/profile_provider.dart';
@@ -33,32 +34,44 @@ final homeFeaturedTournamentsProvider = Provider<List<TournamentModel>>((ref) {
 });
 
 /// FutureProvider for dynamic promotional hero banners
-/// Fetches real API data from GET /v1/home/banners. Returns default promotional banners if no API data.
+/// Fetches real API data from GET /v1/admin/banners?page=1&limit=20 or GET /v1/home/banners.
 final homeBannersProvider = FutureProvider<List<BannerItem>>((ref) async {
   final apiService = ref.watch(homeApiServiceProvider);
-  final apiBanners = await apiService.getBanners();
-  if (apiBanners.isNotEmpty) {
-    return apiBanners;
-  }
-  return const [
-    BannerItem(
-      id: 'banner_bgc_2026',
-      tagline: 'BHADRAK GAMING CHAMPIONSHIP',
-      title: 'BGC 2026',
-      subtitle: 'BIGGER SQUADS. BIGGER BATTLES. BHADRAK PRIDE.',
-      brandBadge: 'GAME COMMUNITY CULTURE',
-      imageUrl: 'assets/images/top_banner.jpg',
-      buttonText: 'KNOW MORE →',
-      targetTabIndex: 1,
-    ),
-  ];
+  final syncManager = ref.watch(realTimeSyncManagerProvider);
+
+  const taskKey = 'home_banners';
+  syncManager.register(
+    key: taskKey,
+    fetcher: () => apiService.getBanners(),
+    onChanged: (_) {
+      ref.invalidateSelf();
+    },
+  );
+  ref.onDispose(() {
+    syncManager.unregister(taskKey);
+  });
+
+  return await apiService.getBanners();
 });
 
 /// FutureProvider for Live Tournament Streams
 /// Fetches real API data from GET /v1/home/live-streams or BlastX Live Tournaments.
-/// Returns empty list if no live tournaments exist.
 final liveStreamsProvider = FutureProvider<List<LiveStreamCardItem>>((ref) async {
   final apiService = ref.watch(homeApiServiceProvider);
+  final syncManager = ref.watch(realTimeSyncManagerProvider);
+
+  const taskKey = 'home_live_streams';
+  syncManager.register(
+    key: taskKey,
+    fetcher: () => apiService.getLiveStreams(),
+    onChanged: (_) {
+      ref.invalidateSelf();
+    },
+  );
+  ref.onDispose(() {
+    syncManager.unregister(taskKey);
+  });
+
   final apiStreams = await apiService.getLiveStreams();
   if (apiStreams.isNotEmpty) {
     return apiStreams;
@@ -85,14 +98,24 @@ final liveStreamsProvider = FutureProvider<List<LiveStreamCardItem>>((ref) async
 });
 
 /// FutureProvider for Brand Partners
-/// Fetches real API data from GET /v1/home/partners. Returns empty list if no API data.
+/// Fetches real API data from GET /v1/home/partners.
 final partnersProvider = FutureProvider<List<PartnerItem>>((ref) async {
   final apiService = ref.watch(homeApiServiceProvider);
-  final apiPartners = await apiService.getPartners();
-  if (apiPartners.isNotEmpty) {
-    return apiPartners;
-  }
-  return const [];
+  final syncManager = ref.watch(realTimeSyncManagerProvider);
+
+  const taskKey = 'home_partners';
+  syncManager.register(
+    key: taskKey,
+    fetcher: () => apiService.getPartners(),
+    onChanged: (_) {
+      ref.invalidateSelf();
+    },
+  );
+  ref.onDispose(() {
+    syncManager.unregister(taskKey);
+  });
+
+  return await apiService.getPartners();
 });
 
 /// Provider for Live Announcements

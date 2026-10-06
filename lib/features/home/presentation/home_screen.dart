@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/transitions/fire_page_route.dart';
 import '../../live/data/models/tournament_model.dart';
+import '../../live/providers/live_provider.dart';
 import '../../notifications/presentation/notifications_screen.dart';
 import '../../notifications/providers/notification_provider.dart';
 import '../../profile/providers/profile_provider.dart';
@@ -82,6 +83,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     super.dispose();
   }
 
+  Future<void> _handleRefresh() async {
+    ref.invalidate(homeBannersProvider);
+    ref.invalidate(liveStreamsProvider);
+    ref.invalidate(partnersProvider);
+    ref.invalidate(blastxTournamentsApiProvider);
+    ref.invalidate(blastxLiveTournamentsApiProvider);
+    ref.invalidate(blastxUpcomingTournamentsApiProvider);
+    await ref.read(profileProvider.notifier).loadProfile();
+  }
+
   @override
   Widget build(BuildContext context) {
     // Watch profile for dynamic username & avatar
@@ -107,26 +118,34 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           _AmbientBackground(controller: _ambientController),
 
           SafeArea(
-            child: SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.only(bottom: 32),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+            child: RefreshIndicator(
+              color: const Color(0xFF00F5FF),
+              backgroundColor: const Color(0xFF101722),
+              onRefresh: _handleRefresh,
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(
+                  parent: BouncingScrollPhysics(),
+                ),
+                padding: const EdgeInsets.only(bottom: 32),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // 1. TOP HEADER / APP BAR
                   const _TopHeaderAppBar(),
                   const SizedBox(height: 12),
 
                   // 2. FEATURED EVENT BANNER SLIDER (HERO BANNER)
-                  _HeroBannerCarousel(
-                    banners: banners,
-                    controller: _bannerController,
-                    currentIndex: _currentBannerIndex,
-                    onPageChanged: (index) {
-                      setState(() => _currentBannerIndex = index);
-                    },
-                  ),
-                  const SizedBox(height: 16),
+                  if (banners.isNotEmpty) ...[
+                    _HeroBannerCarousel(
+                      banners: banners,
+                      controller: _bannerController,
+                      currentIndex: _currentBannerIndex,
+                      onPageChanged: (index) {
+                        setState(() => _currentBannerIndex = index);
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                  ],
 
                   // 3. USER PROFILE GREETING CARD (POSITIONED BELOW HERO BANNER)
                   Padding(
@@ -171,10 +190,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               ),
             ),
           ),
-        ],
-      ),
-    );
-  }
+        ),
+      ],
+    ),
+  );
+}
 }
 
 /// ------------------------------------------------------------

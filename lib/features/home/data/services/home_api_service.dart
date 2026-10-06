@@ -8,31 +8,79 @@ class HomeApiService {
 
   HomeApiService(this._apiClient);
 
-  /// Fetch dynamic promotional hero banners from GET /v1/home/banners
+  /// Fetch dynamic promotional hero banners from GET /v1/admin/banners?page=1&limit=20 or GET /v1/home/banners
   Future<List<BannerItem>> getBanners() async {
     try {
-      final response = await _apiClient.get(ApiEndpoints.homeBanners);
-      if (response is List) {
-        return response
-            .map((e) => BannerItem.fromJson(Map<String, dynamic>.from(e as Map)))
-            .toList();
+      dynamic response;
+      try {
+        response = await _apiClient.get(
+          ApiEndpoints.adminBanners,
+          queryParameters: {'page': 1, 'limit': 20},
+        );
+      } catch (_) {
+        response = await _apiClient.get(ApiEndpoints.homeBanners);
       }
+
+      List itemsList = [];
+      if (response is List) {
+        itemsList = response;
+      } else if (response is Map) {
+        if (response['banners'] is List) {
+          itemsList = response['banners'] as List;
+        } else if (response['data'] is List) {
+          itemsList = response['data'] as List;
+        } else if (response['docs'] is List) {
+          itemsList = response['docs'] as List;
+        } else if (response['items'] is List) {
+          itemsList = response['items'] as List;
+        } else if (response['results'] is List) {
+          itemsList = response['results'] as List;
+        }
+      }
+
+      return itemsList
+          .where((e) =>
+              e is Map &&
+              (e['isActive'] ?? e['is_active'] ?? true) != false &&
+              e['status'] != 'inactive')
+          .map((e) => BannerItem.fromJson(Map<String, dynamic>.from(e as Map)))
+          .toList();
     } catch (e) {
       debugPrint('HomeApiService.getBanners error: $e');
     }
     return [];
   }
 
-  /// Fetch live tournament stream cards from GET /v1/home/live-streams
+  /// Fetch live tournament stream cards from GET /v1/home/live-streams or GET /v1/admin/live-streams
   Future<List<LiveStreamCardItem>> getLiveStreams() async {
     try {
-      final response = await _apiClient.get(ApiEndpoints.homeLiveStreams);
-      if (response is List) {
-        return response
-            .map((e) =>
-                LiveStreamCardItem.fromJson(Map<String, dynamic>.from(e as Map)))
-            .toList();
+      dynamic response;
+      try {
+        response = await _apiClient.get(ApiEndpoints.homeLiveStreams);
+      } catch (_) {
+        response = await _apiClient.get(ApiEndpoints.adminLiveStreams);
       }
+
+      List itemsList = [];
+      if (response is List) {
+        itemsList = response;
+      } else if (response is Map) {
+        if (response['streams'] is List) {
+          itemsList = response['streams'] as List;
+        } else if (response['data'] is List) {
+          itemsList = response['data'] as List;
+        } else if (response['docs'] is List) {
+          itemsList = response['docs'] as List;
+        } else if (response['items'] is List) {
+          itemsList = response['items'] as List;
+        }
+      }
+
+      return itemsList
+          .where((e) => e is Map)
+          .map((e) =>
+              LiveStreamCardItem.fromJson(Map<String, dynamic>.from(e as Map)))
+          .toList();
     } catch (e) {
       debugPrint('HomeApiService.getLiveStreams error: $e');
     }
@@ -43,11 +91,25 @@ class HomeApiService {
   Future<List<PartnerItem>> getPartners() async {
     try {
       final response = await _apiClient.get(ApiEndpoints.homePartners);
+      List itemsList = [];
       if (response is List) {
-        return response
-            .map((e) => PartnerItem.fromJson(Map<String, dynamic>.from(e as Map)))
-            .toList();
+        itemsList = response;
+      } else if (response is Map) {
+        if (response['partners'] is List) {
+          itemsList = response['partners'] as List;
+        } else if (response['data'] is List) {
+          itemsList = response['data'] as List;
+        } else if (response['docs'] is List) {
+          itemsList = response['docs'] as List;
+        } else if (response['items'] is List) {
+          itemsList = response['items'] as List;
+        }
       }
+
+      return itemsList
+          .where((e) => e is Map)
+          .map((e) => PartnerItem.fromJson(Map<String, dynamic>.from(e as Map)))
+          .toList();
     } catch (e) {
       debugPrint('HomeApiService.getPartners error: $e');
     }
