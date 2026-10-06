@@ -1,6 +1,8 @@
 import 'package:blastix_esports/features/home/data/models/home_data_models.dart';
 import 'package:blastix_esports/features/home/presentation/home_screen.dart';
 import 'package:blastix_esports/features/home/providers/home_provider.dart';
+import 'package:blastix_esports/features/live/data/models/tournament_model.dart';
+import 'package:blastix_esports/features/tournaments/presentation/widgets/blastix_tournament_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -12,6 +14,24 @@ void main() {
   setUpAll(() {
     SharedPreferences.setMockInitialValues({});
   });
+
+  final sampleTournament = TournamentModel(
+    id: 'tourney_test_01',
+    name: 'BlastX Grand Showdown',
+    game: 'Free Fire',
+    mode: 'SQUAD',
+    status: TournamentStatus.live,
+    bannerImageUrl: 'assets/images/top_banner.jpg',
+    gameLogoUrl: 'assets/logos/app_logo.png',
+    prizePool: 50000,
+    entryFee: 0,
+    maxSlots: 48,
+    registeredCount: 32,
+    viewersCount: 1200,
+    startTime: DateTime.now(),
+    startsAt: DateTime.now(),
+    organizer: 'BlastX Esports',
+  );
 
   const sampleLiveStream = LiveStreamCardItem(
     id: 'stream_01',
@@ -99,7 +119,7 @@ void main() {
       expect(find.text('BlastX Live Showdown'), findsOneWidget);
     });
 
-    testWidgets('Live Tournaments Section is HIDDEN when no streams are active',
+    testWidgets('Live Tournaments Section is HIDDEN when no streams or tournaments are active',
         (WidgetTester tester) async {
       tester.view.physicalSize = const Size(1080, 2400);
       tester.view.devicePixelRatio = 1.0;
@@ -109,6 +129,7 @@ void main() {
         ProviderScope(
           overrides: [
             liveStreamsProvider.overrideWith((ref) => []),
+            homeFeaturedTournamentsProvider.overrideWith((ref) => []),
           ],
           child: const MaterialApp(
             home: HomeScreen(username: 'ProGamer'),
@@ -164,6 +185,29 @@ void main() {
       await tester.pump(const Duration(milliseconds: 500));
 
       expect(find.text('OUR PARTNERS'), findsNothing);
+    });
+
+    testWidgets('Featured section renders BlastIXTournamentCard for BlastX tournaments',
+        (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            homeFeaturedTournamentsProvider.overrideWith((ref) => [sampleTournament]),
+          ],
+          child: const MaterialApp(
+            home: HomeScreen(username: 'ProGamer'),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+
+      expect(find.byType(BlastIXTournamentCard), findsOneWidget);
+      expect(find.text('BlastX Grand Showdown'), findsOneWidget);
     });
   });
 }

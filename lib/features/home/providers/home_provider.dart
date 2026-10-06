@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../live/data/models/tournament_model.dart';
 import '../../live/providers/live_provider.dart';
 import '../../profile/providers/profile_provider.dart';
 import '../../splash/providers/splash_providers.dart';
@@ -12,15 +13,45 @@ final homeApiServiceProvider = Provider<HomeApiService>((ref) {
   return HomeApiService(apiClient);
 });
 
+/// Provider for Featured BlastX Tournaments displayed on Home Screen
+final homeFeaturedTournamentsProvider = Provider<List<TournamentModel>>((ref) {
+  final liveTournaments = ref.watch(appLiveTournamentsProvider);
+  final upcomingTournaments = ref.watch(appUpcomingTournamentsProvider);
+  final allTournaments = ref.watch(appTournamentsProvider);
+
+  if (liveTournaments.isNotEmpty || upcomingTournaments.isNotEmpty) {
+    return [...liveTournaments, ...upcomingTournaments];
+  }
+  if (allTournaments.isNotEmpty) {
+    return allTournaments;
+  }
+  final ffLive = ref.watch(officialTournamentsProvider);
+  if (ffLive.isNotEmpty) {
+    return ffLive;
+  }
+  return const [];
+});
+
 /// FutureProvider for dynamic promotional hero banners
-/// Fetches real API data from GET /v1/home/banners. Returns empty list if no API data.
+/// Fetches real API data from GET /v1/home/banners. Returns default promotional banners if no API data.
 final homeBannersProvider = FutureProvider<List<BannerItem>>((ref) async {
   final apiService = ref.watch(homeApiServiceProvider);
   final apiBanners = await apiService.getBanners();
   if (apiBanners.isNotEmpty) {
     return apiBanners;
   }
-  return const [];
+  return const [
+    BannerItem(
+      id: 'banner_bgc_2026',
+      tagline: 'BHADRAK GAMING CHAMPIONSHIP',
+      title: 'BGC 2026',
+      subtitle: 'BIGGER SQUADS. BIGGER BATTLES. BHADRAK PRIDE.',
+      brandBadge: 'GAME COMMUNITY CULTURE',
+      imageUrl: 'assets/images/top_banner.jpg',
+      buttonText: 'KNOW MORE →',
+      targetTabIndex: 1,
+    ),
+  ];
 });
 
 /// FutureProvider for Live Tournament Streams

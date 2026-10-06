@@ -5,10 +5,12 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/transitions/fire_page_route.dart';
+import '../../live/data/models/tournament_model.dart';
 import '../../notifications/presentation/notifications_screen.dart';
 import '../../notifications/providers/notification_provider.dart';
 import '../../profile/providers/profile_provider.dart';
 import '../../squad/presentation/my_squad_screen.dart';
+import '../../tournaments/presentation/widgets/blastix_tournament_card.dart';
 import '../data/models/home_data_models.dart';
 import '../providers/home_provider.dart';
 import '../providers/navigation_provider.dart';
@@ -58,9 +60,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   void _startAutoCarousel() {
     _carouselTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
       if (!mounted) return;
+      final featuredTournaments = ref.read(homeFeaturedTournamentsProvider);
       final banners = ref.read(homeBannersProvider).value ?? [];
-      if (banners.isEmpty) return;
-      final nextIndex = (_currentBannerIndex + 1) % banners.length;
+      final count = featuredTournaments.isNotEmpty ? featuredTournaments.length : banners.length;
+      if (count == 0) return;
+      final nextIndex = (_currentBannerIndex + 1) % count;
       _bannerController.animateToPage(
         nextIndex,
         duration: const Duration(milliseconds: 600),
@@ -88,6 +92,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         ? profileName.trim()
         : (widget.username.isNotEmpty ? widget.username : 'Player');
 
+    final featuredTournaments = ref.watch(homeFeaturedTournamentsProvider);
     final banners = ref.watch(homeBannersProvider).value ?? [];
     final liveStreams = ref.watch(liveStreamsProvider).value ?? [];
     final partners = ref.watch(partnersProvider).value ?? [];
@@ -141,8 +146,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   ),
                   const SizedBox(height: 24),
 
-                  // 5. LIVE TOURNAMENTS SECTION [BLASTIX ARENA]
+                  // 5. LIVE TOURNAMENTS SECTION [BLASTIX ARENA] - REUSING BLASTIX TOURNAMENT CARD
                   _LiveTournamentsSection(
+                    tournaments: featuredTournaments,
                     streams: liveStreams,
                     controller: _streamController,
                     currentIndex: _currentStreamIndex,
@@ -367,12 +373,19 @@ class _HeroBannerCarousel extends ConsumerWidget {
                       fit: StackFit.expand,
                       children: [
                         // Background Graphic Image
-                        Image.asset(
-                          banner.imageUrl,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) =>
-                              Container(color: const Color(0xFF141F30)),
-                        ),
+                        (banner.imageUrl.startsWith('http'))
+                            ? Image.network(
+                                banner.imageUrl,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) =>
+                                    Image.asset('assets/images/top_banner.jpg', fit: BoxFit.cover),
+                              )
+                            : Image.asset(
+                                banner.imageUrl,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) =>
+                                    Container(color: const Color(0xFF141F30)),
+                              ),
 
                         // Gradient Overlays
                         Container(
@@ -389,7 +402,7 @@ class _HeroBannerCarousel extends ConsumerWidget {
                           ),
                         ),
 
-                        // Banner Content Layout (matching screenshot)
+                        // Banner Content Layout
                         Padding(
                           padding: const EdgeInsets.all(14),
                           child: Column(
@@ -525,27 +538,27 @@ class _HeroBannerCarousel extends ConsumerWidget {
             },
           ),
         ),
-        const SizedBox(height: 10),
-
-        // Indicator Dots
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: List.generate(banners.length, (index) {
-            final isSelected = currentIndex == index;
-            return AnimatedContainer(
-              duration: const Duration(milliseconds: 300),
-              margin: const EdgeInsets.symmetric(horizontal: 3),
-              height: 6,
-              width: isSelected ? 20 : 6,
-              decoration: BoxDecoration(
-                color: isSelected
-                    ? const Color(0xFF00F5FF)
-                    : Colors.white.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(3),
-              ),
-            );
-          }),
-        ),
+        if (banners.length > 1) ...[
+          const SizedBox(height: 10),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(banners.length, (index) {
+              final isSelected = currentIndex == index;
+              return AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                margin: const EdgeInsets.symmetric(horizontal: 3),
+                height: 6,
+                width: isSelected ? 20 : 6,
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? const Color(0xFF00F5FF)
+                      : Colors.white.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(3),
+                ),
+              );
+            }),
+          ),
+        ],
       ],
     );
   }
@@ -864,16 +877,18 @@ class _QuickCardData {
 }
 
 /// ------------------------------------------------------------
-/// 5. LIVE TOURNAMENTS SECTION [BLASTIX ARENA]
+/// 5. LIVE TOURNAMENTS SECTION [BLASTIX ARENA] - REUSING BLASTIX TOURNAMENT CARD
 /// ------------------------------------------------------------
 class _LiveTournamentsSection extends ConsumerWidget {
   const _LiveTournamentsSection({
-    required this.streams,
+    this.tournaments = const [],
+    this.streams = const [],
     required this.controller,
     required this.currentIndex,
     required this.onPageChanged,
   });
 
+  final List<TournamentModel> tournaments;
   final List<LiveStreamCardItem> streams;
   final PageController controller;
   final int currentIndex;
@@ -881,7 +896,12 @@ class _LiveTournamentsSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    if (streams.isEmpty) return const SizedBox.shrink();
+    final hasTournaments = tournaments.isNotEmpty;
+    final hasStreams = streams.isNotEmpty;
+
+    if (!hasTournaments && !hasStreams) return const SizedBox.shrink();
+
+    final totalCount = hasTournaments ? tournaments.length : streams.length;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -934,7 +954,7 @@ class _LiveTournamentsSection extends ConsumerWidget {
               const SizedBox(width: 8),
               GestureDetector(
                 onTap: () {
-                  ref.read(navigationIndexProvider.notifier).state = 2; // Live tab
+                  ref.read(navigationIndexProvider.notifier).state = 1; // Tournaments tab
                 },
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -958,14 +978,30 @@ class _LiveTournamentsSection extends ConsumerWidget {
         ),
         const SizedBox(height: 12),
 
-        // Horizontal Carousel of Live Stream Cards
+        // Horizontal Carousel (Reusing BlastIXTournamentCard for Tournaments)
         SizedBox(
           height: 180,
           child: PageView.builder(
             controller: controller,
             onPageChanged: onPageChanged,
-            itemCount: streams.length,
+            itemCount: totalCount,
             itemBuilder: (context, index) {
+              if (hasTournaments) {
+                final tournament = tournaments[index];
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: BlastIXTournamentCard(
+                    tournament: tournament,
+                    onTap: () {
+                      Navigator.of(context).pushNamed(
+                        '/tournament-detail',
+                        arguments: tournament.id,
+                      );
+                    },
+                  ),
+                );
+              }
+
               final stream = streams[index];
               return Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -982,15 +1018,12 @@ class _LiveTournamentsSection extends ConsumerWidget {
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
-                      // Stream Background Image
                       Image.asset(
                         stream.imageUrl,
                         fit: BoxFit.cover,
                         errorBuilder: (context, error, stackTrace) =>
                             Container(color: const Color(0xFF1E293B)),
                       ),
-
-                      // Dark Overlay
                       Container(
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
@@ -1004,19 +1037,15 @@ class _LiveTournamentsSection extends ConsumerWidget {
                           ),
                         ),
                       ),
-
-                      // Card Content
                       Padding(
                         padding: const EdgeInsets.all(12),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            // Top Row: LIVE Badge & Viewers Chip
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                // LIVE Badge
                                 Container(
                                   padding: const EdgeInsets.symmetric(
                                       horizontal: 8, vertical: 3),
@@ -1042,8 +1071,6 @@ class _LiveTournamentsSection extends ConsumerWidget {
                                     ],
                                   ),
                                 ),
-
-                                // Translucent Viewers Chip
                                 Container(
                                   padding: const EdgeInsets.symmetric(
                                       horizontal: 8, vertical: 3),
@@ -1073,8 +1100,6 @@ class _LiveTournamentsSection extends ConsumerWidget {
                                 ),
                               ],
                             ),
-
-                            // Stream Title & Subtitle Stack
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
@@ -1097,8 +1122,6 @@ class _LiveTournamentsSection extends ConsumerWidget {
                                   ),
                                 ),
                                 const SizedBox(height: 6),
-
-                                // Tags Row + CTA Button
                                 Row(
                                   mainAxisAlignment:
                                       MainAxisAlignment.spaceBetween,
@@ -1146,8 +1169,6 @@ class _LiveTournamentsSection extends ConsumerWidget {
                                       ),
                                     ),
                                     const SizedBox(width: 6),
-
-                                    // Yellow Watch Now CTA
                                     GestureDetector(
                                       onTap: () {
                                         ref
@@ -1196,24 +1217,25 @@ class _LiveTournamentsSection extends ConsumerWidget {
         const SizedBox(height: 8),
 
         // Indicator Dots
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: List.generate(streams.length, (index) {
-            final isSelected = currentIndex == index;
-            return AnimatedContainer(
-              duration: const Duration(milliseconds: 300),
-              margin: const EdgeInsets.symmetric(horizontal: 3),
-              height: 5,
-              width: isSelected ? 16 : 5,
-              decoration: BoxDecoration(
-                color: isSelected
-                    ? const Color(0xFF00F5FF)
-                    : Colors.white.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(3),
-              ),
-            );
-          }),
-        ),
+        if (totalCount > 1)
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(totalCount, (index) {
+              final isSelected = currentIndex == index;
+              return AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                margin: const EdgeInsets.symmetric(horizontal: 3),
+                height: 5,
+                width: isSelected ? 16 : 5,
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? const Color(0xFF00F5FF)
+                      : Colors.white.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(3),
+                ),
+              );
+            }),
+          ),
       ],
     );
   }
