@@ -13,23 +13,30 @@ class BannerItem {
 
   const BannerItem({
     required this.id,
-    this.tagline = 'BHADRAK GAMING CHAMPIONSHIP',
-    required this.title,
-    required this.subtitle,
-    this.brandBadge = 'GAME COMMUNITY CULTURE',
+    this.tagline = '',
+    this.title = '',
+    this.subtitle = '',
+    this.brandBadge = '',
     required this.imageUrl,
-    this.buttonText = 'KNOW MORE →',
-    required this.targetTabIndex,
+    this.buttonText = '',
+    this.targetTabIndex = 1,
   });
+
+  /// Helper getter to check if banner has any overlay text content
+  bool get hasOverlayText =>
+      tagline.trim().isNotEmpty ||
+      title.trim().isNotEmpty ||
+      subtitle.trim().isNotEmpty ||
+      brandBadge.trim().isNotEmpty;
 
   factory BannerItem.fromJson(Map<String, dynamic> json) {
     final id = (json['id'] ?? json['_id'] ?? 'banner_1').toString();
-    final tagline = (json['tagline'] ?? json['tag_line'] ?? json['subtitle'] ?? 'BHADRAK GAMING CHAMPIONSHIP').toString();
-    final title = (json['title'] ?? json['name'] ?? 'BGC 2026').toString();
-    final subtitle = (json['subtitle'] ?? json['description'] ?? 'BIGGER SQUADS. BIGGER BATTLES. BHADRAK PRIDE.').toString();
-    final brandBadge = (json['brand_badge'] ?? json['brandBadge'] ?? json['tag'] ?? 'GAME COMMUNITY CULTURE').toString();
+    final tagline = (json['tagline'] ?? json['tag_line'] ?? '').toString();
+    final title = (json['title'] ?? json['name'] ?? '').toString();
+    final subtitle = (json['subtitle'] ?? json['description'] ?? '').toString();
+    final brandBadge = (json['brand_badge'] ?? json['brandBadge'] ?? json['tag'] ?? '').toString();
     final imageUrl = (json['image_url'] ?? json['imageUrl'] ?? json['image'] ?? json['bannerUrl'] ?? json['banner_url'] ?? 'assets/images/top_banner.jpg').toString();
-    final buttonText = (json['button_text'] ?? json['buttonText'] ?? json['ctaText'] ?? json['cta_text'] ?? 'KNOW MORE →').toString();
+    final buttonText = (json['button_text'] ?? json['buttonText'] ?? json['ctaText'] ?? json['cta_text'] ?? '').toString();
     final targetTabIndex = json['target_tab_index'] as int? ?? json['targetTabIndex'] as int? ?? json['targetTab'] as int? ?? 1;
 
     return BannerItem(

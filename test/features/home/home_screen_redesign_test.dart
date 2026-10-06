@@ -232,5 +232,55 @@ void main() {
       expect(find.text('BHADRAK GAMING CHAMPIONSHIP'), findsNothing);
       expect(find.text('BGC 2026'), findsNothing);
     });
+
+    testWidgets('Hero banner renders image cleanly without button when button_text is removed/empty',
+        (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+
+      const pureImageBanner = BannerItem(
+        id: 'banner_pure_img',
+        imageUrl: 'assets/images/top_banner.jpg',
+        targetTabIndex: 1,
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            homeBannersProvider.overrideWith((ref) async => [pureImageBanner]),
+          ],
+          child: const MaterialApp(
+            home: HomeScreen(username: 'ProGamer'),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+
+      // Button should NOT exist
+      expect(find.text('KNOW MORE →'), findsNothing);
+      expect(find.text('KNOW MORE'), findsNothing);
+
+      // Verify BannerItem.hasOverlayText helper
+      expect(pureImageBanner.hasOverlayText, false);
+    });
+
+    test('BannerItem parses optional json fields without forcing dummy defaults', () {
+      final json = {
+        'id': 'b1',
+        'image_url': 'https://cdn.blastx.gg/banner.jpg',
+      };
+      final item = BannerItem.fromJson(json);
+
+      expect(item.id, 'b1');
+      expect(item.imageUrl, 'https://cdn.blastx.gg/banner.jpg');
+      expect(item.title, '');
+      expect(item.subtitle, '');
+      expect(item.tagline, '');
+      expect(item.brandBadge, '');
+      expect(item.buttonText, '');
+      expect(item.hasOverlayText, false);
+    });
   });
 }

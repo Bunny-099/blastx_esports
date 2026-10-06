@@ -407,149 +407,125 @@ class _HeroBannerCarousel extends ConsumerWidget {
                                     Container(color: const Color(0xFF141F30)),
                               ),
 
-                        // Gradient Overlays
-                        Container(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [
-                                Colors.black.withValues(alpha: 0.85),
-                                Colors.black.withValues(alpha: 0.4),
-                                Colors.black.withValues(alpha: 0.85),
-                              ],
-                              begin: Alignment.centerLeft,
-                              end: Alignment.centerRight,
+                        // Soft Gradient Overlay (Only applied when overlay text exists)
+                        if (banner.hasOverlayText)
+                          Container(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [
+                                  Colors.black.withValues(alpha: 0.75),
+                                  Colors.black.withValues(alpha: 0.25),
+                                  Colors.black.withValues(alpha: 0.65),
+                                ],
+                                begin: Alignment.centerLeft,
+                                end: Alignment.centerRight,
+                              ),
                             ),
                           ),
-                        ),
 
-                        // Banner Content Layout
-                        Padding(
-                          padding: const EdgeInsets.all(14),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              // Top Row: Tagline & Top Right Brand Badge
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      banner.tagline,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: GoogleFonts.rajdhani(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w800,
-                                        color: const Color(0xFFFFD200),
-                                        letterSpacing: 0.8,
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 8, vertical: 4),
-                                    decoration: BoxDecoration(
-                                      color: Colors.black.withValues(alpha: 0.6),
-                                      borderRadius: BorderRadius.circular(6),
-                                      border: Border.all(
-                                        color: const Color(0xFF00F5FF)
-                                            .withValues(alpha: 0.5),
-                                        width: 0.8,
-                                      ),
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        const Icon(Icons.bolt_rounded,
-                                            color: Color(0xFF00F5FF), size: 12),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          banner.brandBadge,
-                                          style: GoogleFonts.orbitron(
-                                            fontSize: 7.5,
+                        // Banner Content Layout (Optional Text Overlay)
+                        if (banner.hasOverlayText)
+                          Padding(
+                            padding: const EdgeInsets.all(14),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                // Top Row: Optional Tagline & Top Right Brand Badge
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    if (banner.tagline.isNotEmpty)
+                                      Expanded(
+                                        child: Text(
+                                          banner.tagline,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: GoogleFonts.rajdhani(
+                                            fontSize: 11,
                                             fontWeight: FontWeight.w800,
-                                            color: Colors.white,
-                                            letterSpacing: 0.5,
+                                            color: const Color(0xFFFFD200),
+                                            letterSpacing: 0.8,
                                           ),
                                         ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-
-                              // Middle Title & Subtitle Stack
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    banner.title,
-                                    style: GoogleFonts.orbitron(
-                                      fontSize: 24,
-                                      fontWeight: FontWeight.w900,
-                                      color: Colors.white,
-                                      letterSpacing: 1.5,
-                                      shadows: [
-                                        const Shadow(
-                                          color: Color(0xFF00F5FF),
-                                          blurRadius: 10,
+                                      )
+                                    else
+                                      const Spacer(),
+                                    if (banner.brandBadge.isNotEmpty) ...[
+                                      const SizedBox(width: 8),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 8, vertical: 4),
+                                        decoration: BoxDecoration(
+                                          color: Colors.black.withValues(alpha: 0.6),
+                                          borderRadius: BorderRadius.circular(6),
+                                          border: Border.all(
+                                            color: const Color(0xFF00F5FF)
+                                                .withValues(alpha: 0.5),
+                                            width: 0.8,
+                                          ),
                                         ),
-                                      ],
-                                    ),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    banner.subtitle,
-                                    style: GoogleFonts.rajdhani(
-                                      fontSize: 11.5,
-                                      fontWeight: FontWeight.w700,
-                                      color: const Color(0xFFCBD5E1),
-                                      letterSpacing: 0.5,
-                                    ),
-                                  ),
-                                ],
-                              ),
-
-                              // Bottom CTA Pill Button
-                              Align(
-                                alignment: Alignment.bottomLeft,
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 14, vertical: 6),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFFFD200),
-                                    borderRadius: BorderRadius.circular(20),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: const Color(0xFFFFD200)
-                                            .withValues(alpha: 0.4),
-                                        blurRadius: 8,
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            const Icon(Icons.bolt_rounded,
+                                                color: Color(0xFF00F5FF), size: 12),
+                                            const SizedBox(width: 4),
+                                            Text(
+                                              banner.brandBadge,
+                                              style: GoogleFonts.orbitron(
+                                                fontSize: 7.5,
+                                                fontWeight: FontWeight.w800,
+                                                color: Colors.white,
+                                                letterSpacing: 0.5,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
                                       ),
                                     ],
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
+                                  ],
+                                ),
+
+                                // Title & Subtitle Stack
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    if (banner.title.isNotEmpty)
                                       Text(
-                                        banner.buttonText,
-                                        style: GoogleFonts.rajdhani(
-                                          fontSize: 12,
+                                        banner.title,
+                                        style: GoogleFonts.orbitron(
+                                          fontSize: 22,
                                           fontWeight: FontWeight.w900,
-                                          color: Colors.black,
+                                          color: Colors.white,
+                                          letterSpacing: 1.2,
+                                          shadows: [
+                                            const Shadow(
+                                              color: Color(0xFF00F5FF),
+                                              blurRadius: 10,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    if (banner.subtitle.isNotEmpty) ...[
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        banner.subtitle,
+                                        style: GoogleFonts.rajdhani(
+                                          fontSize: 11.5,
+                                          fontWeight: FontWeight.w700,
+                                          color: const Color(0xFFCBD5E1),
                                           letterSpacing: 0.5,
                                         ),
                                       ),
                                     ],
-                                  ),
+                                  ],
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
-                        ),
                       ],
                     ),
                   ),
