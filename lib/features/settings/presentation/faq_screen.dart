@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../profile/providers/profile_provider.dart';
+import '../../splash/providers/splash_providers.dart';
+import '../data/models/support_models.dart';
+import '../providers/support_provider.dart';
 
 /// ============================================================
 /// FAQ SCREEN — BLASTIX ARENA HELP & SUPPORT HUB
@@ -569,23 +574,24 @@ class _ActionCard extends StatelessWidget {
 }
 
 /// REPORT AN ISSUE MODAL SHEET
-class _ReportIssueModal extends StatefulWidget {
+class _ReportIssueModal extends ConsumerStatefulWidget {
   const _ReportIssueModal();
 
   @override
-  State<_ReportIssueModal> createState() => _ReportIssueModalState();
+  ConsumerState<_ReportIssueModal> createState() => _ReportIssueModalState();
 }
 
-class _ReportIssueModalState extends State<_ReportIssueModal> {
+class _ReportIssueModalState extends ConsumerState<_ReportIssueModal> {
   final _formKey = GlobalKey<FormState>();
   final _descriptionController = TextEditingController();
   final _tournamentController = TextEditingController();
-  final _deviceController = TextEditingController(text: 'Android Device');
-  final _appVersionController =
-      TextEditingController(text: 'v1.0.4 (Build 42)');
+  late final TextEditingController _deviceController;
+  late final TextEditingController _appVersionController;
 
   String _selectedIssueType = 'Bug / Glitch';
   bool _isSubmitting = false;
+  String? _osVersion;
+  String? _deviceType;
 
   static const List<String> _issueTypes = [
     'Bug / Glitch',
@@ -596,6 +602,29 @@ class _ReportIssueModalState extends State<_ReportIssueModal> {
     'App Performance',
     'Other',
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _deviceController = TextEditingController(text: 'Loading device...');
+    _appVersionController = TextEditingController(text: '1.0.0');
+    _loadDeviceInfo();
+  }
+
+  Future<void> _loadDeviceInfo() async {
+    try {
+      final deviceInfoService = ref.read(deviceInfoServiceProvider);
+      final info = await deviceInfoService.getDeviceInfo();
+      if (mounted) {
+        setState(() {
+          _deviceController.text = info.deviceModel;
+          _appVersionController.text = info.appVersion;
+          _osVersion = info.osVersion;
+          _deviceType = info.deviceType;
+        });
+      }
+    } catch (_) {}
+  }
 
   @override
   void dispose() {
@@ -610,21 +639,49 @@ class _ReportIssueModalState extends State<_ReportIssueModal> {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isSubmitting = true);
-    await Future.delayed(const Duration(milliseconds: 900));
+
+    final profileState = ref.read(profileProvider);
+    final user = profileState.user;
+
+    final request = ReportIssueRequest(
+      issueType: _selectedIssueType,
+      description: _descriptionController.text.trim(),
+      tournamentName: _tournamentController.text.trim().isNotEmpty
+          ? _tournamentController.text.trim()
+          : null,
+      deviceModel: _deviceController.text.trim(),
+      appVersion: _appVersionController.text.trim(),
+      osVersion: _osVersion,
+      deviceType: _deviceType,
+      userId: user?.id,
+      userName: user?.name,
+      userEmail: user?.email,
+      userPhone: user?.phone,
+      freeFireUid: user?.gameProfile?.inGameUid,
+      inGameName: user?.gameProfile?.inGameName,
+    );
+
+    final success = await ref
+        .read(reportIssueProvider.notifier)
+        .submitReport(request);
 
     if (mounted) {
+      setState(() => _isSubmitting = false);
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Issue report submitted successfully! Our team will investigate.',
+            success
+                ? 'Issue report submitted successfully! Our team will investigate.'
+                : 'Failed to submit issue report. Please try again.',
             style: GoogleFonts.rajdhani(
               color: AppColors.bgNavy,
               fontWeight: FontWeight.bold,
               fontSize: 13,
             ),
           ),
-          backgroundColor: AppColors.primaryNeon,
+          backgroundColor:
+              success ? AppColors.primaryNeon : AppColors.accentOrange,
         ),
       );
     }
@@ -857,14 +914,15 @@ class _ReportIssueModalState extends State<_ReportIssueModal> {
 }
 
 /// CONTACT SUPPORT MODAL SHEET
-class _ContactSupportModal extends StatefulWidget {
+class _ContactSupportModal extends ConsumerStatefulWidget {
   const _ContactSupportModal();
 
   @override
-  State<_ContactSupportModal> createState() => _ContactSupportModalState();
+  ConsumerState<_ContactSupportModal> createState() =>
+      _ContactSupportModalState();
 }
 
-class _ContactSupportModalState extends State<_ContactSupportModal> {
+class _ContactSupportModalState extends ConsumerState<_ContactSupportModal> {
   final _formKey = GlobalKey<FormState>();
   final _subjectController = TextEditingController();
   final _messageController = TextEditingController();
@@ -891,21 +949,50 @@ class _ContactSupportModalState extends State<_ContactSupportModal> {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isSending = true);
-    await Future.delayed(const Duration(milliseconds: 900));
+
+    final profileState = ref.read(profileProvider);
+    final user = profileState.user;
+
+    final deviceInfoService = ref.read(deviceInfoServiceProvider);
+    final deviceInfo = await deviceInfoService.getDeviceInfo();
+
+    final request = ContactSupportRequest(
+      subject: _subjectController.text.trim(),
+      category: _selectedCategory,
+      message: _messageController.text.trim(),
+      userId: user?.id,
+      userName: user?.name,
+      userEmail: user?.email,
+      userPhone: user?.phone,
+      freeFireUid: user?.gameProfile?.inGameUid,
+      inGameName: user?.gameProfile?.inGameName,
+      deviceModel: deviceInfo.deviceModel,
+      appVersion: deviceInfo.appVersion,
+      osVersion: deviceInfo.osVersion,
+      deviceType: deviceInfo.deviceType,
+    );
+
+    final success = await ref
+        .read(contactSupportProvider.notifier)
+        .sendMessage(request);
 
     if (mounted) {
+      setState(() => _isSending = false);
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Message sent to Support! We will reply via email shortly.',
+            success
+                ? 'Message sent to Support! We will reply via email shortly.'
+                : 'Failed to send message. Please try again.',
             style: GoogleFonts.rajdhani(
               color: AppColors.bgNavy,
               fontWeight: FontWeight.bold,
               fontSize: 13,
             ),
           ),
-          backgroundColor: AppColors.primaryNeon,
+          backgroundColor:
+              success ? AppColors.primaryNeon : AppColors.accentOrange,
         ),
       );
     }

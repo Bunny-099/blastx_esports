@@ -82,4 +82,8 @@ class ApiEndpoints {
   static const String pendingInvitations = '/invitations/pending';
   static String sendSquadInvitations(String squadId, String tournamentId) => '/squads/$squadId/tournaments/$tournamentId/invite';
   static String respondInvitation(String invitationId) => '/invitations/$invitationId/respond';
+
+  // Support & Issue Reports Endpoints
+  static const String reportIssue = '/support/report-issue';
+  static const String contactSupport = '/support/contact';
 }
