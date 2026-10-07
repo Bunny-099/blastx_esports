@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../profile/presentation/edit_profile_screen.dart';
+import 'faq_screen.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -141,13 +142,23 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               const SizedBox(height: 12),
               _buildSettingTile(
                 icon: Icons.help_outline_rounded,
-                title: 'Help Centre',
-                onTap: () {},
+                title: 'Help Centre & FAQs',
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const FaqScreen()),
+                  );
+                },
               ),
               _buildSettingTile(
                 icon: Icons.headset_mic_outlined,
                 title: 'Contact Support',
-                onTap: () {},
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const FaqScreen()),
+                  );
+                },
               ),
 
               const SizedBox(height: 48),
