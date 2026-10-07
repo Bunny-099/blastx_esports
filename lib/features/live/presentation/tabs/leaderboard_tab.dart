@@ -249,7 +249,8 @@ class _PodiumView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final first = top3.firstWhere((e) => e.rank == 1, orElse: () => top3[0]);
+    if (top3.isEmpty) return const SizedBox.shrink();
+    final first = top3.firstWhere((e) => e.rank == 1, orElse: () => top3.first);
     final second = top3.length > 1 ? top3.firstWhere((e) => e.rank == 2, orElse: () => top3[1]) : null;
     final third = top3.length > 2 ? top3.firstWhere((e) => e.rank == 3, orElse: () => top3[2]) : null;
 

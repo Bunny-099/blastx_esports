@@ -114,8 +114,13 @@ class _JoinTournamentScreenState extends ConsumerState<JoinTournamentScreen> {
               title: 'CREATE A NEW TEAM',
               subtitle: 'Choose role (Leader or Manager) and invite new squad members',
               highlighted: !showJoinWithPrevious,
-              onTap: () => _open(
-                  CreateTeamScreen(tournamentId: widget.tournamentId)),
+              onTap: () {
+                if (squadState.hasSquad && !squadState.isOwner) {
+                  _showAskLeaderDialog(context);
+                } else {
+                  _open(CreateTeamScreen(tournamentId: widget.tournamentId));
+                }
+              },
             ),
             const SizedBox(height: 16),
 
@@ -124,8 +129,75 @@ class _JoinTournamentScreenState extends ConsumerState<JoinTournamentScreen> {
               icon: Icons.group_add_rounded,
               title: 'JOIN AN EXISTING TEAM',
               subtitle: 'Enter a team code from your leader or manager',
-              onTap: () => _open(
-                  JoinTeamScreen(tournamentId: widget.tournamentId)),
+              onTap: () {
+                if (squadState.hasSquad && !squadState.isOwner) {
+                  _showAskLeaderDialog(context);
+                } else {
+                  _open(JoinTeamScreen(tournamentId: widget.tournamentId));
+                }
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showAskLeaderDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surfaceElevated,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: const BorderSide(color: AppColors.borderCyan),
+        ),
+        contentPadding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Align(
+              alignment: Alignment.topRight,
+              child: GestureDetector(
+                onTap: () => Navigator.pop(ctx),
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: AppColors.surfaceNavy,
+                  ),
+                  child: const Icon(Icons.close_rounded, color: AppColors.textMuted, size: 20),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppColors.accentOrange.withValues(alpha: 0.15),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.info_outline_rounded,
+                color: AppColors.accentOrange,
+                size: 40,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'please ask team leader to register the tournament',
+              textAlign: TextAlign.center,
+              style: AppTextStyles.headingLg.copyWith(fontSize: 18),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primaryNeon,
+                foregroundColor: AppColors.bgNavy,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              onPressed: () => Navigator.pop(ctx),
+              child: Text('OK', style: AppTextStyles.button.copyWith(color: AppColors.bgNavy)),
             ),
           ],
         ),

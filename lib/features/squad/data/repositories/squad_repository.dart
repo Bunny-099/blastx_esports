@@ -27,11 +27,21 @@ class RealSquadRepository implements SquadRepository {
     try {
       final data = await _api.get(ApiEndpoints.mySquad);
       if (data == null) return null;
-      final map = (data is Map && data['squad'] is Map)
-          ? data['squad']
-          : (data is Map ? data : null);
-      if (map == null) return null;
-      return SquadModel.fromJson(Map<String, dynamic>.from(map as Map));
+
+      Map<String, dynamic>? squadMap;
+      if (data is Map) {
+        if (data.containsKey('squad')) {
+          final s = data['squad'];
+          if (s is Map) squadMap = Map<String, dynamic>.from(s);
+        } else if (data['id'] != null || data['name'] != null) {
+          squadMap = Map<String, dynamic>.from(data);
+        }
+      }
+
+      if (squadMap == null) return null;
+      final squad = SquadModel.fromJson(squadMap);
+      if (squad.id.isEmpty && squad.name.isEmpty) return null;
+      return squad;
     } catch (_) {
       return null;
     }

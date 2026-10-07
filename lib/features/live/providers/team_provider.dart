@@ -142,7 +142,10 @@ class TeamNotifier extends FamilyNotifier<TeamState, String> {
     if (e is _TeamException) return e.message;
     if (e is DioException) {
       final data = e.response?.data;
-      switch (data is Map ? data['code']?.toString() : null) {
+      final errCode = data is Map ? (data['code'] ?? data['error_code'])?.toString() : null;
+      switch (errCode) {
+        case 'NON_LEADER_REGISTRATION_FORBIDDEN':
+          return 'please ask team leader to register the tournament';
         case 'TEAM_NOT_FOUND':
           return 'Team not found. Please check the code and try again.';
         case 'TEAM_FULL':

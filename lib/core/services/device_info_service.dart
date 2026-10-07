@@ -70,8 +70,8 @@ class DeviceInfoService {
         final androidInfo = await deviceInfo.androidInfo;
         final manufacturer = androidInfo.manufacturer;
         final model = androidInfo.model;
-        if (model.toLowerCase().startsWith(manufacturer.toLowerCase())) {
-          deviceModel = model;
+        if (manufacturer.isEmpty || model.toLowerCase().startsWith(manufacturer.toLowerCase())) {
+          deviceModel = model.isNotEmpty ? model : 'Android Device';
         } else {
           deviceModel = '${manufacturer[0].toUpperCase()}${manufacturer.substring(1)} $model';
         }

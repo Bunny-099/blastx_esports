@@ -276,6 +276,219 @@ class MySquadScreen extends ConsumerWidget {
     );
   }
 
+  void _showCreateSquadModal(BuildContext context, WidgetRef ref) {
+    final nameController = TextEditingController();
+    final tagController = TextEditingController();
+
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.surfaceElevated,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(
+          left: 20,
+          right: 20,
+          top: 20,
+          bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.textMuted.withValues(alpha: 0.4),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text('CREATE YOUR TEAM', style: AppTextStyles.headingXl),
+            const SizedBox(height: 4),
+            Text('Enter squad details to create a persistent team:', style: AppTextStyles.bodySm),
+            const SizedBox(height: 16),
+            TextField(
+              controller: nameController,
+              style: AppTextStyles.bodyLg,
+              decoration: InputDecoration(
+                labelText: 'Squad / Team Name',
+                labelStyle: TextStyle(color: AppColors.textMuted),
+                filled: true,
+                fillColor: AppColors.surfaceNavy,
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: tagController,
+              style: AppTextStyles.bodyLg,
+              decoration: InputDecoration(
+                labelText: 'Tag (e.g. AEL)',
+                labelStyle: TextStyle(color: AppColors.textMuted),
+                filled: true,
+                fillColor: AppColors.surfaceNavy,
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+            const SizedBox(height: 20),
+            CustomButton(
+              text: 'CREATE TEAM',
+              onPressed: () async {
+                final name = nameController.text.trim();
+                final tag = tagController.text.trim();
+                if (name.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Please enter a team name.')),
+                  );
+                  return;
+                }
+                Navigator.pop(ctx);
+                final myMember = SquadMemberModel(
+                  userId: ref.read(squadProvider).viewerUserId,
+                  name: 'Leader Player',
+                  ign: 'LEADER_IGN',
+                  uid: '123456789',
+                  role: SquadRole.leader,
+                  rosterType: SquadRosterType.main,
+                );
+                await ref.read(squadProvider.notifier).createOrSaveSquadFromRoster(
+                      squadName: name,
+                      tag: tag,
+                      members: [myMember],
+                    );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showJoinSquadModal(BuildContext context, WidgetRef ref) {
+    final codeController = TextEditingController();
+
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.surfaceElevated,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(
+          left: 20,
+          right: 20,
+          top: 20,
+          bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.textMuted.withValues(alpha: 0.4),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text('JOIN A TEAM', style: AppTextStyles.headingXl),
+            const SizedBox(height: 4),
+            Text('Enter Team / Squad Code given by your Leader or Manager:', style: AppTextStyles.bodySm),
+            const SizedBox(height: 16),
+            TextField(
+              controller: codeController,
+              style: AppTextStyles.bodyLg,
+              textCapitalization: TextCapitalization.characters,
+              decoration: InputDecoration(
+                labelText: 'Team / Squad Code',
+                hintText: 'e.g. SQ-9872',
+                labelStyle: TextStyle(color: AppColors.textMuted),
+                filled: true,
+                fillColor: AppColors.surfaceNavy,
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+            const SizedBox(height: 20),
+            CustomButton(
+              text: 'JOIN TEAM',
+              onPressed: () {
+                final code = codeController.text.trim();
+                if (code.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Please enter a team code.')),
+                  );
+                  return;
+                }
+                Navigator.pop(ctx);
+                ref.read(mockSquadRepositoryProvider).resetToDefaultSquad();
+                ref.read(squadProvider.notifier).loadSquad();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Joined squad with code $code successfully!')),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showWaitlistModal(BuildContext context, SquadModel squad) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surfaceElevated,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: const BorderSide(color: AppColors.accentOrange),
+        ),
+        title: Row(
+          children: [
+            const Icon(Icons.hourglass_empty_rounded, color: AppColors.accentOrange),
+            const SizedBox(width: 8),
+            Text('WAITLIST STATUS', style: AppTextStyles.headingLg),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Your team currently has ${squad.mainCount} of 4 main players.',
+              style: AppTextStyles.bodyLg.copyWith(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              'Teams with less than 4 players remain in the Waitlist and cannot join official tournament match lobbies. Ask your Leader/Manager to invite remaining members!',
+              style: AppTextStyles.bodyMd.copyWith(color: AppColors.textSecondary),
+            ),
+          ],
+        ),
+        actions: [
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryNeon,
+              foregroundColor: AppColors.bgNavy,
+            ),
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('OK', style: AppTextStyles.button.copyWith(color: AppColors.bgNavy)),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     ref.listen<SquadState>(squadProvider, (prev, next) {
@@ -419,8 +632,11 @@ class MySquadScreen extends ConsumerWidget {
 
                   // 2. Empty State OR Squad Content
                   if (squad == null)
-                    _buildEmptySquadState(context)
+                    _buildEmptySquadState(context, ref)
                   else ...[
+                    // Incomplete Team Waitlist Banner (< 4 players)
+                    _buildIncompleteTeamBanner(context, squad),
+
                     // Squad Header Banner Card
                     _buildSquadHeaderCard(squad, isOwner),
 
@@ -559,10 +775,10 @@ class MySquadScreen extends ConsumerWidget {
     );
   }
 
-  /// Empty Squad Banner State
-  Widget _buildEmptySquadState(BuildContext context) {
+  /// Empty Squad Banner State (Diagram 1 Requirement)
+  Widget _buildEmptySquadState(BuildContext context, WidgetRef ref) {
     return Container(
-      padding: const EdgeInsets.all(28),
+      padding: const EdgeInsets.all(24),
       margin: const EdgeInsets.only(top: 20),
       decoration: BoxDecoration(
         color: AppColors.surfaceElevated,
@@ -591,15 +807,100 @@ class MySquadScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 18),
           Text(
-            'YOU DON\'T HAVE A SQUAD YET',
+            'You are not in a Team.',
             textAlign: TextAlign.center,
             style: AppTextStyles.headingXl,
           ),
           const SizedBox(height: 8),
           Text(
-            'Register for a tournament as a Leader or Manager, or join an existing team. Your squad will be saved persistently for all future tournaments!',
+            'Create your persistent team as a Leader or Manager, or join an existing team using a Team Code.',
             textAlign: TextAlign.center,
             style: AppTextStyles.bodyMd.copyWith(color: AppColors.textSecondary),
+          ),
+          const SizedBox(height: 24),
+          Row(
+            children: [
+              Expanded(
+                child: CustomButton(
+                  text: 'Create',
+                  onPressed: () => _showCreateSquadModal(context, ref),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: CustomButton(
+                  text: 'Join',
+                  isOutlined: true,
+                  onPressed: () => _showJoinSquadModal(context, ref),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Incomplete Team Banner (< 4 Players) (Diagram 1 Requirement)
+  Widget _buildIncompleteTeamBanner(BuildContext context, SquadModel squad) {
+    if (squad.mainCount >= 4) return const SizedBox.shrink();
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceElevated,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.accentOrange.withValues(alpha: 0.6)),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.accentOrange.withValues(alpha: 0.1),
+            blurRadius: 12,
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.hourglass_empty_rounded, color: AppColors.accentOrange, size: 22),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Team Roster Incomplete (${squad.mainCount}/4 Players)',
+                  style: AppTextStyles.headingLg.copyWith(color: AppColors.accentOrange),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Your squad needs 4 main players to participate in official tournament matches. Complete team roster to leave waitlist.',
+            style: AppTextStyles.bodySm.copyWith(color: AppColors.textSecondary),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: CustomButton(
+                  text: 'View Team',
+                  isOutlined: true,
+                  onPressed: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Viewing current squad roster below.')),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: CustomButton(
+                  text: 'Waitlist',
+                  onPressed: () => _showWaitlistModal(context, squad),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -644,7 +945,9 @@ class MySquadScreen extends ConsumerWidget {
                 ),
                 child: Center(
                   child: Text(
-                    squad.tag.isNotEmpty ? squad.tag : squad.name[0].toUpperCase(),
+                    squad.tag.isNotEmpty
+                        ? squad.tag
+                        : (squad.name.isNotEmpty ? squad.name[0].toUpperCase() : 'S'),
                     style: GoogleFonts.rajdhani(
                       fontSize: 20,
                       fontWeight: FontWeight.w800,
@@ -661,7 +964,9 @@ class MySquadScreen extends ConsumerWidget {
                     Row(
                       children: [
                         Text(
-                          squad.tag.isNotEmpty ? '[${squad.tag}] ${squad.name}' : squad.name,
+                          squad.tag.isNotEmpty
+                              ? '[${squad.tag}] ${squad.name.isNotEmpty ? squad.name : "My Squad"}'
+                              : (squad.name.isNotEmpty ? squad.name : "My Squad"),
                           style: AppTextStyles.headingXl.copyWith(fontSize: 21),
                         ),
                       ],
@@ -695,15 +1000,17 @@ class MySquadScreen extends ConsumerWidget {
                   color: isOwner ? AppColors.primaryNeon : AppColors.textMuted,
                 ),
                 const SizedBox(width: 8),
-                Text(
-                  isOwner
-                      ? (isManager
-                          ? 'MANAGER PRIVILEGES • Full squad management access'
-                          : 'LEADER PRIVILEGES • Full squad management access')
-                      : 'MEMBER VIEW • View only (Owner manages roster)',
-                  style: AppTextStyles.caption.copyWith(
-                    color: isOwner ? AppColors.primaryNeon : AppColors.textMuted,
-                    fontWeight: FontWeight.bold,
+                Expanded(
+                  child: Text(
+                    isOwner
+                        ? (isManager
+                            ? 'MANAGER PRIVILEGES • Full squad management access'
+                            : 'LEADER PRIVILEGES • Full squad management access')
+                        : 'MEMBER VIEW • View only (Owner manages roster)',
+                    style: AppTextStyles.caption.copyWith(
+                      color: isOwner ? AppColors.primaryNeon : AppColors.textMuted,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ],
