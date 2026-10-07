@@ -159,13 +159,14 @@ class _CreateTeamScreenState extends ConsumerState<CreateTeamScreen> {
                 children: [
                   Row(
                     children: [
-                      Text(
-                        title,
-                        style: AppTextStyles.headingMd.copyWith(
-                          color: isSelected ? AppColors.primaryNeon : Colors.white,
+                      Expanded(
+                        child: Text(
+                          title,
+                          style: AppTextStyles.headingMd.copyWith(
+                            color: isSelected ? AppColors.primaryNeon : Colors.white,
+                          ),
                         ),
                       ),
-                      const Spacer(),
                       Radio<TeamOwnerRole>(
                         value: role,
                         groupValue: _selectedRole,
