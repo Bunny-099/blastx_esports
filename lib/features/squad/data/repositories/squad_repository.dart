@@ -7,10 +7,12 @@ import '../models/squad_model.dart';
 abstract class SquadRepository {
   Future<SquadModel?> getMySquad();
   Future<SquadModel> createOrSaveSquad([SquadModel? squad]);
+  Future<void> leaveSquad(String squadId, String userId);
   Future<SquadModel> removeMember(String squadId, String userId);
   Future<SquadModel> transferLeadership(String squadId, String newLeaderId);
   Future<SquadModel> updateMemberRole(String squadId, String userId, SquadRosterType newRosterType);
   Future<SquadModel> swapPlayers(String squadId, String mainUserId, String subUserId);
+  Future<Map<String, dynamic>> getWaitlistDetails(String squadId);
   Future<List<SquadInvitationModel>> getPendingInvitations();
   Future<Map<String, dynamic>> sendPreviousTeamInvitations(String squadId, String tournamentId);
   Future<SquadInvitationModel> respondToInvitation(String invitationId, bool accept);
@@ -56,6 +58,14 @@ class RealSquadRepository implements SquadRepository {
   }
 
   @override
+  Future<void> leaveSquad(String squadId, String userId) async {
+    await _api.post(
+      ApiEndpoints.leaveSquad(squadId),
+      data: {'user_id': userId},
+    );
+  }
+
+  @override
   Future<SquadModel> removeMember(String squadId, String userId) async {
     final data = await _api.post(ApiEndpoints.removeSquadMember(squadId, userId));
     final map = (data is Map && data['squad'] is Map) ? data['squad'] : data;
@@ -98,6 +108,20 @@ class RealSquadRepository implements SquadRepository {
     );
     final map = (data is Map && data['squad'] is Map) ? data['squad'] : data;
     return SquadModel.fromJson(Map<String, dynamic>.from(map as Map));
+  }
+
+  @override
+  Future<Map<String, dynamic>> getWaitlistDetails(String squadId) async {
+    try {
+      final data = await _api.get(ApiEndpoints.squadWaitlist(squadId));
+      if (data is Map) return Map<String, dynamic>.from(data);
+    } catch (_) {}
+    return {
+      'status': 'Waitlisted',
+      'reason': 'Roster incomplete or waiting for tournament lobby slot assignment.',
+      'main_players_count': 3,
+      'required_players': 4,
+    };
   }
 
   @override

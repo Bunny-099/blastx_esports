@@ -118,6 +118,72 @@ class MockSquadRepository implements SquadRepository {
     _initSampleData();
   }
 
+  void resetToMemberSquad() {
+    forceEmptySquad = false;
+    final now = DateTime.now();
+    _currentSquad = SquadModel(
+      id: 'squad_delta_777',
+      name: 'DELTA FORCE',
+      tag: 'DLT',
+      logoUrl: 'assets/images/top_banner.jpg',
+      leaderId: 'user_999',
+      ownerRole: SquadRole.leader,
+      createdAt: now.subtract(const Duration(days: 60)),
+      members: [
+        SquadMemberModel(
+          userId: 'user_999',
+          name: 'Delta Captain',
+          avatarUrl: '',
+          ign: '★DELTA_CPT★',
+          uid: '999999999',
+          role: SquadRole.leader,
+          rosterType: SquadRosterType.main,
+          joinedAt: now.subtract(const Duration(days: 60)),
+        ),
+        SquadMemberModel(
+          userId: 'user_001',
+          name: 'Phoenix Player (You)',
+          avatarUrl: '',
+          ign: '★PHOENIX★',
+          uid: '827364129',
+          role: SquadRole.member,
+          rosterType: SquadRosterType.main,
+          joinedAt: now.subtract(const Duration(days: 50)),
+        ),
+        SquadMemberModel(
+          userId: 'user_003',
+          name: 'Titan Pro',
+          avatarUrl: '',
+          ign: 'TITAN⚡88',
+          uid: '888123456',
+          role: SquadRole.member,
+          rosterType: SquadRosterType.main,
+          joinedAt: now.subtract(const Duration(days: 45)),
+        ),
+        SquadMemberModel(
+          userId: 'user_004',
+          name: 'Raven Sniper',
+          avatarUrl: '',
+          ign: 'RAVEN🎯',
+          uid: '777654321',
+          role: SquadRole.member,
+          rosterType: SquadRosterType.main,
+          joinedAt: now.subtract(const Duration(days: 40)),
+        ),
+        SquadMemberModel(
+          userId: 'user_005',
+          name: 'Storm Sub',
+          avatarUrl: '',
+          ign: 'STORM⚡',
+          uid: '555444333',
+          role: SquadRole.member,
+          rosterType: SquadRosterType.substitute,
+          joinedAt: now.subtract(const Duration(days: 20)),
+        ),
+      ],
+    );
+  }
+
   void resetToManagerSquad() {
     forceEmptySquad = false;
     final now = DateTime.now();
@@ -220,6 +286,22 @@ class MockSquadRepository implements SquadRepository {
   }
 
   @override
+  Future<void> leaveSquad(String squadId, String userId) async {
+    await Future.delayed(const Duration(milliseconds: 300));
+    if (_currentSquad == null) return;
+
+    final updatedMembers = _currentSquad!.members.where((m) => m.userId != userId).toList();
+    if (updatedMembers.isEmpty || userId == stateViewerUserId) {
+      _currentSquad = null;
+      forceEmptySquad = true;
+    } else {
+      _currentSquad = _currentSquad!.copyWith(members: updatedMembers);
+    }
+  }
+
+  String get stateViewerUserId => 'user_001';
+
+  @override
   Future<SquadModel> removeMember(String squadId, String userId) async {
     await Future.delayed(const Duration(milliseconds: 300));
     if (_currentSquad == null) throw Exception('Squad not found.');
@@ -309,6 +391,24 @@ class MockSquadRepository implements SquadRepository {
 
     _currentSquad = _currentSquad!.copyWith(members: updatedMembers);
     return _currentSquad!;
+  }
+
+  @override
+  Future<Map<String, dynamic>> getWaitlistDetails(String squadId) async {
+    await Future.delayed(const Duration(milliseconds: 250));
+    final squad = _currentSquad;
+    final mainCount = squad?.mainCount ?? 0;
+    return {
+      'status': mainCount >= 4 ? 'Approved / Registered' : 'In Waitlist',
+      'tournament_name': 'BlastX Grand Invitational S4',
+      'position_in_queue': mainCount >= 4 ? 0 : 3,
+      'main_players_count': mainCount,
+      'required_main_players': 4,
+      'substitutes_count': squad?.substituteCount ?? 0,
+      'message': mainCount >= 4
+          ? 'Your team roster is complete and confirmed for tournament match lobby!'
+          : 'Your team is in the waitlist. Add or invite remaining main players to complete roster (4/4).',
+    };
   }
 
   @override

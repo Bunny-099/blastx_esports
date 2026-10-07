@@ -542,6 +542,9 @@ class MySquadScreen extends ConsumerWidget {
               } else if (value == 'mock_manager') {
                 mockRepo.resetToManagerSquad();
                 ref.read(squadProvider.notifier).loadSquad();
+              } else if (value == 'mock_member') {
+                mockRepo.resetToMemberSquad();
+                ref.read(squadProvider.notifier).loadSquad();
               } else if (value == 'mock_empty') {
                 mockRepo.resetToEmpty();
                 ref.read(squadProvider.notifier).loadSquad();
@@ -565,6 +568,16 @@ class MySquadScreen extends ConsumerWidget {
                     const Icon(Icons.admin_panel_settings_rounded, size: 18, color: AppColors.primaryNeon),
                     const SizedBox(width: 10),
                     Text('Load Manager Squad', style: AppTextStyles.bodyMd),
+                  ],
+                ),
+              ),
+              PopupMenuItem(
+                value: 'mock_member',
+                child: Row(
+                  children: [
+                    const Icon(Icons.person_rounded, size: 18, color: AppColors.primaryNeon),
+                    const SizedBox(width: 10),
+                    Text('Load Member Player Squad', style: AppTextStyles.bodyMd),
                   ],
                 ),
               ),
@@ -640,7 +653,40 @@ class MySquadScreen extends ConsumerWidget {
                     // Squad Header Banner Card
                     _buildSquadHeaderCard(squad, isOwner),
 
-                    const SizedBox(height: 20),
+                    // 2 Core Options: View Team & Waitlist
+                    Container(
+                      margin: const EdgeInsets.symmetric(vertical: 16),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceElevated,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: AppColors.borderCyan.withValues(alpha: 0.5)),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: CustomButton(
+                              text: 'VIEW TEAM',
+                              icon: const Icon(Icons.groups_rounded, size: 18, color: AppColors.bgNavy),
+                              onPressed: () {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Displaying team roster stored in backend.')),
+                                );
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: CustomButton(
+                              text: 'WAITLIST',
+                              isOutlined: true,
+                              icon: const Icon(Icons.hourglass_empty_rounded, size: 18, color: AppColors.primaryNeon),
+                              onPressed: () => _showWaitlistModal(context, squad),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
 
                     // Manager Section (If Manager Squad)
                     if (squad.isManagerOwned && squad.manager != null) ...[
@@ -766,6 +812,28 @@ class MySquadScreen extends ConsumerWidget {
                             ),
                           ),
                         ],
+                      ),
+                    ],
+
+                    // Player Controls (ONLY for simple member players, NOT for Leader/Manager)
+                    if (!isOwner) ...[
+                      const SizedBox(height: 16),
+                      CustomButton(
+                        text: 'LEAVE TEAM',
+                        isOutlined: true,
+                        icon: const Icon(Icons.exit_to_app_rounded, size: 18, color: AppColors.error),
+                        onPressed: () async {
+                          final confirmed = await _confirmDialog(
+                            context: context,
+                            title: 'Leave Team?',
+                            message: 'Are you sure you want to leave ${squad.name}? You will lose your spot in the squad roster.',
+                            confirmText: 'Leave Team',
+                            confirmColor: AppColors.error,
+                          );
+                          if (confirmed) {
+                            ref.read(squadProvider.notifier).leaveSquad();
+                          }
+                        },
                       ),
                     ],
                   ],

@@ -44,9 +44,11 @@ class SquadState {
   });
 
   bool get hasSquad => squad != null;
-  bool get isLeader => squad != null && squad!.isOwner(viewerUserId);
-  bool get isOwner => isLeader;
+  bool get isLeader => squad != null && squad!.isLeader(viewerUserId);
+  bool get isManager => squad != null && squad!.isManager(viewerUserId);
+  bool get isOwner => isLeader || isManager;
   bool get isMember => squad != null && squad!.isMember(viewerUserId);
+  bool get isRegularMember => isMember && !isOwner;
 
   SquadState copyWith({
     SquadModel? squad,
@@ -146,6 +148,42 @@ class SquadNotifier extends Notifier<SquadState> {
         errorMessage: e.toString().replaceAll('Exception: ', ''),
       );
       return false;
+    }
+  }
+
+  Future<bool> leaveSquad() async {
+    if (state.squad == null) return false;
+    if (state.isOwner) {
+      state = state.copyWith(
+        errorMessage: 'Team Leader or Manager cannot leave team. Transfer ownership first or manage squad.',
+      );
+      return false;
+    }
+
+    state = state.copyWith(isLoading: true, clearError: true);
+    try {
+      await _repo.leaveSquad(state.squad!.id, state.viewerUserId);
+      state = state.copyWith(
+        clearSquad: true,
+        isLoading: false,
+        successMessage: 'You have left the squad successfully.',
+      );
+      return true;
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: e.toString().replaceAll('Exception: ', ''),
+      );
+      return false;
+    }
+  }
+
+  Future<Map<String, dynamic>> getWaitlistDetails() async {
+    if (state.squad == null) return {};
+    try {
+      return await _repo.getWaitlistDetails(state.squad!.id);
+    } catch (_) {
+      return {};
     }
   }
 

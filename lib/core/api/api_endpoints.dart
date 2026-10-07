@@ -71,10 +71,12 @@ class ApiEndpoints {
   static const String mySquad = '/squads/me';
   static const String createSquad = '/squads';
   static String squadDetail(String squadId) => '/squads/$squadId';
+  static String leaveSquad(String squadId) => '/squads/$squadId/leave';
   static String removeSquadMember(String squadId, String userId) => '/squads/$squadId/members/$userId';
   static String transferSquadLeader(String squadId) => '/squads/$squadId/transfer-leader';
   static String updateSquadMemberRole(String squadId, String userId) => '/squads/$squadId/members/$userId/role';
   static String swapSquadMembers(String squadId) => '/squads/$squadId/swap';
+  static String squadWaitlist(String squadId) => '/squads/$squadId/waitlist';
 
   // Tournament Invitations Endpoints
   static const String pendingInvitations = '/invitations/pending';

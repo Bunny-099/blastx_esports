@@ -11,6 +11,7 @@ import '../../notifications/presentation/notifications_screen.dart';
 import '../../notifications/providers/notification_provider.dart';
 import '../../profile/providers/profile_provider.dart';
 import '../../squad/presentation/my_squad_screen.dart';
+import '../../squad/providers/squad_provider.dart';
 import '../../tournaments/presentation/widgets/blastix_tournament_card.dart';
 import '../data/models/home_data_models.dart';
 import '../providers/home_provider.dart';
@@ -722,8 +723,87 @@ class _UserProfileGreetingCard extends StatelessWidget {
 class _QuickActionGrid extends ConsumerWidget {
   const _QuickActionGrid();
 
+  void _showNotInSquadDialog(BuildContext context, WidgetRef ref) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF101722),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: const BorderSide(color: Color(0xFF00F5FF), width: 1.2),
+        ),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFF2D55).withValues(alpha: 0.15),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.lock_rounded, color: Color(0xFFFF2D55), size: 22),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'NOT IN A SQUAD',
+                style: GoogleFonts.orbitron(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w900,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          'You are not in a squad go to taurnament section and create a team or join an existing team.',
+          style: GoogleFonts.inter(
+            fontSize: 13,
+            height: 1.4,
+            color: const Color(0xFFCBD5E1),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text(
+              'CANCEL',
+              style: GoogleFonts.rajdhani(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: const Color(0xFF94A3B8),
+              ),
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF00F5FF),
+              foregroundColor: Colors.black,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              ref.read(navigationIndexProvider.notifier).state = 1; // Tournaments tab
+            },
+            child: Text(
+              'GO TO TOURNAMENTS',
+              style: GoogleFonts.rajdhani(
+                fontSize: 13,
+                fontWeight: FontWeight.w900,
+                color: Colors.black,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final squadState = ref.watch(squadProvider);
+    final hasSquad = squadState.hasSquad;
+
     final actions = [
       _QuickCardData(
         title: 'Tournaments',
@@ -748,13 +828,18 @@ class _QuickActionGrid extends ConsumerWidget {
       ),
       _QuickCardData(
         title: 'My Squad',
-        subtitle: 'Create or Join',
-        icon: Icons.groups_rounded,
-        accentColor: const Color(0xFFA855F7), // Purple
+        subtitle: hasSquad ? 'View Team & Waitlist' : 'Locked • Not in Squad',
+        icon: hasSquad ? Icons.groups_rounded : Icons.lock_rounded,
+        accentColor: hasSquad ? const Color(0xFFA855F7) : const Color(0xFFFF2D55), // Purple or Red
+        isLocked: !hasSquad,
         onTap: () {
-          Navigator.of(context).push(
-            FirePageRoute(page: const MySquadScreen()),
-          );
+          if (!hasSquad) {
+            _showNotInSquadDialog(context, ref);
+          } else {
+            Navigator.of(context).push(
+              FirePageRoute(page: const MySquadScreen()),
+            );
+          }
         },
       ),
     ];
@@ -832,7 +917,7 @@ class _QuickActionGrid extends ConsumerWidget {
                       ),
                     ),
 
-                    // Circular Arrow Button
+                    // Circular Arrow / Lock Button
                     Container(
                       padding: const EdgeInsets.all(5),
                       decoration: BoxDecoration(
@@ -840,7 +925,7 @@ class _QuickActionGrid extends ConsumerWidget {
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
-                        Icons.chevron_right_rounded,
+                        item.isLocked ? Icons.lock_rounded : Icons.chevron_right_rounded,
                         color: item.accentColor,
                         size: 16,
                       ),
@@ -861,6 +946,7 @@ class _QuickCardData {
   final String subtitle;
   final IconData icon;
   final Color accentColor;
+  final bool isLocked;
   final VoidCallback onTap;
 
   _QuickCardData({
@@ -868,6 +954,7 @@ class _QuickCardData {
     required this.subtitle,
     required this.icon,
     required this.accentColor,
+    this.isLocked = false,
     required this.onTap,
   });
 }

@@ -157,7 +157,14 @@ class SquadModel {
       (leaderId.isNotEmpty && leaderId == userId) ||
       members.any((m) => m.userId == userId && (m.isLeader || m.isManager));
 
-  bool isLeader(String userId) => isOwner(userId);
+  bool isLeader(String userId) =>
+      members.any((m) => m.userId == userId && m.isLeader) ||
+      (leaderId.isNotEmpty && leaderId == userId && !isManagerOwned);
+
+  bool isManager(String userId) =>
+      members.any((m) => m.userId == userId && m.isManager) ||
+      (leaderId.isNotEmpty && leaderId == userId && isManagerOwned);
+
   bool isMember(String userId) => members.any((m) => m.userId == userId);
 
   SquadMemberModel? get owner {
