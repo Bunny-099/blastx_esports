@@ -727,72 +727,97 @@ class _QuickActionGrid extends ConsumerWidget {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF101722),
+        backgroundColor: const Color(0xFF101722).withValues(alpha: 0.65),
+        elevation: 0,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
+        titlePadding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        actionsPadding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-          side: const BorderSide(color: Color(0xFF00F5FF), width: 1.2),
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(
+            color: const Color(0xFF00F5FF).withValues(alpha: 0.4),
+            width: 1,
+          ),
         ),
         title: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(8),
+              padding: const EdgeInsets.all(6),
               decoration: BoxDecoration(
                 color: const Color(0xFFFF2D55).withValues(alpha: 0.15),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.lock_rounded, color: Color(0xFFFF2D55), size: 22),
+              child: const Icon(Icons.lock_rounded, color: Color(0xFFFF2D55), size: 18),
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: 8),
             Expanded(
               child: Text(
                 'NOT IN A SQUAD',
                 style: GoogleFonts.orbitron(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w900,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
                   color: Colors.white,
+                  letterSpacing: 0.5,
                 ),
               ),
             ),
           ],
         ),
         content: Text(
-          'You are not in a squad go to taurnament section and create a team or join an existing team.',
+          'You are not in a squad. Go to Tournaments to create or join a team.',
           style: GoogleFonts.inter(
-            fontSize: 13,
-            height: 1.4,
+            fontSize: 12,
+            height: 1.3,
             color: const Color(0xFFCBD5E1),
           ),
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: Text(
-              'CANCEL',
-              style: GoogleFonts.rajdhani(
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-                color: const Color(0xFF94A3B8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              TextButton(
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: Text(
+                  'CANCEL',
+                  style: GoogleFonts.rajdhani(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF94A3B8),
+                  ),
+                ),
               ),
-            ),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF00F5FF),
-              foregroundColor: Colors.black,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            ),
-            onPressed: () {
-              Navigator.of(ctx).pop();
-              ref.read(navigationIndexProvider.notifier).state = 1; // Tournaments tab
-            },
-            child: Text(
-              'GO TO TOURNAMENTS',
-              style: GoogleFonts.rajdhani(
-                fontSize: 13,
-                fontWeight: FontWeight.w900,
-                color: Colors.black,
+              const SizedBox(width: 8),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF00F5FF),
+                  foregroundColor: Colors.black,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                onPressed: () {
+                  Navigator.of(ctx).pop();
+                  ref.read(navigationIndexProvider.notifier).state = 1; // Tournaments tab
+                },
+                child: Text(
+                  'GO TO TOURNAMENTS',
+                  style: GoogleFonts.rajdhani(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w900,
+                    color: Colors.black,
+                  ),
+                ),
               ),
-            ),
+            ],
           ),
         ],
       ),
