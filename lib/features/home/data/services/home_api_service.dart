@@ -8,18 +8,10 @@ class HomeApiService {
 
   HomeApiService(this._apiClient);
 
-  /// Fetch dynamic promotional hero banners from GET /v1/admin/banners?page=1&limit=20 or GET /v1/home/banners
+  /// Fetch dynamic promotional hero banners from public endpoint GET /v1/home/banners
   Future<List<BannerItem>> getBanners() async {
     try {
-      dynamic response;
-      try {
-        response = await _apiClient.get(
-          ApiEndpoints.adminBanners,
-          queryParameters: {'page': 1, 'limit': 20},
-        );
-      } catch (_) {
-        response = await _apiClient.get(ApiEndpoints.homeBanners);
-      }
+      final response = await _apiClient.get(ApiEndpoints.homeBanners);
 
       List itemsList = [];
       if (response is List) {
@@ -39,11 +31,11 @@ class HomeApiService {
       }
 
       return itemsList
+          .whereType<Map>()
           .where((e) =>
-              e is Map &&
               (e['isActive'] ?? e['is_active'] ?? true) != false &&
               e['status'] != 'inactive')
-          .map((e) => BannerItem.fromJson(Map<String, dynamic>.from(e as Map)))
+          .map((e) => BannerItem.fromJson(Map<String, dynamic>.from(e)))
           .toList();
     } catch (e) {
       debugPrint('HomeApiService.getBanners error: $e');
@@ -51,15 +43,10 @@ class HomeApiService {
     return [];
   }
 
-  /// Fetch live tournament stream cards from GET /v1/home/live-streams or GET /v1/admin/live-streams
+  /// Fetch live tournament stream cards from public endpoint GET /v1/home/live-streams
   Future<List<LiveStreamCardItem>> getLiveStreams() async {
     try {
-      dynamic response;
-      try {
-        response = await _apiClient.get(ApiEndpoints.homeLiveStreams);
-      } catch (_) {
-        response = await _apiClient.get(ApiEndpoints.adminLiveStreams);
-      }
+      final response = await _apiClient.get(ApiEndpoints.homeLiveStreams);
 
       List itemsList = [];
       if (response is List) {
@@ -77,9 +64,9 @@ class HomeApiService {
       }
 
       return itemsList
-          .where((e) => e is Map)
+          .whereType<Map>()
           .map((e) =>
-              LiveStreamCardItem.fromJson(Map<String, dynamic>.from(e as Map)))
+              LiveStreamCardItem.fromJson(Map<String, dynamic>.from(e)))
           .toList();
     } catch (e) {
       debugPrint('HomeApiService.getLiveStreams error: $e');
@@ -107,8 +94,8 @@ class HomeApiService {
       }
 
       return itemsList
-          .where((e) => e is Map)
-          .map((e) => PartnerItem.fromJson(Map<String, dynamic>.from(e as Map)))
+          .whereType<Map>()
+          .map((e) => PartnerItem.fromJson(Map<String, dynamic>.from(e)))
           .toList();
     } catch (e) {
       debugPrint('HomeApiService.getPartners error: $e');
