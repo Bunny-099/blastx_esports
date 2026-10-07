@@ -122,7 +122,6 @@ class _FaqScreenState extends State<FaqScreen> {
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   GestureDetector(
                     onTap: () => Navigator.pop(context),
@@ -143,6 +142,7 @@ class _FaqScreenState extends State<FaqScreen> {
                       ),
                     ),
                   ),
+                  const SizedBox(width: 12),
                   Row(
                     children: [
                       Image.asset(
