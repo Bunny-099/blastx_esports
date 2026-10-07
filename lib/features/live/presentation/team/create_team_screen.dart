@@ -27,9 +27,24 @@ class _CreateTeamScreenState extends ConsumerState<CreateTeamScreen> {
   TeamOwnerRole _selectedRole = TeamOwnerRole.leader;
   String? _localError;
 
+  bool get _isFormValid =>
+      _teamName.text.trim().isNotEmpty &&
+      _player.text.trim().isNotEmpty &&
+      _ign.text.trim().isNotEmpty &&
+      _uid.text.trim().isNotEmpty;
+
+  void _onFieldChanged() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
   @override
   void initState() {
     super.initState();
+    for (final controller in [_teamName, _player, _ign, _uid]) {
+      controller.addListener(_onFieldChanged);
+    }
     Future.microtask(() {
       ref.read(teamProvider(widget.tournamentId).notifier).clearError();
       _prefillFromProfile();
@@ -62,6 +77,7 @@ class _CreateTeamScreenState extends ConsumerState<CreateTeamScreen> {
   @override
   void dispose() {
     for (final c in [_teamName, _tag, _player, _ign, _uid]) {
+      c.removeListener(_onFieldChanged);
       c.dispose();
     }
     super.dispose();
@@ -113,7 +129,6 @@ class _CreateTeamScreenState extends ConsumerState<CreateTeamScreen> {
   Widget _buildRoleCard({
     required TeamOwnerRole role,
     required String title,
-    required String subtitle,
     required IconData icon,
   }) {
     final isSelected = _selectedRole == role;
@@ -121,7 +136,7 @@ class _CreateTeamScreenState extends ConsumerState<CreateTeamScreen> {
       onTap: () => setState(() => _selectedRole = role),
       borderRadius: BorderRadius.circular(16),
       child: Container(
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
           color: isSelected ? AppColors.primaryNeon.withValues(alpha: 0.12) : AppColors.surfaceNavy,
           borderRadius: BorderRadius.circular(16),
@@ -154,33 +169,23 @@ class _CreateTeamScreenState extends ConsumerState<CreateTeamScreen> {
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              child: Row(
                 children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          title,
-                          style: AppTextStyles.headingMd.copyWith(
-                            color: isSelected ? AppColors.primaryNeon : Colors.white,
-                          ),
-                        ),
+                  Expanded(
+                    child: Text(
+                      title,
+                      style: AppTextStyles.headingMd.copyWith(
+                        color: isSelected ? AppColors.primaryNeon : Colors.white,
                       ),
-                      Radio<TeamOwnerRole>(
-                        value: role,
-                        groupValue: _selectedRole,
-                        activeColor: AppColors.primaryNeon,
-                        onChanged: (val) {
-                          if (val != null) setState(() => _selectedRole = val);
-                        },
-                      ),
-                    ],
+                    ),
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    style: AppTextStyles.bodySm.copyWith(color: AppColors.textSecondary),
+                  Radio<TeamOwnerRole>(
+                    value: role,
+                    groupValue: _selectedRole,
+                    activeColor: AppColors.primaryNeon,
+                    onChanged: (val) {
+                      if (val != null) setState(() => _selectedRole = val);
+                    },
                   ),
                 ],
               ),
@@ -208,7 +213,7 @@ class _CreateTeamScreenState extends ConsumerState<CreateTeamScreen> {
       appBar: AppBar(backgroundColor: AppColors.background, elevation: 0),
       body: SingleChildScrollView(
         keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-        padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
+        padding: const EdgeInsets.fromLTRB(20, 4, 20, 100),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -248,7 +253,6 @@ class _CreateTeamScreenState extends ConsumerState<CreateTeamScreen> {
             _buildRoleCard(
               role: TeamOwnerRole.leader,
               title: 'Join as Leader (Playing Member)',
-              subtitle: 'Occupies 1 of 4 main player slots. Needs 3 more players to complete team.',
               icon: Icons.sports_esports_rounded,
             ),
 
@@ -258,7 +262,6 @@ class _CreateTeamScreenState extends ConsumerState<CreateTeamScreen> {
             _buildRoleCard(
               role: TeamOwnerRole.manager,
               title: 'Join as Manager (Non-Playing Owner)',
-              subtitle: 'Manages squad without taking a player slot. Needs 4 players to complete team.',
               icon: Icons.admin_panel_settings_rounded,
             ),
 
@@ -281,13 +284,34 @@ class _CreateTeamScreenState extends ConsumerState<CreateTeamScreen> {
               Text(error,
                   style: AppTextStyles.bodySm.copyWith(color: AppColors.error)),
             ],
-            const SizedBox(height: 24),
-            CustomButton(
-              text: isManager ? 'CREATE TEAM AS MANAGER' : 'CREATE TEAM AS LEADER',
-              isLoading: s.isLoading,
-              onPressed: _submit,
+          ],
+        ),
+      ),
+      bottomNavigationBar: Container(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceNavy,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.primaryNeon.withValues(alpha: 0.15),
+              blurRadius: 16,
+              offset: const Offset(0, -4),
             ),
           ],
+          border: Border(
+            top: BorderSide(
+              color: AppColors.primaryNeon.withValues(alpha: 0.3),
+              width: 1,
+            ),
+          ),
+        ),
+        child: SafeArea(
+          child: CustomButton(
+            text: isManager ? 'CREATE TEAM AS MANAGER' : 'CREATE TEAM AS LEADER',
+            isLoading: s.isLoading,
+            onPressed: _isFormValid ? _submit : null,
+          ),
         ),
       ),
     );
