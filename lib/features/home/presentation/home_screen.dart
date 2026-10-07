@@ -20,10 +20,10 @@ import '../providers/navigation_provider.dart';
 /// ============================================================
 /// HOME SCREEN — BLASTIX ARENA ESPORTS LANDING HUB
 /// ============================================================
-/// Redesigned landing hub according to exact visual specifications:
+/// Redesigned landing hub styled dynamically using AppColors:
 /// 1. Top Header App Bar (BlastX Arena Logo & Notifications)
 /// 2. Hero Banner Slider Carousel (Dynamic Admin Sync Ready)
-/// 3. User Profile Greeting Card (Positioned below Hero Banner with Crown Badge)
+/// 3. User Profile Greeting Card (Positioned below Hero Banner with VIP Crown Badge)
 /// 4. Quick Action Grid (2x2 Grid Cards: Tournaments, Live Matches, Daily Quests, My Squad)
 /// 5. Live Tournaments Section (BLASTIX ARENA stream card with live viewers chip)
 /// 6. Our Partners Section (Brand partner logos)
@@ -112,7 +112,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final showCrownBadge = user?.isVip == true || user?.crownBadgeUnlocked == true || true;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0B0F17), // Deep Dark Charcoal/Black
+      backgroundColor: AppColors.background,
       body: Stack(
         children: [
           // Ambient breathing background glows
@@ -120,8 +120,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
           SafeArea(
             child: RefreshIndicator(
-              color: const Color(0xFF00F5FF),
-              backgroundColor: const Color(0xFF101722),
+              color: AppColors.primaryNeon,
+              backgroundColor: AppColors.surfaceNavy,
               onRefresh: _handleRefresh,
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(
@@ -130,72 +130,72 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 padding: const EdgeInsets.only(bottom: 32),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // 1. TOP HEADER / APP BAR
-                  const _TopHeaderAppBar(),
-                  const SizedBox(height: 12),
+                  children: [
+                    // 1. TOP HEADER / APP BAR
+                    const _TopHeaderAppBar(),
+                    const SizedBox(height: 12),
 
-                  // 2. FEATURED EVENT BANNER SLIDER (HERO BANNER)
-                  if (banners.isNotEmpty) ...[
-                    _HeroBannerCarousel(
-                      banners: banners,
-                      controller: _bannerController,
-                      currentIndex: _currentBannerIndex,
+                    // 2. FEATURED EVENT BANNER SLIDER (HERO BANNER)
+                    if (banners.isNotEmpty) ...[
+                      _HeroBannerCarousel(
+                        banners: banners,
+                        controller: _bannerController,
+                        currentIndex: _currentBannerIndex,
+                        onPageChanged: (index) {
+                          setState(() => _currentBannerIndex = index);
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+
+                    // 3. USER PROFILE GREETING CARD (POSITIONED BELOW HERO BANNER)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: _UserProfileGreetingCard(
+                        displayName: displayName,
+                        userAvatarUrl: user?.profilePic,
+                        showCrownBadge: showCrownBadge,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    // 4. QUICK ACTION GRID (2x2 GRID CARDS)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: const _QuickActionGrid(),
+                    ),
+                    const SizedBox(height: 24),
+
+                    // 5. LIVE TOURNAMENTS SECTION [BLASTIX ARENA] - REUSING BLASTIX TOURNAMENT CARD
+                    _LiveTournamentsSection(
+                      tournaments: featuredTournaments,
+                      streams: liveStreams,
+                      controller: _streamController,
+                      currentIndex: _currentStreamIndex,
                       onPageChanged: (index) {
-                        setState(() => _currentBannerIndex = index);
+                        setState(() => _currentStreamIndex = index);
                       },
                     ),
-                    const SizedBox(height: 16),
-                  ],
+                    const SizedBox(height: 24),
 
-                  // 3. USER PROFILE GREETING CARD (POSITIONED BELOW HERO BANNER)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: _UserProfileGreetingCard(
-                      displayName: displayName,
-                      userAvatarUrl: user?.profilePic,
-                      showCrownBadge: showCrownBadge,
+                    // 6. OUR PARTNERS SECTION
+                    _OurPartnersSection(partners: partners),
+                    const SizedBox(height: 24),
+
+                    // 7. PARTNER WITH US CALL-TO-ACTION BANNER
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: const _PartnerWithUsBanner(),
                     ),
-                  ),
-                  const SizedBox(height: 20),
-
-                  // 4. QUICK ACTION GRID (2x2 GRID CARDS)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: const _QuickActionGrid(),
-                  ),
-                  const SizedBox(height: 24),
-
-                  // 5. LIVE TOURNAMENTS SECTION [BLASTIX ARENA] - REUSING BLASTIX TOURNAMENT CARD
-                  _LiveTournamentsSection(
-                    tournaments: featuredTournaments,
-                    streams: liveStreams,
-                    controller: _streamController,
-                    currentIndex: _currentStreamIndex,
-                    onPageChanged: (index) {
-                      setState(() => _currentStreamIndex = index);
-                    },
-                  ),
-                  const SizedBox(height: 24),
-
-                  // 6. OUR PARTNERS SECTION
-                  _OurPartnersSection(partners: partners),
-                  const SizedBox(height: 24),
-
-                  // 7. PARTNER WITH US CALL-TO-ACTION BANNER
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: const _PartnerWithUsBanner(),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
-        ),
-      ],
-    ),
-  );
-}
+        ],
+      ),
+    );
+  }
 }
 
 /// ------------------------------------------------------------
@@ -222,7 +222,7 @@ class _TopHeaderAppBar extends StatelessWidget {
                   fit: BoxFit.contain,
                   errorBuilder: (context, error, stackTrace) => const Icon(
                     Icons.bolt_rounded,
-                    color: Color(0xFF00F5FF),
+                    color: AppColors.primaryNeon,
                     size: 32,
                   ),
                 ),
@@ -239,7 +239,7 @@ class _TopHeaderAppBar extends StatelessWidget {
                             style: GoogleFonts.orbitron(
                               fontSize: 18,
                               fontWeight: FontWeight.w900,
-                              color: const Color(0xFF00F5FF),
+                              color: AppColors.primaryNeon,
                               letterSpacing: 1.2,
                             ),
                           ),
@@ -248,7 +248,7 @@ class _TopHeaderAppBar extends StatelessWidget {
                             style: GoogleFonts.orbitron(
                               fontSize: 18,
                               fontWeight: FontWeight.w800,
-                              color: Colors.white,
+                              color: AppColors.textPrimary,
                               letterSpacing: 1.2,
                             ),
                           ),
@@ -286,15 +286,15 @@ class _HeaderNotificationBell extends ConsumerWidget {
       child: Container(
         padding: const EdgeInsets.all(9),
         decoration: BoxDecoration(
-          color: const Color(0xFF121B28),
+          color: AppColors.surfaceNavy,
           shape: BoxShape.circle,
           border: Border.all(
-            color: const Color(0xFF00F5FF).withValues(alpha: 0.3),
+            color: AppColors.primaryNeon.withValues(alpha: 0.3),
             width: 1,
           ),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF00F5FF).withValues(alpha: 0.15),
+              color: AppColors.primaryNeon.withValues(alpha: 0.15),
               blurRadius: 8,
             ),
           ],
@@ -304,7 +304,7 @@ class _HeaderNotificationBell extends ConsumerWidget {
           children: [
             const Icon(
               Icons.notifications_none_rounded,
-              color: Color(0xFF00F5FF),
+              color: AppColors.primaryNeon,
               size: 22,
             ),
             if (unreadCount > 0)
@@ -314,7 +314,7 @@ class _HeaderNotificationBell extends ConsumerWidget {
                 child: Container(
                   padding: const EdgeInsets.all(4),
                   decoration: const BoxDecoration(
-                    color: Color(0xFFFF2D55),
+                    color: AppColors.accentOrange,
                     shape: BoxShape.circle,
                   ),
                   constraints: const BoxConstraints(minWidth: 14, minHeight: 14),
@@ -378,12 +378,12 @@ class _HeroBannerCarousel extends ConsumerWidget {
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
-                        color: const Color(0xFF00F5FF).withValues(alpha: 0.4),
+                        color: AppColors.primaryNeon.withValues(alpha: 0.4),
                         width: 1.2,
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFF00F5FF).withValues(alpha: 0.1),
+                          color: AppColors.primaryNeon.withValues(alpha: 0.1),
                           blurRadius: 12,
                           spreadRadius: 1,
                         ),
@@ -405,7 +405,7 @@ class _HeroBannerCarousel extends ConsumerWidget {
                                 banner.imageUrl,
                                 fit: BoxFit.cover,
                                 errorBuilder: (context, error, stackTrace) =>
-                                    Container(color: const Color(0xFF141F30)),
+                                    Container(color: AppColors.surfaceNavy),
                               ),
 
                         // Soft Gradient Overlay (Only applied when overlay text exists)
@@ -447,7 +447,7 @@ class _HeroBannerCarousel extends ConsumerWidget {
                                           style: GoogleFonts.rajdhani(
                                             fontSize: 11,
                                             fontWeight: FontWeight.w800,
-                                            color: const Color(0xFFFFD200),
+                                            color: AppColors.glowLight,
                                             letterSpacing: 0.8,
                                           ),
                                         ),
@@ -463,7 +463,7 @@ class _HeroBannerCarousel extends ConsumerWidget {
                                           color: Colors.black.withValues(alpha: 0.6),
                                           borderRadius: BorderRadius.circular(6),
                                           border: Border.all(
-                                            color: const Color(0xFF00F5FF)
+                                            color: AppColors.primaryNeon
                                                 .withValues(alpha: 0.5),
                                             width: 0.8,
                                           ),
@@ -472,7 +472,7 @@ class _HeroBannerCarousel extends ConsumerWidget {
                                           mainAxisSize: MainAxisSize.min,
                                           children: [
                                             const Icon(Icons.bolt_rounded,
-                                                color: Color(0xFF00F5FF), size: 12),
+                                                color: AppColors.primaryNeon, size: 12),
                                             const SizedBox(width: 4),
                                             Text(
                                               banner.brandBadge,
@@ -504,7 +504,7 @@ class _HeroBannerCarousel extends ConsumerWidget {
                                           letterSpacing: 1.2,
                                           shadows: [
                                             const Shadow(
-                                              color: Color(0xFF00F5FF),
+                                              color: AppColors.primaryNeon,
                                               blurRadius: 10,
                                             ),
                                           ],
@@ -517,7 +517,7 @@ class _HeroBannerCarousel extends ConsumerWidget {
                                         style: GoogleFonts.rajdhani(
                                           fontSize: 11.5,
                                           fontWeight: FontWeight.w700,
-                                          color: const Color(0xFFCBD5E1),
+                                          color: AppColors.textSecondary,
                                           letterSpacing: 0.5,
                                         ),
                                       ),
@@ -548,7 +548,7 @@ class _HeroBannerCarousel extends ConsumerWidget {
                 width: isSelected ? 20 : 6,
                 decoration: BoxDecoration(
                   color: isSelected
-                      ? const Color(0xFF00F5FF)
+                      ? AppColors.primaryNeon
                       : Colors.white.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(3),
                 ),
@@ -587,15 +587,15 @@ class _UserProfileGreetingCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFF101722),
+        color: AppColors.surfaceNavy,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: const Color(0xFF00F5FF).withValues(alpha: 0.35),
+          color: AppColors.primaryNeon.withValues(alpha: 0.35),
           width: 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF00F5FF).withValues(alpha: 0.08),
+            color: AppColors.primaryNeon.withValues(alpha: 0.08),
             blurRadius: 10,
             spreadRadius: 1,
           ),
@@ -603,7 +603,7 @@ class _UserProfileGreetingCard extends StatelessWidget {
       ),
       child: Row(
         children: [
-          // Left Avatar Circle with Gold Crown Badge
+          // Left Avatar Circle with VIP Crown Badge
           Stack(
             clipBehavior: Clip.none,
             children: [
@@ -613,10 +613,10 @@ class _UserProfileGreetingCard extends StatelessWidget {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: const Color(0xFF00F5FF),
+                    color: AppColors.primaryNeon,
                     width: 2,
                   ),
-                  color: const Color(0xFF1E293B),
+                  color: AppColors.surfaceElevated,
                 ),
                 child: ClipOval(
                   child: (userAvatarUrl != null && userAvatarUrl!.isNotEmpty)
@@ -625,14 +625,14 @@ class _UserProfileGreetingCard extends StatelessWidget {
                           fit: BoxFit.cover,
                           errorBuilder: (context, error, stackTrace) =>
                               const Icon(Icons.person_rounded,
-                                  color: Color(0xFF94A3B8), size: 30),
+                                  color: AppColors.textMuted, size: 30),
                         )
                       : const Icon(Icons.person_rounded,
-                          color: Color(0xFF94A3B8), size: 30),
+                          color: AppColors.textMuted, size: 30),
                 ),
               ),
 
-              // Gold Crown Badge (attached to bottom right of avatar)
+              // Crown Badge (attached to bottom right of avatar)
               if (showCrownBadge)
                 Positioned(
                   right: -2,
@@ -640,17 +640,17 @@ class _UserProfileGreetingCard extends StatelessWidget {
                   child: Container(
                     padding: const EdgeInsets.all(3),
                     decoration: const BoxDecoration(
-                      color: Color(0xFF1E293B),
+                      color: AppColors.surfaceNavy,
                       shape: BoxShape.circle,
                     ),
                     child: Container(
                       padding: const EdgeInsets.all(3),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFFFD200),
+                        color: AppColors.glowLight,
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFFFFD200).withValues(alpha: 0.5),
+                            color: AppColors.glowLight.withValues(alpha: 0.5),
                             blurRadius: 6,
                           ),
                         ],
@@ -681,7 +681,7 @@ class _UserProfileGreetingCard extends StatelessWidget {
                         style: GoogleFonts.rajdhani(
                           fontSize: 17,
                           fontWeight: FontWeight.w800,
-                          color: Colors.white,
+                          color: AppColors.textPrimary,
                         ),
                       ),
                     ),
@@ -695,7 +695,7 @@ class _UserProfileGreetingCard extends StatelessWidget {
                   style: GoogleFonts.inter(
                     fontSize: 11,
                     fontWeight: FontWeight.w500,
-                    color: const Color(0xFF94A3B8),
+                    color: AppColors.textSecondary,
                   ),
                 ),
                 const SizedBox(height: 6),
@@ -704,7 +704,7 @@ class _UserProfileGreetingCard extends StatelessWidget {
                   style: GoogleFonts.rajdhani(
                     fontSize: 10,
                     fontWeight: FontWeight.w700,
-                    color: const Color(0xFF64748B),
+                    color: AppColors.textMuted,
                     letterSpacing: 0.3,
                   ),
                 ),
@@ -727,7 +727,7 @@ class _QuickActionGrid extends ConsumerWidget {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF101722).withValues(alpha: 0.65),
+        backgroundColor: AppColors.surfaceNavy.withValues(alpha: 0.95),
         elevation: 0,
         insetPadding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
         titlePadding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
@@ -736,7 +736,7 @@ class _QuickActionGrid extends ConsumerWidget {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
           side: BorderSide(
-            color: const Color(0xFF00F5FF).withValues(alpha: 0.4),
+            color: AppColors.primaryNeon.withValues(alpha: 0.4),
             width: 1,
           ),
         ),
@@ -745,10 +745,10 @@ class _QuickActionGrid extends ConsumerWidget {
             Container(
               padding: const EdgeInsets.all(6),
               decoration: BoxDecoration(
-                color: const Color(0xFFFF2D55).withValues(alpha: 0.15),
+                color: AppColors.accentOrange.withValues(alpha: 0.15),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.lock_rounded, color: Color(0xFFFF2D55), size: 18),
+              child: const Icon(Icons.lock_rounded, color: AppColors.accentOrange, size: 18),
             ),
             const SizedBox(width: 8),
             Expanded(
@@ -757,7 +757,7 @@ class _QuickActionGrid extends ConsumerWidget {
                 style: GoogleFonts.orbitron(
                   fontSize: 14,
                   fontWeight: FontWeight.w800,
-                  color: Colors.white,
+                  color: AppColors.textPrimary,
                   letterSpacing: 0.5,
                 ),
               ),
@@ -769,7 +769,7 @@ class _QuickActionGrid extends ConsumerWidget {
           style: GoogleFonts.inter(
             fontSize: 12,
             height: 1.3,
-            color: const Color(0xFFCBD5E1),
+            color: AppColors.textSecondary,
           ),
         ),
         actions: [
@@ -788,15 +788,15 @@ class _QuickActionGrid extends ConsumerWidget {
                   style: GoogleFonts.rajdhani(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
-                    color: const Color(0xFF94A3B8),
+                    color: AppColors.textMuted,
                   ),
                 ),
               ),
               const SizedBox(width: 8),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF00F5FF),
-                  foregroundColor: Colors.black,
+                  backgroundColor: AppColors.primaryNeon,
+                  foregroundColor: AppColors.bgNavy,
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   minimumSize: Size.zero,
                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -813,7 +813,7 @@ class _QuickActionGrid extends ConsumerWidget {
                   style: GoogleFonts.rajdhani(
                     fontSize: 12,
                     fontWeight: FontWeight.w900,
-                    color: Colors.black,
+                    color: AppColors.bgNavy,
                   ),
                 ),
               ),
@@ -834,28 +834,28 @@ class _QuickActionGrid extends ConsumerWidget {
         title: 'Tournaments',
         subtitle: 'Join & Compete',
         icon: Icons.emoji_events_rounded,
-        accentColor: const Color(0xFF00F5FF), // Cyan
+        accentColor: AppColors.primaryNeon,
         onTap: () => ref.read(navigationIndexProvider.notifier).state = 1,
       ),
       _QuickCardData(
         title: 'Live Matches',
         subtitle: 'Watch Official\nTournaments',
         icon: Icons.sensors_rounded,
-        accentColor: const Color(0xFFFF2D55), // Red
+        accentColor: AppColors.accentOrange,
         onTap: () => ref.read(navigationIndexProvider.notifier).state = 2,
       ),
       _QuickCardData(
         title: 'Daily Quests',
         subtitle: 'Earn Rewards',
         icon: Icons.star_rounded,
-        accentColor: const Color(0xFFFFD200), // Gold/Yellow
+        accentColor: AppColors.glowSoft,
         onTap: () => ref.read(navigationIndexProvider.notifier).state = 3,
       ),
       _QuickCardData(
         title: 'My Squad',
         subtitle: hasSquad ? 'View Team & Waitlist' : 'Locked • Not in Squad',
         icon: hasSquad ? Icons.groups_rounded : Icons.lock_rounded,
-        accentColor: hasSquad ? const Color(0xFFA855F7) : const Color(0xFFFF2D55), // Purple or Red
+        accentColor: hasSquad ? AppColors.primaryNeon : AppColors.accentOrange,
         isLocked: !hasSquad,
         onTap: () {
           if (!hasSquad) {
@@ -886,7 +886,7 @@ class _QuickActionGrid extends ConsumerWidget {
           child: Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: const Color(0xFF101722),
+              color: AppColors.surfaceNavy,
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
                 color: item.accentColor.withValues(alpha: 0.5),
@@ -923,7 +923,7 @@ class _QuickActionGrid extends ConsumerWidget {
                             style: GoogleFonts.rajdhani(
                               fontSize: 14,
                               fontWeight: FontWeight.w800,
-                              color: Colors.white,
+                              color: AppColors.textPrimary,
                             ),
                           ),
                           const SizedBox(height: 1),
@@ -934,7 +934,7 @@ class _QuickActionGrid extends ConsumerWidget {
                             style: GoogleFonts.inter(
                               fontSize: 9.5,
                               fontWeight: FontWeight.w500,
-                              color: const Color(0xFF94A3B8),
+                              color: AppColors.textSecondary,
                               height: 1.1,
                             ),
                           ),
@@ -1024,7 +1024,7 @@ class _LiveTournamentsSection extends ConsumerWidget {
                 child: Row(
                   children: [
                     const Icon(Icons.sensors_rounded,
-                        color: Color(0xFFFF2D55), size: 20),
+                        color: AppColors.accentOrange, size: 20),
                     const SizedBox(width: 8),
                     Expanded(
                       child: FittedBox(
@@ -1038,7 +1038,7 @@ class _LiveTournamentsSection extends ConsumerWidget {
                                 style: GoogleFonts.orbitron(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w900,
-                                  color: Colors.white,
+                                  color: AppColors.textPrimary,
                                   letterSpacing: 0.5,
                                 ),
                               ),
@@ -1047,7 +1047,7 @@ class _LiveTournamentsSection extends ConsumerWidget {
                                 style: GoogleFonts.orbitron(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w800,
-                                  color: const Color(0xFFFFD200),
+                                  color: AppColors.glowLight,
                                   letterSpacing: 0.5,
                                 ),
                               ),
@@ -1072,12 +1072,12 @@ class _LiveTournamentsSection extends ConsumerWidget {
                       style: GoogleFonts.rajdhani(
                         fontSize: 13,
                         fontWeight: FontWeight.w800,
-                        color: const Color(0xFF00F5FF),
+                        color: AppColors.primaryNeon,
                       ),
                     ),
                     const SizedBox(width: 2),
                     const Icon(Icons.chevron_right_rounded,
-                        color: Color(0xFF00F5FF), size: 16),
+                        color: AppColors.primaryNeon, size: 16),
                   ],
                 ),
               ),
@@ -1115,10 +1115,10 @@ class _LiveTournamentsSection extends ConsumerWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Container(
                   decoration: BoxDecoration(
-                    color: const Color(0xFF101722),
+                    color: AppColors.surfaceNavy,
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color: const Color(0xFF00F5FF).withValues(alpha: 0.3),
+                      color: AppColors.primaryNeon.withValues(alpha: 0.3),
                       width: 1,
                     ),
                   ),
@@ -1130,7 +1130,7 @@ class _LiveTournamentsSection extends ConsumerWidget {
                         stream.imageUrl,
                         fit: BoxFit.cover,
                         errorBuilder: (context, error, stackTrace) =>
-                            Container(color: const Color(0xFF1E293B)),
+                            Container(color: AppColors.surfaceElevated),
                       ),
                       Container(
                         decoration: BoxDecoration(
@@ -1158,7 +1158,7 @@ class _LiveTournamentsSection extends ConsumerWidget {
                                   padding: const EdgeInsets.symmetric(
                                       horizontal: 8, vertical: 3),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFFFF2D55),
+                                    color: AppColors.accentOrange,
                                     borderRadius: BorderRadius.circular(6),
                                   ),
                                   child: Row(
@@ -1183,7 +1183,7 @@ class _LiveTournamentsSection extends ConsumerWidget {
                                   padding: const EdgeInsets.symmetric(
                                       horizontal: 8, vertical: 3),
                                   decoration: BoxDecoration(
-                                    color: Colors.black.withValues(alpha: 0.6),
+                                    color: AppColors.bgNavy.withValues(alpha: 0.6),
                                     borderRadius: BorderRadius.circular(12),
                                     border: Border.all(
                                       color: Colors.white.withValues(alpha: 0.2),
@@ -1193,14 +1193,14 @@ class _LiveTournamentsSection extends ConsumerWidget {
                                   child: Row(
                                     children: [
                                       const Icon(Icons.remove_red_eye_rounded,
-                                          color: Colors.white, size: 12),
+                                          color: AppColors.textPrimary, size: 12),
                                       const SizedBox(width: 4),
                                       Text(
                                         stream.viewerCount,
                                         style: GoogleFonts.rajdhani(
                                           fontSize: 11,
                                           fontWeight: FontWeight.w800,
-                                          color: Colors.white,
+                                          color: AppColors.textPrimary,
                                         ),
                                       ),
                                     ],
@@ -1226,7 +1226,7 @@ class _LiveTournamentsSection extends ConsumerWidget {
                                   style: GoogleFonts.inter(
                                     fontSize: 10.5,
                                     fontWeight: FontWeight.w500,
-                                    color: const Color(0xFFCBD5E1),
+                                    color: AppColors.textSecondary,
                                   ),
                                 ),
                                 const SizedBox(height: 6),
@@ -1241,12 +1241,12 @@ class _LiveTournamentsSection extends ConsumerWidget {
                                             padding: const EdgeInsets.symmetric(
                                                 horizontal: 6, vertical: 2),
                                             decoration: BoxDecoration(
-                                              color: const Color(0xFF00F5FF)
+                                              color: AppColors.primaryNeon
                                                   .withValues(alpha: 0.2),
                                               borderRadius:
                                                   BorderRadius.circular(6),
                                               border: Border.all(
-                                                color: const Color(0xFF00F5FF)
+                                                color: AppColors.primaryNeon
                                                     .withValues(alpha: 0.5),
                                                 width: 0.8,
                                               ),
@@ -1256,7 +1256,7 @@ class _LiveTournamentsSection extends ConsumerWidget {
                                               style: GoogleFonts.rajdhani(
                                                 fontSize: 9.5,
                                                 fontWeight: FontWeight.w800,
-                                                color: const Color(0xFF00F5FF),
+                                                color: AppColors.primaryNeon,
                                               ),
                                             ),
                                           ),
@@ -1269,7 +1269,7 @@ class _LiveTournamentsSection extends ConsumerWidget {
                                               style: GoogleFonts.rajdhani(
                                                 fontSize: 9.5,
                                                 fontWeight: FontWeight.w700,
-                                                color: const Color(0xFF94A3B8),
+                                                color: AppColors.textMuted,
                                               ),
                                             ),
                                           ),
@@ -1287,12 +1287,12 @@ class _LiveTournamentsSection extends ConsumerWidget {
                                         padding: const EdgeInsets.symmetric(
                                             horizontal: 12, vertical: 6),
                                         decoration: BoxDecoration(
-                                          color: const Color(0xFFFFD200),
+                                          color: AppColors.primaryNeon,
                                           borderRadius:
                                               BorderRadius.circular(16),
                                           boxShadow: [
                                             BoxShadow(
-                                              color: const Color(0xFFFFD200)
+                                              color: AppColors.primaryNeon
                                                   .withValues(alpha: 0.4),
                                               blurRadius: 6,
                                             ),
@@ -1303,7 +1303,7 @@ class _LiveTournamentsSection extends ConsumerWidget {
                                           style: GoogleFonts.rajdhani(
                                             fontSize: 11,
                                             fontWeight: FontWeight.w900,
-                                            color: Colors.black,
+                                            color: AppColors.bgNavy,
                                           ),
                                         ),
                                       ),
@@ -1337,7 +1337,7 @@ class _LiveTournamentsSection extends ConsumerWidget {
                 width: isSelected ? 16 : 5,
                 decoration: BoxDecoration(
                   color: isSelected
-                      ? const Color(0xFF00F5FF)
+                      ? AppColors.primaryNeon
                       : Colors.white.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(3),
                 ),
@@ -1376,7 +1376,7 @@ class _OurPartnersSection extends StatelessWidget {
                 style: GoogleFonts.orbitron(
                   fontSize: 14,
                   fontWeight: FontWeight.w900,
-                  color: Colors.white,
+                  color: AppColors.textPrimary,
                   letterSpacing: 0.5,
                 ),
               ),
@@ -1400,10 +1400,10 @@ class _OurPartnersSection extends StatelessWidget {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF101722),
+                  color: AppColors.surfaceNavy,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: const Color(0xFF1E293B),
+                    color: AppColors.borderSubtle,
                     width: 1,
                   ),
                 ),
@@ -1419,7 +1419,7 @@ class _OurPartnersSection extends StatelessWidget {
                           fit: BoxFit.contain,
                           errorBuilder: (context, error, stackTrace) =>
                               const Icon(Icons.handshake_rounded,
-                                  color: Color(0xFF00F5FF), size: 18),
+                                  color: AppColors.primaryNeon, size: 18),
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -1428,7 +1428,7 @@ class _OurPartnersSection extends StatelessWidget {
                       const SizedBox(width: 8),
                     ] else ...[
                       const Icon(Icons.handshake_rounded,
-                          color: Color(0xFF00F5FF), size: 18),
+                          color: AppColors.primaryNeon, size: 18),
                       const SizedBox(width: 8),
                     ],
                     Text(
@@ -1436,7 +1436,7 @@ class _OurPartnersSection extends StatelessWidget {
                       style: GoogleFonts.orbitron(
                         fontSize: 12,
                         fontWeight: FontWeight.w800,
-                        color: Colors.white,
+                        color: AppColors.textPrimary,
                         letterSpacing: 0.5,
                       ),
                     ),
@@ -1469,15 +1469,15 @@ class _PartnerWithUsBanner extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF0A131F),
+        color: AppColors.surfaceNavy,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: const Color(0xFF00F5FF).withValues(alpha: 0.5),
+          color: AppColors.primaryNeon.withValues(alpha: 0.5),
           width: 1.2,
         ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF00F5FF).withValues(alpha: 0.12),
+            color: AppColors.primaryNeon.withValues(alpha: 0.12),
             blurRadius: 12,
           ),
         ],
@@ -1491,7 +1491,7 @@ class _PartnerWithUsBanner extends StatelessWidget {
             style: GoogleFonts.orbitron(
               fontSize: 16,
               fontWeight: FontWeight.w900,
-              color: const Color(0xFF00F5FF),
+              color: AppColors.primaryNeon,
               letterSpacing: 1.0,
             ),
           ),
@@ -1523,14 +1523,14 @@ class _PartnerWithUsBanner extends StatelessWidget {
             child: ElevatedButton(
               onPressed: () => _showPartnerInquiryDialog(context),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF00F5FF),
-                foregroundColor: Colors.black,
+                backgroundColor: AppColors.primaryNeon,
+                foregroundColor: AppColors.bgNavy,
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(24),
                 ),
                 elevation: 4,
-                shadowColor: const Color(0xFF00F5FF).withValues(alpha: 0.5),
+                shadowColor: AppColors.primaryNeon.withValues(alpha: 0.5),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -1540,11 +1540,12 @@ class _PartnerWithUsBanner extends StatelessWidget {
                     style: GoogleFonts.rajdhani(
                       fontSize: 15,
                       fontWeight: FontWeight.w900,
+                      color: AppColors.bgNavy,
                       letterSpacing: 0.5,
                     ),
                   ),
                   const SizedBox(width: 6),
-                  const Icon(Icons.arrow_forward_rounded, size: 18),
+                  const Icon(Icons.arrow_forward_rounded, color: AppColors.bgNavy, size: 18),
                 ],
               ),
             ),
@@ -1577,7 +1578,7 @@ class _FeaturePillar extends StatelessWidget {
             style: GoogleFonts.inter(
               fontSize: 9.5,
               fontWeight: FontWeight.w600,
-              color: const Color(0xFFCBD5E1),
+              color: AppColors.textSecondary,
               height: 1.2,
             ),
           ),
@@ -1644,10 +1645,12 @@ class __PartnerInquiryDialogState
                 ? 'Partner inquiry submitted! Our esports team will contact you shortly.'
                 : 'Failed to submit inquiry. Please try again.',
             style: GoogleFonts.rajdhani(
-                fontWeight: FontWeight.bold, fontSize: 13),
+                color: AppColors.bgNavy,
+                fontWeight: FontWeight.bold,
+                fontSize: 13),
           ),
           backgroundColor:
-              success ? const Color(0xFF00F5FF) : Colors.redAccent,
+              success ? AppColors.primaryNeon : AppColors.accentOrange,
         ),
       );
     }
@@ -1658,10 +1661,10 @@ class __PartnerInquiryDialogState
     final state = ref.watch(partnerInquiryProvider);
 
     return Dialog(
-      backgroundColor: const Color(0xFF101722),
+      backgroundColor: AppColors.surfaceNavy,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
-        side: const BorderSide(color: Color(0xFF00F5FF), width: 1.2),
+        side: const BorderSide(color: AppColors.primaryNeon, width: 1.2),
       ),
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
@@ -1679,7 +1682,7 @@ class __PartnerInquiryDialogState
                     style: GoogleFonts.orbitron(
                       fontSize: 16,
                       fontWeight: FontWeight.w900,
-                      color: const Color(0xFF00F5FF),
+                      color: AppColors.primaryNeon,
                     ),
                   ),
                   IconButton(
@@ -1693,7 +1696,7 @@ class __PartnerInquiryDialogState
                 'Join forces with BlastX Arena to reach thousands of passionate gamers.',
                 style: GoogleFonts.inter(
                   fontSize: 11,
-                  color: const Color(0xFF94A3B8),
+                  color: AppColors.textSecondary,
                 ),
               ),
               const SizedBox(height: 16),
@@ -1745,8 +1748,8 @@ class __PartnerInquiryDialogState
                 child: ElevatedButton(
                   onPressed: state.isLoading ? null : _submitInquiry,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF00F5FF),
-                    foregroundColor: Colors.black,
+                    backgroundColor: AppColors.primaryNeon,
+                    foregroundColor: AppColors.bgNavy,
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -1757,13 +1760,14 @@ class __PartnerInquiryDialogState
                           height: 18,
                           width: 18,
                           child: CircularProgressIndicator(
-                              strokeWidth: 2, color: Colors.black),
+                              strokeWidth: 2, color: AppColors.bgNavy),
                         )
                       : Text(
                           'Submit Inquiry',
                           style: GoogleFonts.rajdhani(
                             fontSize: 14,
                             fontWeight: FontWeight.w900,
+                            color: AppColors.bgNavy,
                           ),
                         ),
                 ),
@@ -1800,26 +1804,25 @@ class _InputField extends StatelessWidget {
       keyboardType: keyboardType,
       maxLines: maxLines,
       validator: validator,
-      style: GoogleFonts.inter(fontSize: 12, color: Colors.white),
+      style: GoogleFonts.inter(fontSize: 12, color: AppColors.textPrimary),
       decoration: InputDecoration(
         labelText: label,
         labelStyle:
-            GoogleFonts.inter(fontSize: 11, color: const Color(0xFF94A3B8)),
-        prefixIcon: Icon(icon, color: const Color(0xFF00F5FF), size: 18),
+            GoogleFonts.inter(fontSize: 11, color: AppColors.textMuted),
+        prefixIcon: Icon(icon, color: AppColors.primaryNeon, size: 18),
         filled: true,
-        fillColor: const Color(0xFF1E293B),
+        fillColor: AppColors.surfaceElevated,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
           borderSide: BorderSide.none,
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(
-              color: const Color(0xFF00F5FF).withValues(alpha: 0.2)),
+          borderSide: const BorderSide(color: AppColors.borderCyan),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Color(0xFF00F5FF), width: 1.2),
+          borderSide: const BorderSide(color: AppColors.primaryNeon, width: 1.2),
         ),
       ),
     );
@@ -1841,7 +1844,7 @@ class _AmbientBackground extends StatelessWidget {
         final t = controller.value;
         return Stack(
           children: [
-            Container(color: const Color(0xFF0B0F17)),
+            Container(color: AppColors.background),
             Positioned(
               top: -60 + (t * 25),
               right: -50,
