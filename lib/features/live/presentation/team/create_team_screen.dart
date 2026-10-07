@@ -21,7 +21,6 @@ class _CreateTeamScreenState extends ConsumerState<CreateTeamScreen> {
   final _teamName = TextEditingController();
   final _tag = TextEditingController();
   final _player = TextEditingController();
-  final _ign = TextEditingController();
   final _uid = TextEditingController();
 
   TeamOwnerRole _selectedRole = TeamOwnerRole.leader;
@@ -30,7 +29,6 @@ class _CreateTeamScreenState extends ConsumerState<CreateTeamScreen> {
   bool get _isFormValid =>
       _teamName.text.trim().isNotEmpty &&
       _player.text.trim().isNotEmpty &&
-      _ign.text.trim().isNotEmpty &&
       _uid.text.trim().isNotEmpty;
 
   void _onFieldChanged() {
@@ -42,7 +40,7 @@ class _CreateTeamScreenState extends ConsumerState<CreateTeamScreen> {
   @override
   void initState() {
     super.initState();
-    for (final controller in [_teamName, _player, _ign, _uid]) {
+    for (final controller in [_teamName, _player, _uid]) {
       controller.addListener(_onFieldChanged);
     }
     Future.microtask(() {
@@ -57,14 +55,6 @@ class _CreateTeamScreenState extends ConsumerState<CreateTeamScreen> {
       if (_player.text.trim().isEmpty && user.name.isNotEmpty) {
         _player.text = user.name;
       }
-      if (_ign.text.trim().isEmpty) {
-        final existingIgn = user.gameProfile?.inGameName;
-        if (existingIgn != null && existingIgn.isNotEmpty) {
-          _ign.text = existingIgn;
-        } else if (user.name.isNotEmpty) {
-          _ign.text = user.name;
-        }
-      }
       if (_uid.text.trim().isEmpty) {
         final existingUid = user.gameProfile?.inGameUid;
         if (existingUid != null && existingUid.isNotEmpty) {
@@ -76,7 +66,7 @@ class _CreateTeamScreenState extends ConsumerState<CreateTeamScreen> {
 
   @override
   void dispose() {
-    for (final c in [_teamName, _tag, _player, _ign, _uid]) {
+    for (final c in [_teamName, _tag, _player, _uid]) {
       c.removeListener(_onFieldChanged);
       c.dispose();
     }
@@ -87,7 +77,6 @@ class _CreateTeamScreenState extends ConsumerState<CreateTeamScreen> {
     final name = _teamName.text.trim();
     final tag = _tag.text.trim().toUpperCase();
     final playerName = _player.text.trim();
-    final ign = _ign.text.trim();
     final uid = _uid.text.trim();
 
     String? err;
@@ -96,7 +85,7 @@ class _CreateTeamScreenState extends ConsumerState<CreateTeamScreen> {
     } else if (tag.isNotEmpty && (tag.length < 2 || tag.length > 5)) {
       err = 'Team tag must be 2–5 characters.';
     } else {
-      err = PlayerInfoForm.validate(playerName, ign, uid);
+      err = PlayerInfoForm.validate(playerName, uid);
     }
     setState(() => _localError = err);
     if (err != null) return;
@@ -107,7 +96,7 @@ class _CreateTeamScreenState extends ConsumerState<CreateTeamScreen> {
       teamName: name,
       tag: tag,
       playerName: playerName,
-      ign: ign,
+      ign: playerName,
       uid: uid,
       ownerRole: _selectedRole,
     );
@@ -115,7 +104,7 @@ class _CreateTeamScreenState extends ConsumerState<CreateTeamScreen> {
       ref.read(profileProvider.notifier).updateFullProfile(
         name: playerName.isNotEmpty ? playerName : (ref.read(profileProvider).user?.name ?? ''),
         freeFireUid: uid,
-        inGameName: ign,
+        inGameName: playerName,
       );
       Navigator.of(context).pop(true);
     }
@@ -278,7 +267,7 @@ class _CreateTeamScreenState extends ConsumerState<CreateTeamScreen> {
               style: AppTextStyles.headingMd,
             ),
             PlayerInfoForm(
-                nameController: _player, ignController: _ign, uidController: _uid),
+                nameController: _player, uidController: _uid),
             if (error != null) ...[
               const SizedBox(height: 14),
               Text(error,

@@ -20,7 +20,6 @@ class TeamPreviewScreen extends ConsumerStatefulWidget {
 
 class _TeamPreviewScreenState extends ConsumerState<TeamPreviewScreen> {
   final _player = TextEditingController();
-  final _ign = TextEditingController();
   final _uid = TextEditingController();
   String? _localError;
 
@@ -36,14 +35,6 @@ class _TeamPreviewScreenState extends ConsumerState<TeamPreviewScreen> {
       if (_player.text.trim().isEmpty && user.name.isNotEmpty) {
         _player.text = user.name;
       }
-      if (_ign.text.trim().isEmpty) {
-        final existingIgn = user.gameProfile?.inGameName;
-        if (existingIgn != null && existingIgn.isNotEmpty) {
-          _ign.text = existingIgn;
-        } else if (user.name.isNotEmpty) {
-          _ign.text = user.name;
-        }
-      }
       if (_uid.text.trim().isEmpty) {
         final existingUid = user.gameProfile?.inGameUid;
         if (existingUid != null && existingUid.isNotEmpty) {
@@ -55,7 +46,7 @@ class _TeamPreviewScreenState extends ConsumerState<TeamPreviewScreen> {
 
   @override
   void dispose() {
-    for (final c in [_player, _ign, _uid]) {
+    for (final c in [_player, _uid]) {
       c.dispose();
     }
     super.dispose();
@@ -63,22 +54,21 @@ class _TeamPreviewScreenState extends ConsumerState<TeamPreviewScreen> {
 
   Future<void> _join() async {
     final playerName = _player.text.trim();
-    final ign = _ign.text.trim();
     final uid = _uid.text.trim();
 
-    final err = PlayerInfoForm.validate(playerName, ign, uid);
+    final err = PlayerInfoForm.validate(playerName, uid);
     setState(() => _localError = err);
     if (err != null) return;
     final ok = await ref.read(teamProvider(widget.tournamentId).notifier).joinTeam(
       playerName: playerName,
-      ign: ign,
+      ign: playerName,
       uid: uid,
     );
     if (ok && mounted) {
       ref.read(profileProvider.notifier).updateFullProfile(
         name: playerName.isNotEmpty ? playerName : (ref.read(profileProvider).user?.name ?? ''),
         freeFireUid: uid,
-        inGameName: ign,
+        inGameName: playerName,
       );
       Navigator.of(context).pop(true);
     }
@@ -177,7 +167,6 @@ class _TeamPreviewScreenState extends ConsumerState<TeamPreviewScreen> {
               Text('YOUR FREE FIRE DETAILS', style: AppTextStyles.headingMd),
               PlayerInfoForm(
                   nameController: _player,
-                  ignController: _ign,
                   uidController: _uid),
               if (error != null) ...[
                 const SizedBox(height: 12),

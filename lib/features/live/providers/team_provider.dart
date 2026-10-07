@@ -211,7 +211,7 @@ class TeamNotifier extends FamilyNotifier<TeamState, String> {
     required String teamName,
     required String tag,
     required String playerName,
-    required String ign,
+    String ign = '',
     required String uid,
     TeamOwnerRole ownerRole = TeamOwnerRole.leader,
     String? logoUrl,
@@ -335,7 +335,7 @@ class TeamNotifier extends FamilyNotifier<TeamState, String> {
 
   Future<bool> joinTeam({
     required String playerName,
-    required String ign,
+    String ign = '',
     required String uid,
   }) =>
       _guard(() async {
