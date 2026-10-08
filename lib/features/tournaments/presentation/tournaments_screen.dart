@@ -6,6 +6,7 @@ import '../../../core/theme/app_text_styles.dart';
 import '../../live/providers/live_provider.dart';
 import '../../live/presentation/widgets/capsule_search_bar.dart';
 import 'widgets/blastix_tournament_card.dart';
+import 'widgets/tournament_navigation_helper.dart';
 import 'widgets/upcoming_tournament_card.dart';
 
 class TournamentsScreen extends ConsumerStatefulWidget {
@@ -143,19 +144,13 @@ class _TournamentsList extends ConsumerWidget {
             ? BlastIXTournamentCard(
                 tournament: tournament,
                 onTap: () {
-                  Navigator.of(context).pushNamed(
-                    '/tournament-detail',
-                    arguments: tournament.id,
-                  );
+                  handleTournamentCardTap(context, ref, tournament);
                 },
               ).animate().fadeIn(delay: (index * 100).ms).slideY(begin: 0.2, end: 0)
             : UpcomingTournamentCard(
                 tournament: tournament,
                 onTap: () {
-                  Navigator.of(context).pushNamed(
-                    '/tournament-detail',
-                    arguments: tournament.id,
-                  );
+                  handleTournamentCardTap(context, ref, tournament);
                 },
               ).animate().fadeIn(delay: (index * 100).ms).slideY(begin: 0.2, end: 0);
       },

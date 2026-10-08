@@ -13,6 +13,7 @@ import '../../profile/providers/profile_provider.dart';
 import '../../squad/presentation/my_squad_screen.dart';
 import '../../squad/providers/squad_provider.dart';
 import '../../tournaments/presentation/widgets/blastix_tournament_card.dart';
+import '../../tournaments/presentation/widgets/tournament_navigation_helper.dart';
 import '../data/models/home_data_models.dart';
 import '../providers/home_provider.dart';
 import '../providers/navigation_provider.dart';
@@ -1101,10 +1102,7 @@ class _LiveTournamentsSection extends ConsumerWidget {
                   child: BlastIXTournamentCard(
                     tournament: tournament,
                     onTap: () {
-                      Navigator.of(context).pushNamed(
-                        '/tournament-detail',
-                        arguments: tournament.id,
-                      );
+                      handleTournamentCardTap(context, ref, tournament);
                     },
                   ),
                 );

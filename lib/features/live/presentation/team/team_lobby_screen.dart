@@ -415,7 +415,7 @@ class TeamLobbyScreen extends ConsumerWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Waiting for $slotsNeeded player${slotsNeeded == 1 ? '' : 's'} to register',
+                            'Waiting for $slotsNeeded player${slotsNeeded == 1 ? '' : 's'} to join & confirm',
                             style: AppTextStyles.headingMd.copyWith(
                               color: AppColors.accentOrange,
                               fontSize: 13,
@@ -424,7 +424,7 @@ class TeamLobbyScreen extends ConsumerWidget {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            '4 main playing members are compulsory to register for tournament',
+                            '4 main playing members are compulsory for auto-registration.',
                             style: AppTextStyles.caption.copyWith(
                               color: AppColors.textSecondary,
                             ),
@@ -436,61 +436,53 @@ class TeamLobbyScreen extends ConsumerWidget {
                 ),
               ),
             ]
-            // 3. Not Registered: Exactly 4 playing members confirmed -> Floating Register Button
+            // 3. Exactly 4 playing members confirmed -> Auto Registering / View Match Room
             else ...[
-              CustomButton(
-                text: tournament == null
-                    ? 'REGISTER TOURNAMENT'
-                    : 'REGISTER TOURNAMENT • ${tournament.formattedEntryFee}',
-                isLoading: isLoading,
-                onPressed: (tournament != null &&
-                        tournament.status != TournamentStatus.live)
-                    ? () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                              'Registration status LIVE hone par hi shuru hoti hai.',
-                            ),
-                            backgroundColor: AppColors.error,
-                          ),
-                        );
-                      }
-                    : () async {
-                        final mode = tournament?.mode ?? 'SQUAD';
-                        final ok = await ref
-                            .read(teamProvider(tournamentId).notifier)
-                            .completeRegistration(mode: mode);
-
-                        if (ok && context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                '🎉 Registration successful! Your squad is registered for tournament.',
-                              ),
-                              backgroundColor: AppColors.success,
-                            ),
-                          );
-
-                          // Open Match Room & Registered Teams Screen
-                          Navigator.of(context).pushReplacement(
-                            FirePageRoute(
-                              page: TournamentMatchRoomScreen(
-                                tournamentId: tournamentId,
-                              ),
-                            ),
-                          );
-                        }
-                      },
-              ),
-              if (!isOwner) ...[
-                const SizedBox(height: 6),
-                Text(
-                  'Waiting for the team leader/manager to click Register.',
-                  textAlign: TextAlign.center,
-                  style: AppTextStyles.caption
-                      .copyWith(color: AppColors.textMuted),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  backgroundColor: AppColors.primaryNeon,
+                  foregroundColor: AppColors.bgNavy,
+                  minimumSize: const Size.fromHeight(52),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                 ),
-              ],
+                onPressed: () async {
+                  if (!team.isRegistered) {
+                    final mode = tournament?.mode ?? 'SQUAD';
+                    await ref
+                        .read(teamProvider(tournamentId).notifier)
+                        .completeRegistration(mode: mode);
+                  }
+                  if (context.mounted) {
+                    Navigator.of(context).push(
+                      FirePageRoute(
+                        page: TournamentMatchRoomScreen(
+                            tournamentId: tournamentId),
+                      ),
+                    );
+                  }
+                },
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.verified_rounded,
+                        color: AppColors.bgNavy, size: 20),
+                    const SizedBox(width: 8),
+                    Text(
+                      isLoading
+                          ? 'AUTO REGISTERING TEAM...'
+                          : 'AUTO REGISTERED • VIEW MATCH LOBBY',
+                      style: AppTextStyles.button.copyWith(
+                        color: AppColors.bgNavy,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ],
           ],
         ),
@@ -542,7 +534,7 @@ class TeamLobbyScreen extends ConsumerWidget {
     if (team.isRegistered) {
       color = AppColors.success;
       icon = Icons.verified_rounded;
-      text = 'Registered. Roster is locked.';
+      text = '🎉 Automatically Registered! Team is ready & roster is locked.';
     } else if (team.isLocked) {
       color = AppColors.error;
       icon = Icons.lock_rounded;
@@ -552,7 +544,7 @@ class TeamLobbyScreen extends ConsumerWidget {
       color = AppColors.warning;
       icon = Icons.schedule_rounded;
       text = 'Registration opens when tournament goes LIVE on backend.';
-    } else if (team.isReady) {
+    } else if (team.isReady || team.confirmedMainCount >= 4) {
       color = AppColors.success;
       icon = Icons.check_circle_rounded;
       text = 'Team is ready! 4/4 main playing members confirmed.';

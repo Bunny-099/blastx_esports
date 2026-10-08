@@ -6,6 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/transitions/fire_page_route.dart';
+import '../../../features/squad/presentation/widgets/ask_leader_dialog.dart';
+import '../../../features/squad/providers/squad_provider.dart';
 import '../data/models/tournament_model.dart';
 import '../providers/live_provider.dart';
 import 'team/join_tournament_screen.dart';
@@ -560,11 +562,16 @@ class _BottomCtaState extends ConsumerState<_BottomCta> {
           ),
           child: GestureDetector(
             onTap: () {
-              Navigator.of(context).push(
-                FirePageRoute(
-                  page: JoinTournamentScreen(tournamentId: t.id),
-                ),
-              );
+              final squadState = ref.read(squadProvider);
+              if (squadState.hasSquad && !squadState.isOwner) {
+                showAskLeaderDialog(context);
+              } else {
+                Navigator.of(context).push(
+                  FirePageRoute(
+                    page: JoinTournamentScreen(tournamentId: t.id),
+                  ),
+                );
+              }
             },
             child: Container(
               height: 52,

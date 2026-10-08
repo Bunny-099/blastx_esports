@@ -196,14 +196,27 @@ class TeamNotifier extends FamilyNotifier<TeamState, String> {
   Future<void> loadMyTeam() => _guard(() async {
     final t = await _repo.myTeam(_tid);
     state = t == null ? state.copyWith(clearTeam: true) : state.copyWith(team: t);
+    _checkAutoRegister();
   });
 
   Future<void> refresh() async {
     try {
       final t = await _repo.myTeam(_tid);
       state = t == null ? state.copyWith(clearTeam: true) : state.copyWith(team: t);
+      _checkAutoRegister();
     } catch (e) {
       state = state.copyWith(error: _message(e));
+    }
+  }
+
+  /// Auto-registers the team if 4 main playing members are confirmed
+  Future<void> _checkAutoRegister() async {
+    final currentTeam = state.team;
+    if (currentTeam != null &&
+        currentTeam.confirmedMainCount >= 4 &&
+        !currentTeam.isRegistered &&
+        !currentTeam.isLocked) {
+      await completeRegistration();
     }
   }
 
@@ -348,6 +361,7 @@ class TeamNotifier extends FamilyNotifier<TeamState, String> {
           'player': {'name': playerName, 'ign': ign, 'uid': uid},
         });
         state = state.copyWith(team: t, clearPreview: true);
+        await _checkAutoRegister();
       });
 
   Future<bool> removeMember(String userId) => _guard(() async {

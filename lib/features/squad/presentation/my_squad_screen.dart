@@ -8,6 +8,7 @@ import '../../../shared/widgets/custom_button.dart';
 import '../data/models/squad_invitation_model.dart';
 import '../data/models/squad_model.dart';
 import '../providers/squad_provider.dart';
+import 'widgets/waitlist_status_dialog.dart';
 
 /// ============================================================
 /// MY SQUAD SCREEN (Home -> E-Sports Hub -> My Squad)
@@ -444,49 +445,8 @@ class MySquadScreen extends ConsumerWidget {
     );
   }
 
-  void _showWaitlistModal(BuildContext context, SquadModel squad) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.surfaceElevated,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-          side: const BorderSide(color: AppColors.accentOrange),
-        ),
-        title: Row(
-          children: [
-            const Icon(Icons.hourglass_empty_rounded, color: AppColors.accentOrange),
-            const SizedBox(width: 8),
-            Text('WAITLIST STATUS', style: AppTextStyles.headingLg),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Your team currently has ${squad.mainCount} of 4 main players.',
-              style: AppTextStyles.bodyLg.copyWith(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 10),
-            Text(
-              'Teams with less than 4 players remain in the Waitlist and cannot join official tournament match lobbies. Ask your Leader/Manager to invite remaining members!',
-              style: AppTextStyles.bodyMd.copyWith(color: AppColors.textSecondary),
-            ),
-          ],
-        ),
-        actions: [
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryNeon,
-              foregroundColor: AppColors.bgNavy,
-            ),
-            onPressed: () => Navigator.pop(ctx),
-            child: Text('OK', style: AppTextStyles.button.copyWith(color: AppColors.bgNavy)),
-          ),
-        ],
-      ),
-    );
+  void _showWaitlistModal(BuildContext context, WidgetRef ref, SquadModel squad) {
+    showWaitlistModal(context, ref, squad);
   }
 
   @override
@@ -648,7 +608,7 @@ class MySquadScreen extends ConsumerWidget {
                     _buildEmptySquadState(context, ref)
                   else ...[
                     // Incomplete Team Waitlist Banner (< 4 players)
-                    _buildIncompleteTeamBanner(context, squad),
+                    _buildIncompleteTeamBanner(context, ref, squad),
 
                     // Squad Header Banner Card
                     _buildSquadHeaderCard(squad, isOwner),
@@ -681,7 +641,7 @@ class MySquadScreen extends ConsumerWidget {
                               text: 'WAITLIST',
                               isOutlined: true,
                               icon: const Icon(Icons.hourglass_empty_rounded, size: 18, color: AppColors.primaryNeon),
-                              onPressed: () => _showWaitlistModal(context, squad),
+                              onPressed: () => _showWaitlistModal(context, ref, squad),
                             ),
                           ),
                         ],
@@ -910,7 +870,7 @@ class MySquadScreen extends ConsumerWidget {
   }
 
   /// Incomplete Team Banner (< 4 Players) (Diagram 1 Requirement)
-  Widget _buildIncompleteTeamBanner(BuildContext context, SquadModel squad) {
+  Widget _buildIncompleteTeamBanner(BuildContext context, WidgetRef ref, SquadModel squad) {
     if (squad.mainCount >= 4) return const SizedBox.shrink();
 
     return Container(
@@ -965,7 +925,7 @@ class MySquadScreen extends ConsumerWidget {
               Expanded(
                 child: CustomButton(
                   text: 'Waitlist',
-                  onPressed: () => _showWaitlistModal(context, squad),
+                  onPressed: () => _showWaitlistModal(context, ref, squad),
                 ),
               ),
             ],

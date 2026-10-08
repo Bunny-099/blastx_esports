@@ -3,7 +3,10 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import '../../notifications/providers/notification_provider.dart';
+import '../../profile/providers/profile_provider.dart';
 import '../../splash/providers/splash_providers.dart';
+import '../../squad/providers/squad_provider.dart';
 import '../data/auth_repository.dart';
 import '../data/models/user_model.dart';
 import '../data/services/auth_api_service.dart';
@@ -262,7 +265,16 @@ class AuthNotifier extends Notifier<AuthState> {
       debugPrint('Storage Clear Error: $e');
     }
 
-    // 4. Reset Auth State
+    try {
+      // 4. Invalidate Riverpod cached user state providers
+      ref.invalidate(profileProvider);
+      ref.invalidate(squadProvider);
+      ref.invalidate(notificationProvider);
+    } catch (e) {
+      debugPrint('Provider Invalidation Error: $e');
+    }
+
+    // 5. Reset Auth State
     state = const AuthState();
   }
 }
