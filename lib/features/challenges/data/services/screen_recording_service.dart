@@ -25,13 +25,40 @@ class ScreenRecordingService {
   int stopDelayMs = 1500;
   File? mockRecordedFile;
 
-  /// Starts 480p match recording session
+  /// Restores device preferred orientations to default (all orientations)
+  Future<void> _restoreOrientation() async {
+    try {
+      await SystemChrome.setPreferredOrientations(DeviceOrientation.values);
+    } catch (e) {
+      debugPrint('Error restoring device orientation: $e');
+    }
+  }
+
+  /// Locks device orientation to landscape and waits for rotation animation to settle
+  Future<void> _lockLandscapeOrientation() async {
+    try {
+      await SystemChrome.setPreferredOrientations([
+        DeviceOrientation.landscapeLeft,
+        DeviceOrientation.landscapeRight,
+      ]);
+      // Wait ~800ms for rotation animation to settle before starting screen recording
+      await Future.delayed(const Duration(milliseconds: 800));
+    } catch (e) {
+      debugPrint('Error setting landscape orientation: $e');
+    }
+  }
+
+  /// Starts landscape match recording session
   Future<bool> startRecording({required String challengeId}) async {
     if (_isRecording) return false;
+
+    // Lock device orientation to landscape before starting screen recording
+    await _lockLandscapeOrientation();
 
     if (testMode) {
       if (!mockPermissionGranted) {
         _isRecording = false;
+        await _restoreOrientation();
         return false;
       }
       _isRecording = true;
@@ -55,7 +82,7 @@ class ScreenRecordingService {
       }
 
       final String timestamp = DateTime.now().millisecondsSinceEpoch.toString();
-      final String filePath = '${tempDir.path}/match_record_${challengeId}_480p_$timestamp.mp4';
+      final String filePath = '${tempDir.path}/match_record_${challengeId}_720p_$timestamp.mp4';
       _currentVideoFile = File(filePath);
 
       // Create initial temp file placeholder
@@ -83,6 +110,7 @@ class ScreenRecordingService {
           }
           _currentVideoFile = null;
           _isRecording = false;
+          await _restoreOrientation();
           return false;
         }
       }
@@ -95,7 +123,7 @@ class ScreenRecordingService {
         _elapsedSeconds++;
       });
 
-      debugPrint('Started 480p Screen Recording session at temp path: $filePath');
+      debugPrint('Started Landscape Screen Recording session at temp path: $filePath');
       return true;
     } catch (e) {
       debugPrint('ScreenRecordingService start error: $e');
@@ -106,63 +134,69 @@ class ScreenRecordingService {
       }
       _currentVideoFile = null;
       _isRecording = false;
+      await _restoreOrientation();
       return false;
     }
   }
 
-  /// Stops screen recording session and returns recorded 480p video file if valid (>10 KB)
+  /// Stops screen recording session and returns recorded video file if valid (>10 KB)
   Future<File?> stopRecording() async {
-    if (!_isRecording && _currentVideoFile == null) return null;
+    try {
+      if (!_isRecording && _currentVideoFile == null) return null;
 
-    _timer?.cancel();
-    _isRecording = false;
+      _timer?.cancel();
+      _isRecording = false;
 
-    if (testMode) {
-      if (stopDelayMs > 0) {
-        await Future.delayed(Duration(milliseconds: stopDelayMs));
-      }
-      return _currentVideoFile;
-    }
-
-    String? nativeStoppedPath;
-    if (!kIsWeb && Platform.isAndroid) {
-      try {
-        nativeStoppedPath = await _recorderChannel.invokeMethod<String>('stopRecording');
-        debugPrint('Native Android ScreenRecorder stopped. Path: $nativeStoppedPath');
-      } catch (e) {
-        debugPrint('Native ScreenRecorder stop error: $e');
-      }
-    }
-
-    // Wait 1.5 seconds so Android OS MediaRecorder finishes flushing MP4 file container to disk
-    await Future.delayed(const Duration(milliseconds: 1500));
-
-    if (nativeStoppedPath != null && nativeStoppedPath.isNotEmpty) {
-      _currentVideoFile = File(nativeStoppedPath);
-    }
-
-    if (_currentVideoFile != null) {
-      try {
-        if (await _currentVideoFile!.exists()) {
-          final int length = await _currentVideoFile!.length();
-          debugPrint('Stopped 480p Screen Recording. File exists, length: $length bytes at ${_currentVideoFile!.path}');
-
-          // Verify file is a valid video (> 10 KB)
-          if (length > 10 * 1024) {
-            final recordedFile = _currentVideoFile;
-            return recordedFile;
-          } else {
-            debugPrint('Recording file is too small ($length bytes). Deleting invalid file.');
-            await _currentVideoFile!.delete();
-          }
+      if (testMode) {
+        if (stopDelayMs > 0) {
+          await Future.delayed(Duration(milliseconds: stopDelayMs));
         }
-      } catch (e) {
-        debugPrint('Error checking or finalizing recording file: $e');
+        return _currentVideoFile;
       }
-    }
 
-    _currentVideoFile = null;
-    return null;
+      String? nativeStoppedPath;
+      if (!kIsWeb && Platform.isAndroid) {
+        try {
+          nativeStoppedPath = await _recorderChannel.invokeMethod<String>('stopRecording');
+          debugPrint('Native Android ScreenRecorder stopped. Path: $nativeStoppedPath');
+        } catch (e) {
+          debugPrint('Native ScreenRecorder stop error: $e');
+        }
+      }
+
+      // Wait 1.5 seconds so Android OS MediaRecorder finishes flushing MP4 file container to disk
+      await Future.delayed(const Duration(milliseconds: 1500));
+
+      if (nativeStoppedPath != null && nativeStoppedPath.isNotEmpty) {
+        _currentVideoFile = File(nativeStoppedPath);
+      }
+
+      if (_currentVideoFile != null) {
+        try {
+          if (await _currentVideoFile!.exists()) {
+            final int length = await _currentVideoFile!.length();
+            debugPrint('Stopped Screen Recording. File exists, length: $length bytes at ${_currentVideoFile!.path}');
+
+            // Verify file is a valid video (> 10 KB)
+            if (length > 10 * 1024) {
+              final recordedFile = _currentVideoFile;
+              return recordedFile;
+            } else {
+              debugPrint('Recording file is too small ($length bytes). Deleting invalid file.');
+              await _currentVideoFile!.delete();
+            }
+          }
+        } catch (e) {
+          debugPrint('Error checking or finalizing recording file: $e');
+        }
+      }
+
+      _currentVideoFile = null;
+      return null;
+    } finally {
+      // Always restore device orientation after stopping recording or on error
+      await _restoreOrientation();
+    }
   }
 
   /// Pick real match video recording proof from device gallery or camera
@@ -206,5 +240,6 @@ class ScreenRecordingService {
     _isRecording = false;
     _elapsedSeconds = 0;
     _currentVideoFile = null;
+    _restoreOrientation();
   }
 }

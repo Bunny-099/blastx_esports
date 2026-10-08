@@ -121,27 +121,22 @@ class ScreenRecordService : Service() {
                 }
             }, null)
 
-            var width = screenWidth
-            var height = screenHeight
             val densityDpi = screenDensity
 
-            val minDim = min(width, height)
-            val maxDim = max(width, height)
+            val minDim = min(screenWidth, screenHeight)
+            val maxDim = max(screenWidth, screenHeight)
 
-            val scale = 480.0 / minDim.toDouble()
-            val targetMin = 480
-            var targetMax = ((maxDim * scale).toInt() / 16) * 16
-            if (targetMax < 640) targetMax = 640
+            // Target 720p landscape recording (min dimension = 720, max dimension scaled and even)
+            val targetMin = 720
+            val scale = 720.0 / minDim.toDouble()
+            var targetMax = ((maxDim * scale).toInt() / 2) * 2
+            if (targetMax < 1280) targetMax = 1280
 
-            if (width > height) {
-                width = targetMax
-                height = targetMin
-            } else {
-                width = targetMin
-                height = targetMax
-            }
+            // Always enforce LANDSCAPE orientation (width > height)
+            val width = targetMax
+            val height = targetMin
 
-            Log.i(TAG, "Configuring MediaRecorder with dimensions: ${width}x${height}, densityDpi: $densityDpi")
+            Log.i(TAG, "Configuring MediaRecorder with landscape dimensions: ${width}x${height}, densityDpi: $densityDpi")
 
             setupMediaRecorder(filePath, width, height)
 
@@ -158,7 +153,7 @@ class ScreenRecordService : Service() {
 
             mediaRecorder?.start()
             isRecording = true
-            Log.i(TAG, "Screen recording started successfully at 480p (${width}x${height}) -> $filePath")
+            Log.i(TAG, "Screen recording started successfully at 720p landscape (${width}x${height}) -> $filePath")
             return true
 
         } catch (e: Exception) {
@@ -182,7 +177,7 @@ class ScreenRecordService : Service() {
         recorder.setVideoSource(MediaRecorder.VideoSource.SURFACE)
         recorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
         recorder.setVideoEncoder(MediaRecorder.VideoEncoder.H264)
-        recorder.setVideoEncodingBitRate(600000) // 600 Kbps optimized for 480p clear video & 15-min full match under 60 MB
+        recorder.setVideoEncodingBitRate(5000000) // 5 Mbps optimized for 720p clear landscape video
         recorder.setVideoFrameRate(30)
         recorder.setVideoSize(width, height)
         recorder.setOutputFile(filePath)
