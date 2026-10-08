@@ -50,11 +50,6 @@ class _OverviewTabState extends State<OverviewTab>
             viewOnly: widget.viewOnly,
           ),
 
-          // ── Stream Link Card (if available) ──
-          if (t.streamUrl != null && t.streamUrl!.isNotEmpty) ...[
-            _StreamLinkCard(streamUrl: t.streamUrl!, accent: accent),
-          ],
-
           // ── Announcements ──
           if (t.announcements.isNotEmpty) ...[
             _Section('Announcements', accent),
@@ -181,73 +176,6 @@ class _OverviewTabState extends State<OverviewTab>
   }
 
   String _medal(int i) => i == 0 ? '🥇 ' : i == 1 ? '🥈 ' : i == 2 ? '🥉 ' : '';
-}
-
-class _StreamLinkCard extends StatelessWidget {
-  const _StreamLinkCard({required this.streamUrl, required this.accent});
-  final String streamUrl;
-  final Color accent;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.accentOrange.withValues(alpha: 0.4)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: AppColors.accentOrange.withValues(alpha: 0.15),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.play_circle_fill_rounded,
-              color: AppColors.accentOrange,
-              size: 24,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Live Stream',
-                    style: AppTextStyles.bodyLg
-                        .copyWith(fontWeight: FontWeight.bold)),
-                const SizedBox(height: 2),
-                Text('Watch live broadcast on YouTube / Twitch',
-                    style: AppTextStyles.caption),
-              ],
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              // Open streamUrl
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.accentOrange,
-              foregroundColor: Colors.black,
-              elevation: 0,
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            child: const Text(
-              'WATCH',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 class _AnnouncementTile extends StatelessWidget {

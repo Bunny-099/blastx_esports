@@ -92,6 +92,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     ref.invalidate(blastxTournamentsApiProvider);
     ref.invalidate(blastxLiveTournamentsApiProvider);
     ref.invalidate(blastxUpcomingTournamentsApiProvider);
+    await ref.read(squadProvider.notifier).loadSquad();
     await ref.read(profileProvider.notifier).loadProfile();
   }
 

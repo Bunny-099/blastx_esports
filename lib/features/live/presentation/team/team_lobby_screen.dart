@@ -121,6 +121,12 @@ class TeamLobbyScreen extends ConsumerWidget {
     if (left && context.mounted) Navigator.of(context).pop();
   }
 
+  void _onNavigateBack(BuildContext context) {
+    if (Navigator.of(context).canPop()) {
+      Navigator.of(context).popUntil((route) => route.isFirst);
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     ref.listen<TeamState>(teamProvider(tournamentId), (prev, next) {
@@ -137,13 +143,27 @@ class TeamLobbyScreen extends ConsumerWidget {
     final tournament = ref.watch(tournamentByIdProvider(tournamentId));
 
     if (team == null) {
-      return Scaffold(
-        backgroundColor: AppColors.background,
-        appBar: AppBar(backgroundColor: AppColors.background, elevation: 0),
-        body: Center(
-          child: s.isLoading
-              ? const CircularProgressIndicator(color: AppColors.primary)
-              : Text('No team found', style: AppTextStyles.bodyMd),
+      return PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, result) {
+          if (didPop) return;
+          _onNavigateBack(context);
+        },
+        child: Scaffold(
+          backgroundColor: AppColors.background,
+          appBar: AppBar(
+            backgroundColor: AppColors.background,
+            elevation: 0,
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back_ios_new_rounded),
+              onPressed: () => _onNavigateBack(context),
+            ),
+          ),
+          body: Center(
+            child: s.isLoading
+                ? const CircularProgressIndicator(color: AppColors.primary)
+                : Text('No team found', style: AppTextStyles.bodyMd),
+          ),
         ),
       );
     }
@@ -154,30 +174,40 @@ class TeamLobbyScreen extends ConsumerWidget {
     final subs = team.substitutes;
     final manager = team.manager;
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        _onNavigateBack(context);
+      },
+      child: Scaffold(
         backgroundColor: AppColors.background,
-        elevation: 0,
-        title: Text('TEAM LOBBY', style: AppTextStyles.headingLg),
-      ),
-      bottomNavigationBar: _buildStickyBottomBar(
-        context: context,
-        ref: ref,
-        team: team,
-        tournament: tournament,
-        isLoading: s.isLoading,
-        isOwner: isOwner,
-      ),
-      body: RefreshIndicator(
-        color: AppColors.primary,
-        onRefresh: notifier.refresh,
-        child: ListView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.fromLTRB(20, 4, 20, 110),
-          children: [
-            _header(team),
-            const SizedBox(height: 14),
+        appBar: AppBar(
+          backgroundColor: AppColors.background,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_ios_new_rounded),
+            onPressed: () => _onNavigateBack(context),
+          ),
+          title: Text('TEAM LOBBY', style: AppTextStyles.headingLg),
+        ),
+        bottomNavigationBar: _buildStickyBottomBar(
+          context: context,
+          ref: ref,
+          team: team,
+          tournament: tournament,
+          isLoading: s.isLoading,
+          isOwner: isOwner,
+        ),
+        body: RefreshIndicator(
+          color: AppColors.primary,
+          onRefresh: notifier.refresh,
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(20, 4, 20, 110),
+            children: [
+              _header(team),
+              const SizedBox(height: 14),
             _statusBanner(team, tournament),
             const SizedBox(height: 14),
             TeamCodeCard(code: team.code, shareText: team.shareText),
@@ -317,8 +347,9 @@ class TeamLobbyScreen extends ConsumerWidget {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   /// ── Sticky Floating Bottom Section ──
   Widget _buildStickyBottomBar({

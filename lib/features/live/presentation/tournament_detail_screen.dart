@@ -10,7 +10,9 @@ import '../../../features/squad/presentation/widgets/ask_leader_dialog.dart';
 import '../../../features/squad/providers/squad_provider.dart';
 import '../data/models/tournament_model.dart';
 import '../providers/live_provider.dart';
+import '../providers/team_provider.dart';
 import 'team/join_tournament_screen.dart';
+import 'team/team_lobby_screen.dart';
 import 'tabs/leaderboard_tab.dart';
 import 'tabs/matches_tab.dart';
 import 'tabs/overview_tab.dart';
@@ -75,6 +77,10 @@ class _TournamentDetailScreenState
       );
     }
 
+    final teamState = ref.watch(teamProvider(widget.tournamentId));
+    final isRegistered = t.effectiveIsRegistered ||
+        (teamState.team != null && (teamState.team!.isRegistered || teamState.team!.members.isNotEmpty));
+
     final accent = _accentColor(t.accentColorHex);
 
     return Scaffold(
@@ -82,6 +88,7 @@ class _TournamentDetailScreenState
       bottomNavigationBar: _BottomCta(
         tournament: t,
         viewOnly: widget.viewOnly,
+        isRegistered: isRegistered,
       ),
       body: NestedScrollView(
         physics: const BouncingScrollPhysics(),
@@ -325,9 +332,14 @@ class _PinnedTabBarDelegate extends SliverPersistentHeaderDelegate {
 /// ============================================================
 
 class _BottomCta extends ConsumerStatefulWidget {
-  const _BottomCta({required this.tournament, this.viewOnly = false});
+  const _BottomCta({
+    required this.tournament,
+    this.viewOnly = false,
+    this.isRegistered = false,
+  });
   final TournamentModel tournament;
   final bool viewOnly;
+  final bool isRegistered;
 
   @override
   ConsumerState<_BottomCta> createState() => _BottomCtaState();
@@ -406,52 +418,55 @@ class _BottomCtaState extends ConsumerState<_BottomCta> {
   Widget build(BuildContext context) {
     final t = widget.tournament;
 
-    if (widget.viewOnly) {
-      if (t.isLive && t.streamUrl != null && t.streamUrl!.isNotEmpty) {
-        return SafeArea(
-          child: Container(
-            padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
-            decoration: const BoxDecoration(
-              color: AppColors.background,
-              border: Border(top: BorderSide(color: AppColors.border)),
-            ),
-            child: GestureDetector(
-              onTap: () {
-                // TODO: stream launcher
-              },
-              child: Container(
-                height: 52,
-                decoration: BoxDecoration(
-                  gradient: AppColors.fireGradient,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.secondary.withValues(alpha: 0.4),
-                      blurRadius: 16,
-                    ),
-                  ],
+    if (widget.isRegistered) {
+      return SafeArea(
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
+          decoration: const BoxDecoration(
+            color: AppColors.background,
+            border: Border(top: BorderSide(color: AppColors.border)),
+          ),
+          child: GestureDetector(
+            onTap: () {
+              Navigator.of(context).push(
+                FirePageRoute(
+                  page: TeamLobbyScreen(tournamentId: t.id),
                 ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: const [
-                    Icon(Icons.play_circle_fill_rounded,
-                        color: AppColors.bgNavy, size: 20),
-                    SizedBox(width: 8),
-                    Text(
-                      'WATCH LIVE',
-                      style: TextStyle(
-                        color: AppColors.bgNavy,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                  ],
+              );
+            },
+            child: Container(
+              height: 52,
+              decoration: BoxDecoration(
+                color: AppColors.surfaceNavy,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: AppColors.primaryNeon.withValues(alpha: 0.6),
                 ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: const [
+                  Icon(Icons.check_circle_rounded,
+                      color: AppColors.primaryNeon, size: 20),
+                  SizedBox(width: 8),
+                  Text(
+                    'JOINED ✓ • VIEW TEAM LOBBY',
+                    style: TextStyle(
+                      color: AppColors.primaryNeon,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
-        );
-      } else if (t.status == TournamentStatus.upcoming) {
+        ),
+      );
+    }
+
+    if (widget.viewOnly) {
+      if (t.status == TournamentStatus.upcoming) {
         return SafeArea(
           child: Container(
             padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),

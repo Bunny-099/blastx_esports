@@ -21,7 +21,7 @@ void main() {
     startTime: DateTime.now().add(const Duration(hours: 2, minutes: 14)),
     organizer: 'BlastX Esports',
     entryFee: 50,
-    isRegistered: true,
+    isRegistered: false,
     maxSlots: 48,
     filledSlots: 32,
   );
@@ -39,6 +39,23 @@ void main() {
     organizer: 'BlastX Esports',
     entryFee: 50,
     isRegistered: false,
+    maxSlots: 48,
+    filledSlots: 32,
+  );
+
+  final testUpcomingRegisteredTournament = TournamentModel(
+    id: 't_test_1',
+    name: 'Free Fire Championship',
+    game: 'Free Fire',
+    bannerImageUrl: '',
+    gameLogoUrl: '',
+    prizePool: 50000,
+    viewersCount: 1250,
+    status: TournamentStatus.upcoming,
+    startTime: DateTime.now().add(const Duration(hours: 2, minutes: 14)),
+    organizer: 'BlastX Esports',
+    entryFee: 50,
+    isRegistered: true,
     maxSlots: 48,
     filledSlots: 32,
   );
@@ -71,7 +88,7 @@ void main() {
         MaterialApp(
           home: Scaffold(
             body: TournamentCard(
-              tournament: testUpcomingTournament,
+              tournament: testUpcomingRegisteredTournament,
               onTap: () {},
               viewOnly: false,
             ),
@@ -151,6 +168,44 @@ void main() {
 
       // Verify JOIN NOW CTA button is displayed when tournament status is LIVE
       expect(find.textContaining('JOIN NOW'), findsOneWidget);
+    });
+
+    testWidgets('TournamentDetailScreen for joined tournament displays JOINED button instead of JOIN NOW', (tester) async {
+      final joinedLiveTournament = TournamentModel(
+        id: 't_test_2',
+        name: 'Free Fire Live Battle',
+        game: 'Free Fire',
+        bannerImageUrl: '',
+        gameLogoUrl: '',
+        prizePool: 50000,
+        viewersCount: 1250,
+        status: TournamentStatus.live,
+        startTime: DateTime.now().subtract(const Duration(minutes: 30)),
+        organizer: 'BlastX Esports',
+        entryFee: 50,
+        isRegistered: true,
+        maxSlots: 48,
+        filledSlots: 32,
+      );
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            liveTournamentsProvider.overrideWithValue([joinedLiveTournament]),
+          ],
+          child: MaterialApp(
+            home: TournamentDetailScreen(
+              tournamentId: 't_test_2',
+              viewOnly: false,
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+
+      // Verify JOIN NOW CTA button is hidden and JOINED CTA button is shown
+      expect(find.textContaining('JOIN NOW'), findsNothing);
+      expect(find.textContaining('JOINED ✓'), findsOneWidget);
     });
   });
 }

@@ -5,7 +5,6 @@ import 'package:blastix_esports/features/live/data/models/tournament_model.dart'
 import 'package:blastix_esports/features/live/providers/live_provider.dart';
 import 'package:blastix_esports/features/live/providers/team_provider.dart';
 import 'package:blastix_esports/features/squad/data/models/squad_model.dart';
-import 'package:blastix_esports/features/squad/presentation/my_squad_screen.dart';
 import 'package:blastix_esports/features/squad/presentation/widgets/ask_leader_dialog.dart';
 import 'package:blastix_esports/features/squad/presentation/widgets/waitlist_status_dialog.dart';
 import 'package:blastix_esports/features/squad/providers/squad_provider.dart';
@@ -173,6 +172,78 @@ void main() {
       expect(find.text('Apex Leader'), findsOneWidget);
       expect(find.text('✓ Accepted & Confirmed'), findsOneWidget);
       expect(find.text('Waiting from this player to accept the request'), findsOneWidget);
+    });
+
+    test('createTeam automatically syncs squad and unlocks squadProvider', () async {
+      final fakeSyncManager = FakeRealTimeSyncManager();
+      final container = ProviderContainer(
+        overrides: [
+          realTimeSyncManagerProvider.overrideWithValue(fakeSyncManager),
+          useMockSquadRepositoryProvider.overrideWith((ref) => true),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      expect(container.read(squadProvider).hasSquad, isFalse);
+
+      final ok = await container.read(teamProvider('tourney_999').notifier).createTeam(
+        teamName: 'Alpha Squad',
+        tag: 'ALPHA',
+        playerName: 'Alpha Leader',
+        uid: '999888777',
+      );
+
+      expect(ok, isTrue);
+      final squadState = container.read(squadProvider);
+      expect(squadState.hasSquad, isTrue);
+      expect(squadState.squad?.name, 'Alpha Squad');
+      expect(squadState.squad?.tag, 'ALPHA');
+    });
+
+    test('joinTeam automatically syncs squad and unlocks squadProvider', () async {
+      final fakeSyncManager = FakeRealTimeSyncManager();
+      final container = ProviderContainer(
+        overrides: [
+          realTimeSyncManagerProvider.overrideWithValue(fakeSyncManager),
+          useMockSquadRepositoryProvider.overrideWith((ref) => true),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      expect(container.read(squadProvider).hasSquad, isFalse);
+
+      final previewTeam = TournamentTeamModel(
+        id: 'team_001',
+        tournamentId: 'tourney_999',
+        code: 'BLX-ALPHA',
+        name: 'Alpha Squad',
+        tag: 'ALPHA',
+        captainId: 'captain_001',
+        members: const [
+          TeamMemberModel(
+            userId: 'captain_001',
+            name: 'Captain Alpha',
+            ign: 'CAPTAIN',
+            uid: '111222',
+            role: TeamRole.captain,
+            status: TeamMemberStatus.confirmed,
+          ),
+        ],
+      );
+
+      container.read(teamProvider('tourney_999').notifier).state =
+          container.read(teamProvider('tourney_999')).copyWith(previewTeam: previewTeam);
+
+      final ok = await container.read(teamProvider('tourney_999').notifier).joinTeam(
+        playerName: 'Joiner Player',
+        uid: '333444',
+      );
+
+      expect(ok, isTrue);
+      final squadState = container.read(squadProvider);
+      expect(squadState.hasSquad, isTrue);
+      expect(squadState.squad?.name, 'Alpha Squad');
+      expect(squadState.squad?.members.any((m) => m.name == 'Joiner Player'), isTrue);
     });
   });
 }
