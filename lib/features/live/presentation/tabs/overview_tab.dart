@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../data/models/tournament_model.dart';
-import '../widgets/room_details_card.dart';
 import '../widgets/tournament_roadmap_widget.dart';
 
 /// ============================================================
@@ -43,12 +42,6 @@ class _OverviewTabState extends State<OverviewTab>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Room Details Card (for Live / Upcoming tournaments) ──
-          RoomDetailsCard(
-            tournament: t,
-            accentColor: accent,
-            viewOnly: widget.viewOnly,
-          ),
 
           // ── Announcements ──
           if (t.announcements.isNotEmpty) ...[

@@ -1,24 +1,23 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shimmer/shimmer.dart';
-import 'package:url_launcher/url_launcher.dart';
 
+import '../../../../core/services/notification_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
-import '../../data/models/tournament_model.dart';
+import '../../../tournaments/presentation/widgets/wild_card_banner_widget.dart';
+import '../../data/models/tournament_matches_model.dart';
+import '../../providers/live_provider.dart';
 import '../../providers/matches_provider.dart';
 
 /// ============================================================
-/// MATCHES TAB — Vertical Timeline Edition
+/// MATCHES TAB — Master Prompt Synchronized Edition
 /// ============================================================
-/// Displays tournament match schedules grouped by round.
-/// Features:
-/// - Top "Now Playing" highlight strip for live streams
-/// - Vertical timeline with status indicators (orange live, grey upcoming, green check completed)
-/// - Stream URL launcher integration via url_launcher
-/// - Auto-polling every 30s when live matches exist
-/// - Shimmer, error + retry, empty states & pull-to-refresh
+/// Supports 5-Stage Tournament Progression, Round 2 Dual-Exit,
+/// 15-Minute Room Unlocking, Auto-Refresh at 00:00, and COPY BOTH action.
 /// ============================================================
 
 class MatchesTab extends ConsumerStatefulWidget {
@@ -32,29 +31,35 @@ class MatchesTab extends ConsumerStatefulWidget {
 
 class _MatchesTabState extends ConsumerState<MatchesTab>
     with AutomaticKeepAliveClientMixin {
+  StreamSubscription<Map<String, dynamic>>? _notificationSub;
+
   @override
   bool get wantKeepAlive => true;
 
-  Future<void> _launchStream(String urlString) async {
-    final Uri? uri = Uri.tryParse(urlString);
-    if (uri != null && await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } else {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Could not open stream link'),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+  @override
+  void initState() {
+    super.initState();
+    _notificationSub = NotificationService.instance.onNotificationTapped.listen((data) {
+      final tid = data['tournament_id'] ?? data['tournamentId'];
+      final type = data['type'];
+      if (type == 'room_details_live' && (tid == widget.tournamentId || tid == null)) {
+        ref.read(matchesProvider(widget.tournamentId).notifier).refresh();
       }
-    }
+    });
+  }
+
+  @override
+  void dispose() {
+    _notificationSub?.cancel();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     super.build(context);
     final asyncMatches = ref.watch(matchesProvider(widget.tournamentId));
+    final tournament = ref.watch(tournamentByIdProvider(widget.tournamentId));
+    final isRegistered = tournament?.effectiveIsRegistered ?? false;
 
     return RefreshIndicator(
       onRefresh: () =>
@@ -68,28 +73,18 @@ class _MatchesTabState extends ConsumerState<MatchesTab>
               .read(matchesProvider(widget.tournamentId).notifier)
               .refresh(),
         ),
-        data: (matches) {
-          if (matches.isEmpty) {
+        data: (response) {
+          final userContext = response.userContext;
+          final rounds = response.rounds;
+          final wildCardWindow = response.wildCardWindow;
+
+          if (rounds.isEmpty && userContext == null) {
             return _MatchesEmptyState(
+              isRegistered: isRegistered,
               onRefresh: () => ref
                   .read(matchesProvider(widget.tournamentId).notifier)
                   .refresh(),
             );
-          }
-
-          // Group matches by round preserving encounter order
-          final grouped = <String, List<MatchModel>>{};
-          for (final m in matches) {
-            final roundName = m.round.isNotEmpty ? m.round : 'General Round';
-            grouped.putIfAbsent(roundName, () => []).add(m);
-          }
-
-          // Find live match for top highlight card if available
-          MatchModel? liveMatch;
-          try {
-            liveMatch = matches.firstWhere((m) => m.isLive);
-          } catch (_) {
-            liveMatch = null;
           }
 
           return ListView(
@@ -98,58 +93,75 @@ class _MatchesTabState extends ConsumerState<MatchesTab>
               parent: BouncingScrollPhysics(),
             ),
             children: [
-              // 1. Top Highlight "Now Playing" Banner if a live match exists
-              if (liveMatch != null) ...[
-                _NowPlayingHighlightCard(
-                  match: liveMatch,
-                  onWatchStream: liveMatch.streamUrl != null &&
-                          liveMatch.streamUrl!.isNotEmpty
-                      ? () => _launchStream(liveMatch!.streamUrl!)
-                      : null,
-                ).animate().fadeIn(duration: 300.ms).slideY(begin: -0.1, end: 0),
+              // 1. WILD CARD BANNER (If Open / Active)
+              if (wildCardWindow != null && wildCardWindow.isOpen) ...[
+                WildCardBannerWidget(
+                  wildCardWindow: wildCardWindow,
+                  onClaimPressed: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: const Text('Wild Card Slot Registration Request Sent!'),
+                        backgroundColor: AppColors.accentOrange,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10)),
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
+                  },
+                )
+                    .animate()
+                    .fadeIn(duration: 300.ms)
+                    .slideY(begin: -0.05, end: 0),
+                const SizedBox(height: 16),
+              ],
+
+              // 2. HIGHLIGHT CARD: User Team Room & Group Status (Top Priority)
+              if (isRegistered && userContext != null) ...[
+                _UserTeamRoomCard(
+                  userContext: userContext,
+                  onTimerExpired: () {
+                    ref
+                        .read(matchesProvider(widget.tournamentId).notifier)
+                        .refresh();
+                  },
+                )
+                    .animate()
+                    .fadeIn(duration: 300.ms)
+                    .slideY(begin: -0.05, end: 0),
+                const SizedBox(height: 20),
+              ] else if (!isRegistered) ...[
+                _NotRegisteredBanner()
+                    .animate()
+                    .fadeIn(duration: 300.ms)
+                    .slideY(begin: -0.05, end: 0),
                 const SizedBox(height: 20),
               ],
 
-              // 2. Grouped Rounds Timeline
-              ...grouped.entries.toList().asMap().entries.map((entry) {
-                final roundIndex = entry.key;
-                final roundName = entry.value.key;
-                final roundMatches = entry.value.value;
+              // 3. ROUNDS & GROUPS TIMELINE HISTORY
+              if (rounds.isNotEmpty) ...[
+                Padding(
+                  padding: const EdgeInsets.only(left: 4, bottom: 12),
+                  child: Text(
+                    'TOURNAMENT ROUNDS & SCHEDULE',
+                    style: AppTextStyles.overline.copyWith(
+                      color: AppColors.textMuted,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
+                ),
+                ...rounds.asMap().entries.map((entry) {
+                  final roundIndex = entry.key;
+                  final round = entry.value;
 
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Round Section Header
-                    _RoundSectionHeader(roundName: roundName),
-                    const SizedBox(height: 12),
-
-                    // Timeline Matches List
-                    ...roundMatches.asMap().entries.map((mEntry) {
-                      final matchIndex = mEntry.key;
-                      final match = mEntry.value;
-                      final isLastInRound = matchIndex == roundMatches.length - 1;
-
-                      return _TimelineMatchItem(
-                        match: match,
-                        isLastInRound: isLastInRound,
-                        onWatchStream: match.streamUrl != null &&
-                                match.streamUrl!.isNotEmpty
-                            ? () => _launchStream(match.streamUrl!)
-                            : null,
-                      )
-                          .animate(delay: (50 * (roundIndex * 2 + matchIndex)).ms)
-                          .fadeIn(duration: 350.ms, curve: Curves.easeOut)
-                          .slideY(
-                            begin: 0.1,
-                            end: 0,
-                            duration: 350.ms,
-                            curve: Curves.easeOutCubic,
-                          );
-                    }),
-                    const SizedBox(height: 16),
-                  ],
-                );
-              }),
+                  return _RoundSectionCard(
+                    round: round,
+                    userTeamId: userContext?.teamId ?? '',
+                  )
+                      .animate(delay: (60 * roundIndex).ms)
+                      .fadeIn(duration: 350.ms, curve: Curves.easeOut)
+                      .slideY(begin: 0.05, end: 0);
+                }),
+              ],
             ],
           );
         },
@@ -158,36 +170,269 @@ class _MatchesTabState extends ConsumerState<MatchesTab>
   }
 }
 
-/// ------------------------------------------------------------
-/// Top "Now Playing" Banner Highlight Card
-/// ------------------------------------------------------------
-class _NowPlayingHighlightCard extends StatelessWidget {
-  const _NowPlayingHighlightCard({
-    required this.match,
-    this.onWatchStream,
+/// ============================================================
+/// 1. TOP HIGHLIGHT CARD: User Team Room Credentials & Status
+/// ============================================================
+
+class _UserTeamRoomCard extends StatefulWidget {
+  const _UserTeamRoomCard({
+    required this.userContext,
+    required this.onTimerExpired,
   });
 
-  final MatchModel match;
-  final VoidCallback? onWatchStream;
+  final UserMatchContext userContext;
+  final VoidCallback onTimerExpired;
+
+  @override
+  State<_UserTeamRoomCard> createState() => _UserTeamRoomCardState();
+}
+
+class _UserTeamRoomCardState extends State<_UserTeamRoomCard> {
+  bool _isPasswordVisible = false;
+
+  void _copyText(String text, String label) {
+    if (text.isEmpty) return;
+    Clipboard.setData(ClipboardData(text: text));
+    HapticFeedback.lightImpact();
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('$label copied to clipboard!'),
+        duration: const Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
+  }
+
+  void _copyBoth(String roomId, String password) {
+    if (roomId.isEmpty) return;
+    final text = 'Room ID: $roomId | Password: $password';
+    Clipboard.setData(ClipboardData(text: text));
+    HapticFeedback.mediumImpact();
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Row(
+          children: [
+            Icon(Icons.check_circle_rounded, color: AppColors.primaryNeon, size: 20),
+            SizedBox(width: 8),
+            Text('Room ID & Password copied together!'),
+          ],
+        ),
+        duration: const Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final ctx = widget.userContext;
+
+    // Handle Disqualified State
+    if (ctx.isEliminated) {
+      return _EliminatedCard(userContext: ctx);
+    }
+
+    // Handle Direct Finalist State (Round 2 Top 2 Teams)
+    if (ctx.isDirectFinalist) {
+      return _DirectFinalistCard(userContext: ctx);
+    }
+
+    // Handle Qualified for Next Round State
+    if (ctx.isQualified && !ctx.isPublished) {
+      return _QualifiedCard(userContext: ctx);
+    }
+
+    final isLive = ctx.status == TeamRoundStatus.live;
+
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: AppColors.surfaceElevated,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: isLive
+              ? AppColors.primaryNeon
+              : AppColors.accentOrange.withValues(alpha: 0.6),
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: (isLive ? AppColors.primaryNeon : AppColors.accentOrange)
+                .withValues(alpha: 0.15),
+            blurRadius: 16,
+            spreadRadius: -2,
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Top Header: Label Badge & Status Pill
+            Row(
+              children: [
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppColors.accentOrange.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: AppColors.accentOrange.withValues(alpha: 0.5),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.shield_rounded,
+                          color: AppColors.accentOrange, size: 14),
+                      const SizedBox(width: 6),
+                      Text(
+                        'YOUR TEAM\'S MATCH',
+                        style: AppTextStyles.caption.copyWith(
+                          color: AppColors.accentOrange,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 10,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Spacer(),
+                _StatusBadge(status: ctx.status),
+              ],
+            ),
+
+            const SizedBox(height: 12),
+
+            // Round & Group Title
+            Text(
+              'Your Team: ${ctx.teamName} — ${ctx.groupName.toUpperCase()}',
+              style: AppTextStyles.headingXl.copyWith(fontSize: 17),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              ctx.roundName,
+              style: AppTextStyles.bodySm.copyWith(color: AppColors.textMuted),
+            ),
+            const SizedBox(height: 6),
+
+            // Opponents & Map Info
+            Row(
+              children: [
+                const Icon(Icons.sports_esports_rounded,
+                    size: 14, color: AppColors.textMuted),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    ctx.opponentTeamNames.isNotEmpty
+                        ? 'vs ${ctx.opponentTeamNames.join(', ')}'
+                        : 'Map: ${ctx.map}',
+                    style: AppTextStyles.bodySm.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 16),
+            const Divider(color: AppColors.border, height: 1),
+            const SizedBox(height: 16),
+
+            // ROOM CREDENTIALS OR LOCKED COUNTDOWN
+            if (ctx.hasCredentials) ...[
+              // Room ID Row
+              _CredentialFieldRow(
+                label: 'ROOM ID',
+                value: ctx.roomId!,
+                onCopy: () => _copyText(ctx.roomId!, 'Room ID'),
+              ),
+              const SizedBox(height: 10),
+
+              // Password Row
+              _CredentialFieldRow(
+                label: 'PASSWORD',
+                value: ctx.password ?? '••••••••',
+                isPassword: true,
+                isPasswordVisible: _isPasswordVisible,
+                onToggleVisibility: () {
+                  setState(() {
+                    _isPasswordVisible = !_isPasswordVisible;
+                  });
+                },
+                onCopy: () =>
+                    _copyText(ctx.password ?? '', 'Password'),
+              ),
+
+              const SizedBox(height: 14),
+
+              // Copy Both Button
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () =>
+                      _copyBoth(ctx.roomId!, ctx.password ?? ''),
+                  icon: const Icon(Icons.content_copy_rounded, size: 16),
+                  label: const Text('COPY ROOM ID & PASSWORD'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryNeon,
+                    foregroundColor: AppColors.bgNavy,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    textStyle: AppTextStyles.button.copyWith(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 12,
+                      letterSpacing: 0.5,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ),
+            ] else ...[
+              // Room Details Locked State
+              _LockedRoomCountdownView(
+                revealAt: ctx.revealAt ?? ctx.startsAt,
+                onTimerExpired: widget.onTimerExpired,
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Direct Finalist Card State (Round 2 Top 2 Teams)
+class _DirectFinalistCard extends StatelessWidget {
+  const _DirectFinalistCard({required this.userContext});
+
+  final UserMatchContext userContext;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: AppColors.surfaceElevated,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: const Color(0xFFFF3B30).withValues(alpha: 0.6),
-          width: 1.2,
-        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFFFD700), width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFFFF3B30).withValues(alpha: 0.2),
-            blurRadius: 16,
+            color: const Color(0xFFFFD700).withValues(alpha: 0.25),
+            blurRadius: 18,
             spreadRadius: -2,
-            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -199,163 +444,140 @@ class _NowPlayingHighlightCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFF3B30).withValues(alpha: 0.18),
+                  color: const Color(0xFFFFD700).withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: const Color(0xFFFF3B30).withValues(alpha: 0.6),
-                    width: 0.8,
-                  ),
+                  border: Border.all(color: const Color(0xFFFFD700)),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const _PulsingLiveDot(),
+                    const Icon(Icons.emoji_events_rounded,
+                        color: Color(0xFFFFD700), size: 14),
                     const SizedBox(width: 6),
                     Text(
-                      'NOW PLAYING',
+                      '🏆 DIRECT GRAND FINALIST',
                       style: AppTextStyles.caption.copyWith(
-                        color: const Color(0xFFFF3B30),
+                        color: const Color(0xFFFFD700),
                         fontWeight: FontWeight.w900,
-                        fontSize: 10.5,
-                        letterSpacing: 0.6,
+                        fontSize: 10,
+                        letterSpacing: 0.5,
                       ),
                     ),
                   ],
                 ),
               ),
-              const Spacer(),
-              Text(
-                'Match #${match.matchNumber}',
-                style: AppTextStyles.overline.copyWith(
-                  color: AppColors.textSecondary,
-                ),
-              ),
             ],
           ),
           const SizedBox(height: 12),
-
           Text(
-            '${match.round} • ${match.map}',
-            style: AppTextStyles.headingMd.copyWith(fontSize: 16),
+            'Congratulations ${userContext.teamName}! 🎉',
+            style: AppTextStyles.headingXl.copyWith(fontSize: 18),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 6),
           Text(
-            'Live action in progress. Tune in to watch live gameplay!',
-            style: AppTextStyles.bodySm.copyWith(color: AppColors.textMuted),
-          ),
-
-          if (onWatchStream != null) ...[
-            const SizedBox(height: 14),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: onWatchStream,
-                icon: const Icon(Icons.play_circle_fill_rounded, size: 18),
-                label: const Text('Watch Stream'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.accentOrange,
-                  foregroundColor: Colors.black,
-                  padding: const EdgeInsets.symmetric(vertical: 10),
-                  textStyle: AppTextStyles.button.copyWith(
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 0.5,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-              ),
+            userContext.messageBanner ??
+                'You have secured a direct spot in the Grand Final (Top 2 in Round 2). You do not need to play Round 3!',
+            style: AppTextStyles.bodySm.copyWith(
+              color: AppColors.textSecondary,
             ),
-          ],
+          ),
         ],
       ),
     );
   }
 }
 
-/// ------------------------------------------------------------
-/// Round Section Header
-/// ------------------------------------------------------------
-class _RoundSectionHeader extends StatelessWidget {
-  const _RoundSectionHeader({required this.roundName});
-
-  final String roundName;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Container(
-          width: 4,
-          height: 16,
-          decoration: BoxDecoration(
-            color: AppColors.accentOrange,
-            borderRadius: BorderRadius.circular(2),
-          ),
-        ),
-        const SizedBox(width: 8),
-        Text(
-          roundName.toUpperCase(),
-          style: AppTextStyles.overline.copyWith(
-            color: AppColors.accentOrange,
-            fontSize: 12,
-            letterSpacing: 1.1,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-/// ------------------------------------------------------------
-/// Timeline Item Widget (Dot/Line + Match Card)
-/// ------------------------------------------------------------
-class _TimelineMatchItem extends StatelessWidget {
-  const _TimelineMatchItem({
-    required this.match,
-    required this.isLastInRound,
-    this.onWatchStream,
+/// Helper Row for displaying single Room ID or Password with copy button
+class _CredentialFieldRow extends StatelessWidget {
+  const _CredentialFieldRow({
+    required this.label,
+    required this.value,
+    this.isPassword = false,
+    this.isPasswordVisible = false,
+    this.onToggleVisibility,
+    required this.onCopy,
   });
 
-  final MatchModel match;
-  final bool isLastInRound;
-  final VoidCallback? onWatchStream;
+  final String label;
+  final String value;
+  final bool isPassword;
+  final bool isPasswordVisible;
+  final VoidCallback? onToggleVisibility;
+  final VoidCallback onCopy;
 
   @override
   Widget build(BuildContext context) {
-    return IntrinsicHeight(
+    final displayValue = isPassword
+        ? (isPasswordVisible ? value : '••••••••')
+        : value;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppColors.bgNavy,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.borderSubtle),
+      ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Timeline Node & Connector Line Column
-          SizedBox(
-            width: 32,
+          Expanded(
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const SizedBox(height: 18),
-                _buildTimelineDot(match.status),
-                if (!isLastInRound)
-                  Expanded(
-                    child: Container(
-                      width: 2,
-                      color: match.isLive
-                          ? AppColors.accentOrange.withValues(alpha: 0.6)
-                          : AppColors.borderSubtle,
-                    ),
+                Text(
+                  label,
+                  style: AppTextStyles.caption.copyWith(
+                    color: AppColors.textMuted,
+                    fontSize: 10,
                   ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  displayValue,
+                  style: AppTextStyles.headingMd.copyWith(
+                    letterSpacing: isPassword && !isPasswordVisible ? 2.5 : 1.2,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
               ],
             ),
           ),
-          const SizedBox(width: 8),
-
-          // Match Card
-          Expanded(
+          if (isPassword && onToggleVisibility != null)
+            IconButton(
+              icon: Icon(
+                isPasswordVisible
+                    ? Icons.visibility_off_rounded
+                    : Icons.visibility_rounded,
+                color: AppColors.textSecondary,
+                size: 20,
+              ),
+              onPressed: onToggleVisibility,
+              tooltip: isPasswordVisible ? 'Hide' : 'Show',
+            ),
+          const SizedBox(width: 4),
+          InkWell(
+            onTap: onCopy,
+            borderRadius: BorderRadius.circular(8),
             child: Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: _MatchCard(
-                match: match,
-                onWatchStream: onWatchStream,
+              padding: const EdgeInsets.all(6),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.copy_rounded,
+                    size: 15,
+                    color: AppColors.primaryNeon,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    'COPY',
+                    style: AppTextStyles.caption.copyWith(
+                      color: AppColors.primaryNeon,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 10,
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -363,259 +585,539 @@ class _TimelineMatchItem extends StatelessWidget {
       ),
     );
   }
-
-  Widget _buildTimelineDot(MatchStatus status) {
-    switch (status) {
-      case MatchStatus.live:
-        return Container(
-          width: 14,
-          height: 14,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: AppColors.accentOrange,
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.accentOrange.withValues(alpha: 0.6),
-                blurRadius: 8,
-                spreadRadius: 2,
-              ),
-            ],
-          ),
-        );
-      case MatchStatus.completed:
-        return const Icon(
-          Icons.check_circle_rounded,
-          color: Color(0xFF34C759),
-          size: 16,
-        );
-      case MatchStatus.upcoming:
-        return Container(
-          width: 10,
-          height: 10,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: AppColors.surfaceMuted,
-            border: Border.all(
-              color: AppColors.textMuted.withValues(alpha: 0.5),
-              width: 1.5,
-            ),
-          ),
-        );
-    }
-  }
 }
 
-/// ------------------------------------------------------------
-/// Individual Match Card Widget
-/// ------------------------------------------------------------
-class _MatchCard extends StatelessWidget {
-  const _MatchCard({
-    required this.match,
-    this.onWatchStream,
+/// Locked Room Countdown View
+class _LockedRoomCountdownView extends StatefulWidget {
+  const _LockedRoomCountdownView({
+    this.revealAt,
+    required this.onTimerExpired,
   });
 
-  final MatchModel match;
-  final VoidCallback? onWatchStream;
+  final DateTime? revealAt;
+  final VoidCallback onTimerExpired;
 
-  String _formatDateTime(DateTime dt) {
-    const months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec'
-    ];
-    final hour = dt.hour % 12 == 0 ? 12 : dt.hour % 12;
-    final ampm = dt.hour >= 12 ? 'PM' : 'AM';
-    final min = dt.minute.toString().padLeft(2, '0');
-    return '${dt.day} ${months[dt.month - 1]}, $hour:$min $ampm';
+  @override
+  State<_LockedRoomCountdownView> createState() =>
+      _LockedRoomCountdownViewState();
+}
+
+class _LockedRoomCountdownViewState extends State<_LockedRoomCountdownView> {
+  Timer? _timer;
+  Duration _remaining = Duration.zero;
+
+  @override
+  void initState() {
+    super.initState();
+    _updateRemaining();
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      _updateRemaining();
+    });
+  }
+
+  void _updateRemaining() {
+    if (widget.revealAt == null) return;
+    final diff = widget.revealAt!.difference(DateTime.now());
+    if (diff.isNegative) {
+      if (_remaining > Duration.zero) {
+        widget.onTimerExpired();
+      }
+      _remaining = Duration.zero;
+      _timer?.cancel();
+    } else {
+      if (mounted) {
+        setState(() {
+          _remaining = diff;
+        });
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  String _formatDuration(Duration d) {
+    if (d.inHours > 0) {
+      final h = d.inHours.toString().padLeft(2, '0');
+      final m = (d.inMinutes % 60).toString().padLeft(2, '0');
+      final s = (d.inSeconds % 60).toString().padLeft(2, '0');
+      return '${h}h ${m}m ${s}s';
+    }
+    final m = d.inMinutes.toString().padLeft(2, '0');
+    final s = (d.inSeconds % 60).toString().padLeft(2, '0');
+    return '$m:$s';
   }
 
   @override
   Widget build(BuildContext context) {
-    final isLive = match.isLive;
-    final isCompleted = match.status == MatchStatus.completed;
-
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
+        color: AppColors.bgNavy,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.borderSubtle),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: AppColors.accentOrange.withValues(alpha: 0.15),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.lock_clock_rounded,
+              color: AppColors.accentOrange,
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Room Details Locked',
+                  style: AppTextStyles.bodyMd.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  widget.revealAt != null && _remaining > Duration.zero
+                      ? '🔒 Room credentials will unlock in ${_formatDuration(_remaining)}'
+                      : 'Waiting for Admin to release room details...',
+                  style: AppTextStyles.caption.copyWith(
+                    color: AppColors.accentOrange,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Disqualified / Eliminated Card State
+class _EliminatedCard extends StatelessWidget {
+  const _EliminatedCard({required this.userContext});
+
+  final UserMatchContext userContext;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isLive
-              ? AppColors.accentOrange.withValues(alpha: 0.5)
-              : AppColors.border,
-          width: isLive ? 1.2 : 1.0,
+          color: AppColors.error.withValues(alpha: 0.5),
         ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Card Header: Match Number, Map, & Status Badge
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.error.withValues(alpha: 0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.cancel_rounded,
+                  color: AppColors.error,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  '❌ ELIMINATED FROM TOURNAMENT',
+                  style: AppTextStyles.bodyLg.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Your team is eliminated from ${userContext.roundName}. Wild Card entry will open soon. Keep an eye out!',
+            style: AppTextStyles.bodySm.copyWith(
+              color: AppColors.textMuted,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Qualified Card State (Waiting for Next Round Group Assignment)
+class _QualifiedCard extends StatelessWidget {
+  const _QualifiedCard({required this.userContext});
+
+  final UserMatchContext userContext;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: AppColors.primaryNeon.withValues(alpha: 0.6),
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: AppColors.primaryNeon.withValues(alpha: 0.15),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.workspace_premium_rounded,
+              color: AppColors.primaryNeon,
+              size: 22,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  userContext.qualificationStatus.badgeLabel,
+                  style: AppTextStyles.bodyLg.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primaryNeon,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Congratulations ${userContext.teamName}! Waiting for organizer to assign next round groups and publish room details.',
+                  style: AppTextStyles.bodySm.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Unregistered Banner State
+class _NotRegisteredBanner extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: const BoxDecoration(
+              color: AppColors.surfaceMuted,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.lock_outline_rounded,
+              color: AppColors.textMuted,
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Room Details Locked',
+                  style: AppTextStyles.bodyLg.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Register for this tournament to participate and get your team\'s room ID & password.',
+                  style: AppTextStyles.bodySm.copyWith(
+                    color: AppColors.textMuted,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Status Badge Pill
+class _StatusBadge extends StatelessWidget {
+  const _StatusBadge({required this.status});
+
+  final TeamRoundStatus status;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = switch (status) {
+      TeamRoundStatus.live => const Color(0xFFFF3B30),
+      TeamRoundStatus.completed => const Color(0xFF34C759),
+      TeamRoundStatus.qualified => AppColors.primaryNeon,
+      TeamRoundStatus.disqualified => AppColors.error,
+      TeamRoundStatus.upcoming => AppColors.accentOrange,
+    };
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.18),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: color.withValues(alpha: 0.6),
+          width: 0.8,
+        ),
+      ),
+      child: Text(
+        status.label,
+        style: AppTextStyles.caption.copyWith(
+          color: color,
+          fontWeight: FontWeight.w900,
+          fontSize: 9.5,
+        ),
+      ),
+    );
+  }
+}
+
+/// ============================================================
+/// 2. ROUND SECTION CARD: Groups & Matches Timeline History
+/// ============================================================
+
+class _RoundSectionCard extends StatelessWidget {
+  const _RoundSectionCard({
+    required this.round,
+    required this.userTeamId,
+  });
+
+  final RoundModel round;
+  final String userTeamId;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: ExpansionTile(
+        initiallyExpanded: true,
+        tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        title: Text(
+          round.roundName.toUpperCase(),
+          style: AppTextStyles.headingMd.copyWith(
+            fontSize: 15,
+            color: AppColors.textPrimary,
+          ),
+        ),
+        subtitle: Text(
+          '${round.groups.length} ${round.groups.length == 1 ? 'Group / Match' : 'Groups / Matches'}',
+          style: AppTextStyles.caption.copyWith(color: AppColors.textMuted),
+        ),
+        iconColor: AppColors.accentOrange,
+        collapsedIconColor: AppColors.textMuted,
+        children: round.groups.map((group) {
+          final isMyGroup = group.teams.any((t) => t.isMyTeam || t.id == userTeamId);
+
+          return _GroupItemCard(
+            group: group,
+            isMyGroup: isMyGroup,
+          );
+        }).toList(),
+      ),
+    );
+  }
+}
+
+class _GroupItemCard extends StatelessWidget {
+  const _GroupItemCard({
+    required this.group,
+    required this.isMyGroup,
+  });
+
+  final GroupModel group;
+  final bool isMyGroup;
+
+  String _formatTime(DateTime dt) {
+    final hour = dt.hour % 12 == 0 ? 12 : dt.hour % 12;
+    final ampm = dt.hour >= 12 ? 'PM' : 'AM';
+    final min = dt.minute.toString().padLeft(2, '0');
+    return '$hour:$min $ampm';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: isMyGroup
+            ? AppColors.bgNavy
+            : AppColors.surfaceMuted.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isMyGroup
+              ? AppColors.primaryNeon.withValues(alpha: 0.4)
+              : AppColors.borderSubtle,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
           Row(
             children: [
               Text(
-                'Match #${match.matchNumber}',
-                style: AppTextStyles.headingMd.copyWith(fontSize: 15),
+                group.groupName,
+                style: AppTextStyles.headingMd.copyWith(
+                  fontSize: 14,
+                  color: isMyGroup ? AppColors.primaryNeon : Colors.white,
+                ),
               ),
               const SizedBox(width: 8),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
-                  color: AppColors.surfaceMuted,
+                  color: AppColors.surface,
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
-                  match.map.isNotEmpty ? match.map : 'Bermuda',
+                  group.map,
                   style: AppTextStyles.caption.copyWith(
-                    color: AppColors.textSecondary,
-                    fontSize: 10,
+                    color: AppColors.textMuted,
+                    fontSize: 9.5,
                   ),
                 ),
               ),
               const Spacer(),
-              _StatusChip(status: match.status),
-            ],
-          ),
-          const SizedBox(height: 8),
-
-          // Scheduled Start / End Time
-          Row(
-            children: [
-              const Icon(
-                Icons.schedule_rounded,
-                size: 13,
-                color: AppColors.textMuted,
-              ),
-              const SizedBox(width: 4),
               Text(
-                isCompleted && match.endedAt != null
-                    ? 'Ended: ${_formatDateTime(match.endedAt!)}'
-                    : 'Scheduled: ${_formatDateTime(match.startsAt)}',
-                style: AppTextStyles.bodySm.copyWith(
-                  color: AppColors.textMuted,
-                  fontSize: 11.5,
-                ),
+                _formatTime(group.startsAt),
+                style: AppTextStyles.caption.copyWith(color: AppColors.textMuted),
               ),
             ],
           ),
+          const SizedBox(height: 6),
 
-          // Completed Match Results: Winner & Top MVP
-          if (isCompleted &&
-              (match.winnerTeamName != null || match.topKillerName != null)) ...[
-            const SizedBox(height: 10),
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: AppColors.bgNavy.withValues(alpha: 0.6),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: AppColors.borderSubtle, width: 0.8),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (match.winnerTeamName != null &&
-                      match.winnerTeamName!.isNotEmpty)
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.emoji_events_rounded,
-                          size: 14,
-                          color: AppColors.glowSoft,
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          'Winner: ',
-                          style: AppTextStyles.caption.copyWith(
-                            color: AppColors.textMuted,
-                          ),
-                        ),
-                        Text(
-                          match.winnerTeamName!,
-                          style: AppTextStyles.bodySm.copyWith(
-                            color: AppColors.glowLight,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
+          // Participating Teams Badges
+          if (group.teams.isNotEmpty) ...[
+            Wrap(
+              spacing: 6,
+              runSpacing: 4,
+              children: group.teams.map((t) {
+                return Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: t.isMyTeam
+                        ? AppColors.primaryNeon.withValues(alpha: 0.2)
+                        : AppColors.surface,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: t.isMyTeam
+                          ? AppColors.primaryNeon
+                          : AppColors.borderSubtle,
                     ),
-                  if (match.winnerTeamName != null &&
-                      match.topKillerName != null &&
-                      match.topKillerName!.isNotEmpty)
-                    const SizedBox(height: 4),
-                  if (match.topKillerName != null &&
-                      match.topKillerName!.isNotEmpty)
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.local_fire_department_rounded,
-                          size: 14,
-                          color: AppColors.accentOrange,
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          'Top MVP: ',
-                          style: AppTextStyles.caption.copyWith(
-                            color: AppColors.textMuted,
-                          ),
-                        ),
-                        Text(
-                          match.topKillerName!,
-                          style: AppTextStyles.bodySm.copyWith(
-                            color: AppColors.accentOrange,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
+                  ),
+                  child: Text(
+                    t.name,
+                    style: AppTextStyles.caption.copyWith(
+                      color: t.isMyTeam ? AppColors.primaryNeon : Colors.white,
+                      fontWeight:
+                          t.isMyTeam ? FontWeight.bold : FontWeight.normal,
+                      fontSize: 10,
                     ),
-                ],
-              ),
+                  ),
+                );
+              }).toList(),
             ),
           ],
 
-          // Watch CTA Button (if streamUrl exists)
-          if (onWatchStream != null) ...[
-            const SizedBox(height: 10),
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton.icon(
-                onPressed: onWatchStream,
-                style: TextButton.styleFrom(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  backgroundColor: isLive
-                      ? AppColors.accentOrange.withValues(alpha: 0.15)
-                      : AppColors.surfaceMuted,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    side: BorderSide(
-                      color: isLive
-                          ? AppColors.accentOrange.withValues(alpha: 0.5)
-                          : AppColors.border,
-                      width: 0.8,
+          // Non-group Spectator Button or Completed Results
+          if (!isMyGroup) ...[
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                const Icon(Icons.remove_red_eye_rounded,
+                    size: 13, color: AppColors.textMuted),
+                const SizedBox(width: 4),
+                Text(
+                  'Spectate match via live stream',
+                  style: AppTextStyles.caption.copyWith(
+                    color: AppColors.textMuted,
+                    fontSize: 10.5,
+                  ),
+                ),
+              ],
+            ),
+          ],
+
+          if (group.isCompleted &&
+              (group.winnerTeamName != null || group.topMvpName != null)) ...[
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                if (group.winnerTeamName != null) ...[
+                  const Icon(Icons.emoji_events_rounded,
+                      size: 13, color: AppColors.gold),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Winner: ${group.winnerTeamName}',
+                    style: AppTextStyles.caption.copyWith(
+                      color: AppColors.gold,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 11,
                     ),
                   ),
-                ),
-                icon: Icon(
-                  Icons.play_circle_fill_rounded,
-                  size: 15,
-                  color: isLive ? AppColors.accentOrange : AppColors.primaryLight,
-                ),
-                label: Text(
-                  isLive ? 'Watch Live' : 'Watch Replay',
-                  style: AppTextStyles.caption.copyWith(
-                    color: isLive ? AppColors.accentOrange : AppColors.primaryLight,
-                    fontWeight: FontWeight.bold,
+                ],
+                if (group.topMvpName != null) ...[
+                  const SizedBox(width: 12),
+                  const Icon(Icons.local_fire_department_rounded,
+                      size: 13, color: AppColors.accentOrange),
+                  const SizedBox(width: 4),
+                  Text(
+                    'MVP: ${group.topMvpName}',
+                    style: AppTextStyles.caption.copyWith(
+                      color: AppColors.accentOrange,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 11,
+                    ),
                   ),
-                ),
-              ),
+                ],
+              ],
             ),
           ],
         ],
@@ -624,137 +1126,10 @@ class _MatchCard extends StatelessWidget {
   }
 }
 
-/// ------------------------------------------------------------
-/// Status Chip Badge Widget
-/// ------------------------------------------------------------
-class _StatusChip extends StatelessWidget {
-  const _StatusChip({required this.status});
+/// ============================================================
+/// SHIMMER LOADING STATE
+/// ============================================================
 
-  final MatchStatus status;
-
-  @override
-  Widget build(BuildContext context) {
-    switch (status) {
-      case MatchStatus.live:
-        return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-          decoration: BoxDecoration(
-            color: const Color(0xFFFF3B30).withValues(alpha: 0.2),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: const Color(0xFFFF3B30).withValues(alpha: 0.6),
-              width: 0.8,
-            ),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const _PulsingLiveDot(),
-              const SizedBox(width: 4),
-              Text(
-                'LIVE',
-                style: AppTextStyles.caption.copyWith(
-                  color: const Color(0xFFFF3B30),
-                  fontWeight: FontWeight.w900,
-                  fontSize: 9.5,
-                ),
-              ),
-            ],
-          ),
-        );
-
-      case MatchStatus.completed:
-        return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-          decoration: BoxDecoration(
-            color: const Color(0x2234C759),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: const Color(0xFF34C759).withValues(alpha: 0.5),
-              width: 0.8,
-            ),
-          ),
-          child: Text(
-            'COMPLETED',
-            style: AppTextStyles.caption.copyWith(
-              color: const Color(0xFF34C759),
-              fontWeight: FontWeight.w800,
-              fontSize: 9.5,
-            ),
-          ),
-        );
-
-      case MatchStatus.upcoming:
-        return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-          decoration: BoxDecoration(
-            color: AppColors.surfaceMuted,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: AppColors.borderSubtle,
-              width: 0.8,
-            ),
-          ),
-          child: Text(
-            'UPCOMING',
-            style: AppTextStyles.caption.copyWith(
-              color: AppColors.textMuted,
-              fontWeight: FontWeight.w700,
-              fontSize: 9.5,
-            ),
-          ),
-        );
-    }
-  }
-}
-
-/// ------------------------------------------------------------
-/// Pulsing Red Live Dot Indicator
-/// ------------------------------------------------------------
-class _PulsingLiveDot extends StatefulWidget {
-  const _PulsingLiveDot();
-
-  @override
-  State<_PulsingLiveDot> createState() => _PulsingLiveDotState();
-}
-
-class _PulsingLiveDotState extends State<_PulsingLiveDot>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _ctrl = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 700),
-  )..repeat(reverse: true);
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _ctrl,
-      builder: (context, child) {
-        return Opacity(
-          opacity: 0.35 + (_ctrl.value * 0.65),
-          child: Container(
-            width: 6,
-            height: 6,
-            decoration: const BoxDecoration(
-              color: Color(0xFFFF3B30),
-              shape: BoxShape.circle,
-            ),
-          ),
-        );
-      },
-    );
-  }
-}
-
-/// ------------------------------------------------------------
-/// Shimmer Loading Skeleton State
-/// ------------------------------------------------------------
 class _MatchesShimmerState extends StatelessWidget {
   const _MatchesShimmerState();
 
@@ -765,33 +1140,16 @@ class _MatchesShimmerState extends StatelessWidget {
       highlightColor: AppColors.surfaceMuted,
       child: ListView.builder(
         padding: const EdgeInsets.all(16),
-        itemCount: 4,
+        itemCount: 3,
         itemBuilder: (context, index) {
           return Padding(
             padding: const EdgeInsets.only(bottom: 16),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(
-                  width: 32,
-                  child: Center(
-                    child: CircleAvatar(
-                      radius: 6,
-                      backgroundColor: Colors.white,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Container(
-                    height: 100,
-                    decoration: BoxDecoration(
-                      color: AppColors.surface,
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                  ),
-                ),
-              ],
+            child: Container(
+              height: 120,
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(16),
+              ),
             ),
           );
         },
@@ -800,12 +1158,17 @@ class _MatchesShimmerState extends StatelessWidget {
   }
 }
 
-/// ------------------------------------------------------------
-/// Empty Matches State
-/// ------------------------------------------------------------
-class _MatchesEmptyState extends StatelessWidget {
-  const _MatchesEmptyState({required this.onRefresh});
+/// ============================================================
+/// EMPTY STATE
+/// ============================================================
 
+class _MatchesEmptyState extends StatelessWidget {
+  const _MatchesEmptyState({
+    required this.isRegistered,
+    required this.onRefresh,
+  });
+
+  final bool isRegistered;
   final Future<void> Function() onRefresh;
 
   @override
@@ -831,12 +1194,14 @@ class _MatchesEmptyState extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              'No Matches Scheduled',
+              'No Matches Scheduled Yet',
               style: AppTextStyles.headingMd,
             ),
             const SizedBox(height: 6),
             Text(
-              'Match schedules and room details will appear here as soon as they are announced.',
+              isRegistered
+                  ? 'Round groups and your team\'s room details will appear here as soon as the admin publishes them.'
+                  : 'Register for this tournament to view your team\'s group room details.',
               textAlign: TextAlign.center,
               style: AppTextStyles.bodySm.copyWith(color: AppColors.textMuted),
             ),
@@ -863,9 +1228,10 @@ class _MatchesEmptyState extends StatelessWidget {
   }
 }
 
-/// ------------------------------------------------------------
-/// Error Matches State
-/// ------------------------------------------------------------
+/// ============================================================
+/// ERROR STATE
+/// ============================================================
+
 class _MatchesErrorState extends StatelessWidget {
   const _MatchesErrorState({required this.onRetry});
 

@@ -11,14 +11,10 @@ import '../../providers/leaderboard_provider.dart';
 import '../../providers/live_provider.dart';
 
 /// ============================================================
-/// LEADERBOARD TAB — Real-time Free Fire Tournament Standings
+/// LEADERBOARD TAB — Master Prompt Synchronized Edition
 /// ============================================================
-/// - Top 3 Podium for Gold, Silver, Bronze contenders
-/// - Ranked list with team logo, kills, placement points, total points
-/// - Rank change indicators (green ▲, red ▼, grey -)
-/// - Live 20s polling when tournament is LIVE and tab is visible
-/// - "Last updated Xs ago" live ticker & pulsing LIVE badge
-/// - Shimmer loading, Error with Retry, Empty state, Pull-to-refresh
+/// Supports stage qualification badges, Round 2 Dual Exit,
+/// Tie-Breaker alert banner, and Grand Final single table.
 /// ============================================================
 
 class LeaderboardTab extends ConsumerStatefulWidget {
@@ -98,6 +94,7 @@ class _LeaderboardTabState extends ConsumerState<LeaderboardTab>
           final entries = data.entries;
           final top3 = entries.take(3).toList();
           final remaining = entries.skip(3).toList();
+          final isTieBreaker = data.isTieBreakerPending;
 
           return CustomScrollView(
             physics: const BouncingScrollPhysics(
@@ -107,7 +104,7 @@ class _LeaderboardTabState extends ConsumerState<LeaderboardTab>
               // 1. Meta Bar: Round Name, Last Updated Ticker, Live Indicator
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -153,19 +150,52 @@ class _LeaderboardTabState extends ConsumerState<LeaderboardTab>
                 ),
               ),
 
-              // 2. Podium Section for Top 3
+              // 2. TIE-BREAKER PENDING ALERT BANNER
+              if (isTieBreaker)
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppColors.accentOrange.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppColors.accentOrange),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.hourglass_top_rounded,
+                              color: AppColors.accentOrange, size: 20),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              '⏳ Standings under verification by tournament referee. Final qualifiers will be updated shortly.',
+                              style: AppTextStyles.caption.copyWith(
+                                color: AppColors.accentOrange,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 11.5,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+
+              // 3. Podium Section for Top 3
               if (top3.isNotEmpty)
                 SliverToBoxAdapter(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                    child: _PodiumView(top3: top3),
+                    child: _PodiumView(top3: top3, isTieBreaker: isTieBreaker),
                   ),
                 ),
 
-              // 3. Table Header
+              // 4. Table Header
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                     decoration: BoxDecoration(
@@ -195,7 +225,7 @@ class _LeaderboardTabState extends ConsumerState<LeaderboardTab>
                 ),
               ),
 
-              // 4. Remaining Ranked Teams List (#4 onwards)
+              // 5. Remaining Ranked Teams List (#4 onwards)
               SliverPadding(
                 padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
                 sliver: SliverList(
@@ -205,7 +235,10 @@ class _LeaderboardTabState extends ConsumerState<LeaderboardTab>
                       return Padding(
                         key: ValueKey(entry.teamId),
                         padding: const EdgeInsets.only(bottom: 8),
-                        child: _LeaderboardRow(entry: entry),
+                        child: _LeaderboardRow(
+                          entry: entry,
+                          hideBadges: isTieBreaker,
+                        ),
                       )
                           .animate(delay: (40 * index).ms)
                           .fadeIn(duration: 300.ms, curve: Curves.easeOut)
@@ -243,9 +276,13 @@ class _LeaderboardTabState extends ConsumerState<LeaderboardTab>
 /// ============================================================
 
 class _PodiumView extends StatelessWidget {
-  const _PodiumView({required this.top3});
+  const _PodiumView({
+    required this.top3,
+    this.isTieBreaker = false,
+  });
 
   final List<LeaderboardEntry> top3;
+  final bool isTieBreaker;
 
   @override
   Widget build(BuildContext context) {
@@ -265,6 +302,7 @@ class _PodiumView extends StatelessWidget {
                   accentColor: const Color(0xFFC0C0C0),
                   rankLabel: '2nd',
                   height: 154,
+                  hideBadges: isTieBreaker,
                 )
               : const SizedBox.shrink(),
         ),
@@ -278,6 +316,7 @@ class _PodiumView extends StatelessWidget {
             rankLabel: '1st',
             isCenter: true,
             height: 174,
+            hideBadges: isTieBreaker,
           ),
         ),
         const SizedBox(width: 8),
@@ -290,6 +329,7 @@ class _PodiumView extends StatelessWidget {
                   accentColor: const Color(0xFFCD7F32),
                   rankLabel: '3rd',
                   height: 144,
+                  hideBadges: isTieBreaker,
                 )
               : const SizedBox.shrink(),
         ),
@@ -305,6 +345,7 @@ class _PodiumCard extends StatelessWidget {
     required this.rankLabel,
     required this.height,
     this.isCenter = false,
+    this.hideBadges = false,
   });
 
   final LeaderboardEntry entry;
@@ -312,6 +353,7 @@ class _PodiumCard extends StatelessWidget {
   final String rankLabel;
   final double height;
   final bool isCenter;
+  final bool hideBadges;
 
   @override
   Widget build(BuildContext context) {
@@ -403,9 +445,13 @@ class _PodiumCard extends StatelessWidget {
 /// ============================================================
 
 class _LeaderboardRow extends StatelessWidget {
-  const _LeaderboardRow({required this.entry});
+  const _LeaderboardRow({
+    required this.entry,
+    this.hideBadges = false,
+  });
 
   final LeaderboardEntry entry;
+  final bool hideBadges;
 
   @override
   Widget build(BuildContext context) {
@@ -460,9 +506,12 @@ class _LeaderboardRow extends StatelessWidget {
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                if (entry.status != LeaderboardEntryStatus.active) ...[
+                if (!hideBadges && entry.status != LeaderboardEntryStatus.active) ...[
                   const SizedBox(height: 2),
-                  _StatusChip(status: entry.status),
+                  _StatusChip(
+                    status: entry.status,
+                    isDirectFinalist: entry.isDirectFinalist,
+                  ),
                 ],
               ],
             ),
@@ -618,19 +667,56 @@ class _RankChangeIndicator extends StatelessWidget {
 }
 
 /// ============================================================
-/// STATUS CHIP (QUALIFIED / ELIMINATED)
+/// STATUS CHIP (QUALIFIED / ELIMINATED / DIRECT FINALIST)
 /// ============================================================
 
 class _StatusChip extends StatelessWidget {
-  const _StatusChip({required this.status});
+  const _StatusChip({
+    required this.status,
+    this.isDirectFinalist = false,
+  });
 
   final LeaderboardEntryStatus status;
+  final bool isDirectFinalist;
 
   @override
   Widget build(BuildContext context) {
-    final isQualified = status == LeaderboardEntryStatus.qualified;
-    final color = isQualified ? const Color(0xFF34C759) : const Color(0xFFFF3B30);
-    final label = isQualified ? 'QUALIFIED' : 'ELIMINATED';
+    if (isDirectFinalist || status == LeaderboardEntryStatus.directFinalist) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFD700).withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(4),
+          border: Border.all(color: const Color(0xFFFFD700), width: 0.6),
+        ),
+        child: Text(
+          '🏆 DIRECT FINALIST',
+          style: AppTextStyles.caption.copyWith(
+            color: const Color(0xFFFFD700),
+            fontSize: 8.5,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      );
+    }
+
+    final color = switch (status) {
+      LeaderboardEntryStatus.qualifiedRound2 => const Color(0xFF34C759),
+      LeaderboardEntryStatus.qualifiedRound3 => const Color(0xFFFF9500),
+      LeaderboardEntryStatus.qualifiedGrandFinal || LeaderboardEntryStatus.qualified =>
+        AppColors.primaryNeon,
+      LeaderboardEntryStatus.eliminated => const Color(0xFFFF3B30),
+      _ => AppColors.textMuted,
+    };
+
+    final label = switch (status) {
+      LeaderboardEntryStatus.qualifiedRound2 => 'QUALIFIED R2',
+      LeaderboardEntryStatus.qualifiedRound3 => 'ADVANCED R3',
+      LeaderboardEntryStatus.qualifiedGrandFinal || LeaderboardEntryStatus.qualified =>
+        'QUALIFIED FINALS',
+      LeaderboardEntryStatus.eliminated => 'ELIMINATED',
+      _ => 'ACTIVE',
+    };
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),

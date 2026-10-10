@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
@@ -16,6 +17,12 @@ class NotificationService {
   final FirebaseMessaging _fcm = FirebaseMessaging.instance;
   final FlutterLocalNotificationsPlugin _localNotifications =
       FlutterLocalNotificationsPlugin();
+
+  final StreamController<Map<String, dynamic>> _notificationStreamController =
+      StreamController<Map<String, dynamic>>.broadcast();
+
+  Stream<Map<String, dynamic>> get onNotificationTapped =>
+      _notificationStreamController.stream;
 
   bool _initialized = false;
 
@@ -141,6 +148,34 @@ class NotificationService {
     );
   }
 
+  /// Show local notification for room details release or tournament updates
+  void showLocalNotification({
+    required String title,
+    required String body,
+    Map<String, dynamic>? payload,
+  }) {
+    _localNotifications.show(
+      id: DateTime.now().millisecondsSinceEpoch ~/ 1000,
+      title: title,
+      body: body,
+      notificationDetails: NotificationDetails(
+        android: AndroidNotificationDetails(
+          _channel.id,
+          _channel.name,
+          channelDescription: _channel.description,
+          importance: Importance.max,
+          priority: Priority.high,
+        ),
+        iOS: const DarwinNotificationDetails(
+          presentAlert: true,
+          presentSound: true,
+          presentBadge: true,
+        ),
+      ),
+      payload: payload != null ? jsonEncode(payload) : null,
+    );
+  }
+
   void _handleRemoteMessageClick(RemoteMessage message) {
     if (message.data.isNotEmpty) {
       _handleNotificationClick(jsonEncode(message.data));
@@ -151,6 +186,7 @@ class NotificationService {
     try {
       final data = jsonDecode(payloadJson) as Map<String, dynamic>;
       debugPrint("Notification payload tapped: $data");
+      _notificationStreamController.add(data);
     } catch (e) {
       debugPrint("Error parsing notification payload: $e");
     }

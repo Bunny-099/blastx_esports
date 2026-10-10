@@ -33,9 +33,17 @@ class TeamRepository {
   Future<TournamentTeamModel?> myTeam(String tid) async {
     try {
       final d = await _api.get(ApiEndpoints.myTeam(tid));
-      return d == null ? null : _team(d);
+      if (d == null) return null;
+      if (d is Map && (d['code'] == 'NOT_FOUND' || d['code'] == 'TEAM_NOT_FOUND')) {
+        return null;
+      }
+      return _team(d);
     } on DioException catch (e) {
       if (e.response?.statusCode == 404) return null;
+      final data = e.response?.data;
+      if (data is Map && (data['code'] == 'NOT_FOUND' || data['code'] == 'TEAM_NOT_FOUND')) {
+        return null;
+      }
       rethrow;
     }
   }
@@ -130,6 +138,7 @@ class TeamNotifier extends FamilyNotifier<TeamState, String> {
           state = state.copyWith(team: data);
         }
       },
+      runImmediately: true,
     );
 
     return const TeamState();

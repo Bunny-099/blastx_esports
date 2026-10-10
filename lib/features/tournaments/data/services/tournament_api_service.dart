@@ -156,10 +156,25 @@ class TournamentApiService {
     return [];
   }
 
+  Future<Map<String, dynamic>> getTournamentMatchesResponse(String tournamentId) async {
+    final response = await _apiClient.get(ApiEndpoints.tournamentMatches(tournamentId));
+    if (response is Map) {
+      return Map<String, dynamic>.from(response);
+    }
+    if (response is List) {
+      return {
+        'tournament_id': tournamentId,
+        'rounds': response,
+      };
+    }
+    return {};
+  }
+
   Future<List<dynamic>> getMatches(String tournamentId) async {
     final response = await _apiClient.get(ApiEndpoints.tournamentMatches(tournamentId));
     if (response is List) return response;
     if (response is Map) {
+      if (response['rounds'] is List) return response['rounds'] as List;
       if (response['matches'] is List) return response['matches'] as List;
       if (response['data'] is List) return response['data'] as List;
       if (response['items'] is List) return response['items'] as List;

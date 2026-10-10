@@ -1,8 +1,7 @@
-import 'package:flutter/foundation.dart';
 import 'package:blastix_esports/features/live/data/models/leaderboard_model.dart';
 import 'package:blastix_esports/features/live/data/models/room_details_model.dart';
-import 'package:blastix_esports/features/live/data/models/team_member_model.dart';
 import 'package:blastix_esports/features/live/data/models/team_model.dart';
+import 'package:blastix_esports/features/live/data/models/tournament_matches_model.dart';
 import 'package:blastix_esports/features/live/data/models/tournament_model.dart';
 import 'package:blastix_esports/features/splash/providers/splash_providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -69,95 +68,17 @@ class TournamentRepository {
       );
 
       final items = (response['items'] as List<dynamic>?) ?? [];
-      final list = items
+      return items
           .map((e) => TournamentModel.fromJson(Map<String, dynamic>.from(e as Map)))
           .toList();
-      if (list.isNotEmpty) return list;
     } catch (_) {}
 
-    return _getSampleBlastXTournaments(status: status);
-  }
-
-  List<TournamentModel> _getSampleBlastXTournaments({String? status}) {
-    final now = DateTime.now();
-    final List<TournamentModel> all = [
-      TournamentModel(
-        id: 'tourney_ff_001',
-        name: 'BlastX Grand Invitational S4',
-        game: 'Free Fire',
-        mode: 'SQUAD',
-        status: TournamentStatus.live,
-        bannerImageUrl: 'assets/images/top_banner.jpg',
-        gameLogoUrl: 'assets/logos/app_logo.png',
-        prizePool: 50000,
-        entryFee: 0,
-        maxSlots: 48,
-        registeredCount: 32,
-        filledSlots: 32,
-        startTime: now.subtract(const Duration(hours: 1)),
-        startsAt: now.subtract(const Duration(hours: 1)),
-        organizer: 'BlastX Esports',
-        mapName: 'Bermuda',
-        viewersCount: 12400,
-        streamUrl: 'https://youtube.com/live',
-      ),
-      TournamentModel(
-        id: 'tourney_ff_002',
-        name: 'BlastX Pro League Season 2',
-        game: 'Free Fire',
-        mode: 'SQUAD',
-        status: TournamentStatus.upcoming,
-        bannerImageUrl: 'assets/images/top_banner.jpg',
-        gameLogoUrl: 'assets/logos/app_logo.png',
-        prizePool: 25000,
-        entryFee: 0,
-        maxSlots: 48,
-        registeredCount: 20,
-        filledSlots: 20,
-        viewersCount: 0,
-        startTime: now.add(const Duration(hours: 3)),
-        startsAt: now.add(const Duration(hours: 3)),
-        organizer: 'BlastX Esports',
-        mapName: 'Purgatory',
-      ),
-      TournamentModel(
-        id: 'tourney_ff_003',
-        name: 'BlastX Weekly Battlegrounds',
-        game: 'Free Fire',
-        mode: 'SOLO',
-        status: TournamentStatus.upcoming,
-        bannerImageUrl: 'assets/images/top_banner.jpg',
-        gameLogoUrl: 'assets/logos/app_logo.png',
-        prizePool: 10000,
-        entryFee: 0,
-        maxSlots: 100,
-        registeredCount: 65,
-        filledSlots: 65,
-        viewersCount: 0,
-        startTime: now.add(const Duration(days: 1)),
-        startsAt: now.add(const Duration(days: 1)),
-        organizer: 'BlastX Esports',
-        mapName: 'Kalahari',
-      ),
-    ];
-
-    if (status != null && status.isNotEmpty && status.toLowerCase() != 'all') {
-      final targetStatus = status.toUpperCase();
-      return all.where((t) => t.status.name.toUpperCase() == targetStatus).toList();
-    }
-    return all;
+    return const [];
   }
 
   Future<TournamentModel> getTournamentDetail(String id) async {
-    try {
-      final data = await _apiService.getTournamentDetail(id);
-      return TournamentModel.fromJson(data);
-    } catch (_) {
-      final samples = _getSampleBlastXTournaments();
-      final match = samples.where((t) => t.id == id).firstOrNull;
-      if (match != null) return match;
-      rethrow;
-    }
+    final data = await _apiService.getTournamentDetail(id);
+    return TournamentModel.fromJson(data);
   }
 
   Future<List<TournamentModel>> getMyTournaments() async {
@@ -204,39 +125,7 @@ class TournamentRepository {
         return RoomDetailsAvailable(RoomDetails.fromJson(dataMap));
       }
     } catch (_) {
-      // Backend error or missing endpoint fallback handled below
-    }
-
-    // TODO(backend): remove mock - Fallback room details state when backend is offline or missing endpoint
-    final isReg = tournament?.effectiveIsRegistered ?? false;
-    if (!isReg) {
-      return const RoomDetailsNotRegistered();
-    }
-
-    if (tournament != null) {
-      if (tournament.isLive) {
-        return RoomDetailsAvailable(
-          RoomDetails(
-            roomId: '8492041',
-            password: 'FF2026',
-            visibleFrom: DateTime.now().subtract(const Duration(minutes: 10)),
-          ),
-        );
-      }
-      final diff = tournament.effectiveStartsAt.difference(DateTime.now());
-      if (diff.inMinutes <= 15) {
-        return RoomDetailsAvailable(
-          RoomDetails(
-            roomId: '8492041',
-            password: 'FF2026',
-            visibleFrom: DateTime.now().subtract(const Duration(minutes: 5)),
-          ),
-        );
-      } else {
-        return RoomDetailsNotYetAvailable(
-          revealAt: tournament.effectiveStartsAt.subtract(const Duration(minutes: 15)),
-        );
-      }
+      // Backend error or missing endpoint handled
     }
 
     return const RoomDetailsNotRegistered();
@@ -252,116 +141,24 @@ class TournamentRepository {
       }
     } catch (_) {}
 
-    // Fallback mock registered teams for testing grid display
-    if (kDebugMode) {
-      return _getMockRegisteredTeams(id);
-    }
     return const [];
-  }
-
-  List<TournamentTeamModel> _getMockRegisteredTeams(String tournamentId) {
-    return [
-      TournamentTeamModel(
-        id: 'team_01',
-        tournamentId: tournamentId,
-        code: 'BLX101',
-        name: 'TOTAL GAMING',
-        tag: 'TG',
-        logoUrl: 'https://api.dicebear.com/7.x/identicon/svg?seed=TotalGaming',
-        captainId: 'c_01',
-        status: TeamRegistrationStatus.registered,
-        members: const [
-          TeamMemberModel(userId: 'c_01', name: 'FOAB', ign: 'TG_FOAB', role: TeamRole.captain),
-          TeamMemberModel(userId: 'm_02', name: 'AjuBhai', ign: 'TG_AjuBhai'),
-          TeamMemberModel(userId: 'm_03', name: 'Mafia', ign: 'TG_Mafia'),
-          TeamMemberModel(userId: 'm_04', name: 'Vasiyo', ign: 'TG_Vasiyo'),
-        ],
-      ),
-      TournamentTeamModel(
-        id: 'team_02',
-        tournamentId: tournamentId,
-        code: 'BLX102',
-        name: 'TEAM GODLIKE',
-        tag: 'GOD',
-        logoUrl: 'https://api.dicebear.com/7.x/identicon/svg?seed=GodLike',
-        captainId: 'c_02',
-        status: TeamRegistrationStatus.registered,
-        members: const [
-          TeamMemberModel(userId: 'c_02', name: 'JONATHAN', ign: 'GOD_Jona', role: TeamRole.captain),
-          TeamMemberModel(userId: 'm_06', name: 'Neyo', ign: 'GOD_Neyo'),
-          TeamMemberModel(userId: 'm_07', name: 'Shadow', ign: 'GOD_Shadow'),
-          TeamMemberModel(userId: 'm_08', name: 'Zgod', ign: 'GOD_Zgod'),
-        ],
-      ),
-      TournamentTeamModel(
-        id: 'team_03',
-        tournamentId: tournamentId,
-        code: 'BLX103',
-        name: 'ORANGUTAN',
-        tag: 'OG',
-        logoUrl: 'https://api.dicebear.com/7.x/identicon/svg?seed=Orangutan',
-        captainId: 'c_03',
-        status: TeamRegistrationStatus.registered,
-        members: const [
-          TeamMemberModel(userId: 'c_03', name: 'AKOP', ign: 'OG_AKOP', role: TeamRole.captain),
-          TeamMemberModel(userId: 'm_10', name: 'WizzK', ign: 'OG_WizzK'),
-          TeamMemberModel(userId: 'm_11', name: 'Ash', ign: 'OG_Ash'),
-          TeamMemberModel(userId: 'm_12', name: 'Jahi', ign: 'OG_Jahi'),
-        ],
-      ),
-      TournamentTeamModel(
-        id: 'team_04',
-        tournamentId: tournamentId,
-        code: 'BLX104',
-        name: 'TEAM ELITE',
-        tag: 'TE',
-        logoUrl: 'https://api.dicebear.com/7.x/identicon/svg?seed=TeamElite',
-        captainId: 'c_04',
-        status: TeamRegistrationStatus.registered,
-        members: const [
-          TeamMemberModel(userId: 'c_04', name: 'Pahadi', ign: 'TE_Pahadi', role: TeamRole.captain),
-          TeamMemberModel(userId: 'm_14', name: 'Iconic', ign: 'TE_Iconic'),
-          TeamMemberModel(userId: 'm_15', name: 'Killer', ign: 'TE_Killer'),
-          TeamMemberModel(userId: 'm_16', name: 'RNS', ign: 'TE_RNS'),
-        ],
-      ),
-      TournamentTeamModel(
-        id: 'team_05',
-        tournamentId: tournamentId,
-        code: 'BLX105',
-        name: 'BLIND ESPORTS',
-        tag: 'BLD',
-        logoUrl: 'https://api.dicebear.com/7.x/identicon/svg?seed=BlindEsports',
-        captainId: 'c_05',
-        status: TeamRegistrationStatus.registered,
-        members: const [
-          TeamMemberModel(userId: 'c_05', name: 'Diablo', ign: 'BLD_Diablo', role: TeamRole.captain),
-          TeamMemberModel(userId: 'm_18', name: 'Maxy', ign: 'BLD_Maxy'),
-          TeamMemberModel(userId: 'm_19', name: 'Joker', ign: 'BLD_Joker'),
-          TeamMemberModel(userId: 'm_20', name: 'Naman', ign: 'BLD_Naman'),
-        ],
-      ),
-      TournamentTeamModel(
-        id: 'team_06',
-        tournamentId: tournamentId,
-        code: 'BLX106',
-        name: 'NIGMA GALAXY',
-        tag: 'NG',
-        logoUrl: 'https://api.dicebear.com/7.x/identicon/svg?seed=NigmaGalaxy',
-        captainId: 'c_06',
-        status: TeamRegistrationStatus.registered,
-        members: const [
-          TeamMemberModel(userId: 'c_06', name: 'Golden', ign: 'NG_Golden', role: TeamRole.captain),
-          TeamMemberModel(userId: 'm_22', name: 'Tahir', ign: 'NG_Tahir'),
-          TeamMemberModel(userId: 'm_23', name: 'Rohan', ign: 'NG_Rohan'),
-          TeamMemberModel(userId: 'm_24', name: 'Sam', ign: 'NG_Sam'),
-        ],
-      ),
-    ];
   }
 
   Future<List<dynamic>> getParticipants(String id) async {
     return await _apiService.getParticipants(id);
+  }
+
+  Future<TournamentMatchesResponse> getTournamentMatches(String id) async {
+    try {
+      final res = await _apiService.getTournamentMatchesResponse(id);
+      if (res.isNotEmpty) {
+        return TournamentMatchesResponse.fromJson(res);
+      }
+    } catch (_) {
+      // API error or missing endpoint handled
+    }
+
+    return TournamentMatchesResponse(tournamentId: id);
   }
 
   Future<List<MatchModel>> getMatches(String id) async {
@@ -373,97 +170,10 @@ class TournamentRepository {
             .toList();
       }
     } catch (_) {
-      // API error or offline fallback handled below
-    }
-
-    // TODO(backend): remove mock - Fallback mock matches data for testing in debug mode
-    if (kDebugMode) {
-      return _getMockMatches(id);
+      // API error handled
     }
 
     return const [];
-  }
-
-  // TODO(backend): remove mock - Sample matches grouped by rounds for testing in debug mode
-  List<MatchModel> _getMockMatches(String tournamentId) {
-    final now = DateTime.now();
-    return [
-      // Round 1 - Qualifiers
-      MatchModel(
-        id: 'match_101',
-        tournamentId: tournamentId,
-        round: 'Round 1 - Qualifiers',
-        matchNumber: 1,
-        map: 'Bermuda',
-        status: MatchStatus.completed,
-        startsAt: now.subtract(const Duration(hours: 3)),
-        endedAt: now.subtract(const Duration(hours: 2, minutes: 20)),
-        winnerTeamName: 'Total Gaming',
-        topKillerName: 'FOAB (12 Kills)',
-      ),
-      MatchModel(
-        id: 'match_102',
-        tournamentId: tournamentId,
-        round: 'Round 1 - Qualifiers',
-        matchNumber: 2,
-        map: 'Purgatory',
-        status: MatchStatus.completed,
-        startsAt: now.subtract(const Duration(hours: 2)),
-        endedAt: now.subtract(const Duration(hours: 1, minutes: 20)),
-        winnerTeamName: 'Team GodLike',
-        topKillerName: 'JONATHAN (9 Kills)',
-      ),
-      MatchModel(
-        id: 'match_103',
-        tournamentId: tournamentId,
-        round: 'Round 1 - Qualifiers',
-        matchNumber: 3,
-        map: 'Kalahari',
-        status: MatchStatus.live,
-        startsAt: now.subtract(const Duration(minutes: 15)),
-        streamUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-      ),
-      MatchModel(
-        id: 'match_104',
-        tournamentId: tournamentId,
-        round: 'Round 1 - Qualifiers',
-        matchNumber: 4,
-        map: 'Alpine',
-        status: MatchStatus.upcoming,
-        startsAt: now.add(const Duration(minutes: 45)),
-      ),
-
-      // Round 2 - Semi Finals
-      MatchModel(
-        id: 'match_201',
-        tournamentId: tournamentId,
-        round: 'Round 2 - Semi Finals',
-        matchNumber: 5,
-        map: 'Bermuda',
-        status: MatchStatus.upcoming,
-        startsAt: now.add(const Duration(hours: 2, minutes: 30)),
-      ),
-      MatchModel(
-        id: 'match_202',
-        tournamentId: tournamentId,
-        round: 'Round 2 - Semi Finals',
-        matchNumber: 6,
-        map: 'Purgatory',
-        status: MatchStatus.upcoming,
-        startsAt: now.add(const Duration(hours: 3, minutes: 30)),
-      ),
-
-      // Grand Finals
-      MatchModel(
-        id: 'match_301',
-        tournamentId: tournamentId,
-        round: 'Grand Finals',
-        matchNumber: 7,
-        map: 'Kalahari',
-        status: MatchStatus.upcoming,
-        startsAt: now.add(const Duration(days: 1)),
-      ),
-    ];
   }
 
   Future<List<TeamModel>> getLeaderboard(String id) async {
@@ -508,12 +218,7 @@ class TournamentRepository {
         );
       }
     } catch (_) {
-      // Fallback handled below
-    }
-
-    // TODO(backend): remove mock - Fallback mock leaderboard data for testing in debug mode
-    if (kDebugMode) {
-      return _getMockLeaderboard(tournamentId, round: round);
+      // API error handled
     }
 
     return LeaderboardResponse(
@@ -521,129 +226,6 @@ class TournamentRepository {
       updatedAt: DateTime.now(),
       round: round ?? 'Grand Final',
       entries: const [],
-    );
-  }
-
-  // TODO(backend): remove mock - Sample 10 teams mock leaderboard data for testing in debug mode
-  LeaderboardResponse _getMockLeaderboard(String tournamentId, {String? round}) {
-    final mockEntries = <LeaderboardEntry>[
-      const LeaderboardEntry(
-        rank: 1,
-        prevRank: 2,
-        teamId: 'team_01',
-        teamName: 'Total Gaming',
-        logoUrl: 'https://api.dicebear.com/7.x/identicon/svg?seed=TotalGaming',
-        kills: 42,
-        placementPoints: 60,
-        totalPoints: 102,
-        status: LeaderboardEntryStatus.active,
-      ),
-      const LeaderboardEntry(
-        rank: 2,
-        prevRank: 1,
-        teamId: 'team_02',
-        teamName: 'Team GodLike',
-        logoUrl: 'https://api.dicebear.com/7.x/identicon/svg?seed=GodLike',
-        kills: 38,
-        placementPoints: 50,
-        totalPoints: 88,
-        status: LeaderboardEntryStatus.active,
-      ),
-      const LeaderboardEntry(
-        rank: 3,
-        prevRank: 3,
-        teamId: 'team_03',
-        teamName: 'Orangutan Esports',
-        logoUrl: 'https://api.dicebear.com/7.x/identicon/svg?seed=Orangutan',
-        kills: 35,
-        placementPoints: 45,
-        totalPoints: 80,
-        status: LeaderboardEntryStatus.active,
-      ),
-      const LeaderboardEntry(
-        rank: 4,
-        prevRank: 6,
-        teamId: 'team_04',
-        teamName: 'Team Elite',
-        logoUrl: 'https://api.dicebear.com/7.x/identicon/svg?seed=TeamElite',
-        kills: 28,
-        placementPoints: 38,
-        totalPoints: 66,
-        status: LeaderboardEntryStatus.qualified,
-      ),
-      const LeaderboardEntry(
-        rank: 5,
-        prevRank: 4,
-        teamId: 'team_05',
-        teamName: 'Blind Esports',
-        logoUrl: 'https://api.dicebear.com/7.x/identicon/svg?seed=BlindEsports',
-        kills: 25,
-        placementPoints: 35,
-        totalPoints: 60,
-        status: LeaderboardEntryStatus.active,
-      ),
-      const LeaderboardEntry(
-        rank: 6,
-        prevRank: 5,
-        teamId: 'team_06',
-        teamName: 'Nigma Galaxy',
-        logoUrl: 'https://api.dicebear.com/7.x/identicon/svg?seed=NigmaGalaxy',
-        kills: 22,
-        placementPoints: 30,
-        totalPoints: 52,
-        status: LeaderboardEntryStatus.active,
-      ),
-      const LeaderboardEntry(
-        rank: 7,
-        prevRank: 8,
-        teamId: 'team_07',
-        teamName: 'TSM India',
-        logoUrl: 'https://api.dicebear.com/7.x/identicon/svg?seed=TSMIndia',
-        kills: 20,
-        placementPoints: 25,
-        totalPoints: 45,
-        status: LeaderboardEntryStatus.active,
-      ),
-      const LeaderboardEntry(
-        rank: 8,
-        prevRank: 7,
-        teamId: 'team_08',
-        teamName: 'Chemugu Esports',
-        logoUrl: 'https://api.dicebear.com/7.x/identicon/svg?seed=Chemugu',
-        kills: 18,
-        placementPoints: 20,
-        totalPoints: 38,
-        status: LeaderboardEntryStatus.active,
-      ),
-      const LeaderboardEntry(
-        rank: 9,
-        prevRank: 9,
-        teamId: 'team_09',
-        teamName: 'Team Insane',
-        logoUrl: 'https://api.dicebear.com/7.x/identicon/svg?seed=TeamInsane',
-        kills: 15,
-        placementPoints: 15,
-        totalPoints: 30,
-        status: LeaderboardEntryStatus.eliminated,
-      ),
-      const LeaderboardEntry(
-        rank: 10,
-        prevRank: 10,
-        teamId: 'team_10',
-        teamName: 'Entity Gaming',
-        logoUrl: 'https://api.dicebear.com/7.x/identicon/svg?seed=EntityGaming',
-        kills: 12,
-        placementPoints: 10,
-        totalPoints: 22,
-        status: LeaderboardEntryStatus.eliminated,
-      ),
-    ];
-
-    return LeaderboardResponse(
-      tournamentId: tournamentId,
-      updatedAt: DateTime.now(),
-      round: round ?? 'Grand Final',
-      entries: mockEntries,
     );
   }
 

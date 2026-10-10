@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_colors.dart';
@@ -9,7 +8,6 @@ import '../../data/models/team_model.dart';
 import '../../data/models/tournament_model.dart';
 import '../../providers/live_provider.dart';
 import '../../providers/team_provider.dart';
-import '../widgets/room_details_card.dart';
 
 /// ============================================================
 /// TOURNAMENT MATCH & ROOM SCREEN
@@ -192,13 +190,6 @@ class _TournamentMatchRoomScreenState
               ),
 
               const SizedBox(height: 16),
-
-              // 2. Room Details Card
-              if (tournament != null)
-                RoomDetailsCard(
-                  tournament: tournament,
-                  accentColor: accentColor,
-                ),
 
               // 3. START MATCH & RECORD BUTTON
               if (tournament != null && tournament.isLive) ...[
@@ -455,8 +446,8 @@ class _LiveStatusBanner extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   isLive
-                      ? 'Copy Room ID & Password below to join custom match'
-                      : 'Room ID & Pass will reveal when tournament goes LIVE',
+                      ? 'View room ID & password in the Matches section of Tournament Details'
+                      : 'Room details will reveal in the Matches section when live',
                   style: AppTextStyles.bodySm.copyWith(
                     color: AppColors.textSecondary,
                   ),

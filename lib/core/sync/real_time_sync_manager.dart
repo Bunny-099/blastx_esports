@@ -147,13 +147,8 @@ class RealTimeSyncManager with WidgetsBindingObserver {
 
     try {
       final newData = await task.fetcher();
-      if (newData == null) {
-        _inProgressKeys.remove(task.key);
-        task.isRunning = false;
-        return;
-      }
 
-      // Compute SHA-256 payload hash for lightweight change detection
+      // Compute SHA-256 / lightweight payload hash for change detection
       final newHash = _computePayloadHash(newData);
 
       // Compare with stored hash
@@ -175,6 +170,7 @@ class RealTimeSyncManager with WidgetsBindingObserver {
 
   /// Computes a lightweight payload hash string of any response object
   String _computePayloadHash(dynamic data) {
+    if (data == null) return 'null';
     try {
       final jsonString = jsonEncode(data);
       // Generate deterministic hash string combining length and string hashCode

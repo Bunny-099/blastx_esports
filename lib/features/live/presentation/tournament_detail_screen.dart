@@ -29,10 +29,12 @@ class TournamentDetailScreen extends ConsumerStatefulWidget {
     super.key,
     required this.tournamentId,
     this.viewOnly = false,
+    this.initialTabIndex = 0,
   });
 
   final String tournamentId;
   final bool viewOnly;
+  final int initialTabIndex;
 
   @override
   ConsumerState<TournamentDetailScreen> createState() =>
@@ -47,7 +49,12 @@ class _TournamentDetailScreenState
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    final clampedIndex = widget.initialTabIndex.clamp(0, 3);
+    _tabController = TabController(
+      length: 4,
+      vsync: this,
+      initialIndex: clampedIndex,
+    );
   }
 
   @override

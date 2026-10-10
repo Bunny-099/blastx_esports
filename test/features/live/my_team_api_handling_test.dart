@@ -1,12 +1,18 @@
 import 'package:blastix_esports/core/api/api_client.dart';
+import 'package:blastix_esports/core/services/device_info_service.dart';
+import 'package:blastix_esports/core/services/storage_service.dart';
 import 'package:blastix_esports/features/live/data/models/team_member_model.dart';
 import 'package:blastix_esports/features/live/data/models/team_model.dart';
 import 'package:blastix_esports/features/live/providers/team_provider.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+class FakeStorageService extends StorageService {}
+class FakeDeviceInfoService extends DeviceInfoService {}
+
 class MockApiClient extends ApiClient {
-  MockApiClient({required this.onGet}) : super(null as dynamic, null as dynamic);
+  MockApiClient({required this.onGet})
+      : super(FakeStorageService(), FakeDeviceInfoService());
 
   final Future<dynamic> Function(String endpoint) onGet;
 
@@ -21,6 +27,7 @@ class MockApiClient extends ApiClient {
 }
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
   const tournamentId = 'cmuznjl7c000lte01zdf62y95';
 
   group('GET /v1/tournaments/{tournamentId}/my-team 404 vs 200 Handling', () {

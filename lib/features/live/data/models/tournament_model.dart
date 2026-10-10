@@ -188,12 +188,11 @@ class TournamentModel {
   String get teamsFilled =>
       maxTeams > 0 ? '${registeredCount > 0 ? registeredCount : teams.length}/$maxTeams' : '${teams.length}';
 
-  // TODO(backend): remove mock - Fallback getters when new fields are null from backend
   int get effectiveFilledSlots =>
-      filledSlots ?? (registeredCount > 0 ? registeredCount : (teams.isNotEmpty ? teams.length : 32));
+      filledSlots ?? (registeredCount > 0 ? registeredCount : teams.length);
 
   int get effectiveMaxSlots =>
-      maxSlots ?? (maxTeams > 0 ? maxTeams : 48);
+      maxSlots ?? maxTeams;
 
   DateTime get effectiveStartsAt => startsAt ?? startTime;
 
@@ -400,99 +399,8 @@ class TournamentModel {
     'filled_slots': filledSlots,
   };
 
-  /// Fallback effective stages generator if stages list from API is empty
-  List<BracketStageModel> get effectiveStages {
-    if (stages.isNotEmpty) return stages;
-
-    // Build dynamic stages from tournament teams if API didn't supply 'stages'
-    final allTeams = teams.isNotEmpty
-        ? teams
-        : List.generate(
-            10,
-            (i) => TeamModel(
-              id: 'team_$i',
-              name: 'Team ${String.fromCharCode(65 + i)}',
-              logoUrl: '',
-              score: (10 - i) * 12 + 5,
-              status: i < 5 ? TeamStatus.qualified : TeamStatus.eliminated,
-            ),
-          );
-
-    final round1Teams = allTeams.map((t) {
-      final isElim = t.status == TeamStatus.eliminated || allTeams.indexOf(t) >= 5;
-      return BracketTeamModel(
-        id: t.id,
-        name: t.name,
-        logoUrl: t.logoUrl,
-        points: t.score > 0 ? t.score : (10 - allTeams.indexOf(t)) * 10,
-        kills: (allTeams.indexOf(t) + 1) * 3,
-        rank: allTeams.indexOf(t) + 1,
-        isEliminated: isElim,
-        isQualified: !isElim,
-      );
-    }).toList();
-
-    final semiTeams = round1Teams
-        .where((t) => t.isQualified)
-        .toList()
-        .asMap()
-        .entries
-        .map((e) {
-      final isElim = e.key >= 2;
-      return BracketTeamModel(
-        id: e.value.id,
-        name: e.value.name,
-        logoUrl: e.value.logoUrl,
-        points: e.value.points + 25,
-        kills: e.value.kills + 6,
-        rank: e.key + 1,
-        isEliminated: isElim,
-        isQualified: !isElim,
-      );
-    }).toList();
-
-    final finalTeams = semiTeams.where((t) => t.isQualified).toList().asMap().entries.map((e) {
-      final isWin = e.key == 0;
-      return BracketTeamModel(
-        id: e.value.id,
-        name: e.value.name,
-        logoUrl: e.value.logoUrl,
-        points: e.value.points + 40,
-        kills: e.value.kills + 10,
-        rank: e.key + 1,
-        isEliminated: !isWin,
-        isQualified: isWin,
-        isWinner: isWin,
-      );
-    }).toList();
-
-    return [
-      BracketStageModel(
-        stageId: 'stage_1',
-        stageName: 'Round 1 (Qualifiers)',
-        stageNumber: 1,
-        isCompleted: status != TournamentStatus.upcoming,
-        isCurrentStage: status == TournamentStatus.upcoming,
-        teams: round1Teams,
-      ),
-      BracketStageModel(
-        stageId: 'stage_2',
-        stageName: 'Semi Finals (Top 5)',
-        stageNumber: 2,
-        isCompleted: status == TournamentStatus.completed,
-        isCurrentStage: status == TournamentStatus.live,
-        teams: semiTeams,
-      ),
-      BracketStageModel(
-        stageId: 'stage_3',
-        stageName: 'Grand Finals',
-        stageNumber: 3,
-        isCompleted: status == TournamentStatus.completed,
-        isCurrentStage: false,
-        teams: finalTeams,
-      ),
-    ];
-  }
+  /// Returns stages directly from backend API
+  List<BracketStageModel> get effectiveStages => stages;
 }
 
 /// ------------------------------------------------------------
