@@ -210,4 +210,52 @@ class TournamentApiService {
       '${ApiEndpoints.registerTournament(tournamentId)}/delete',
     );
   }
+
+  /// Fetch full stages and group standings
+  Future<List<dynamic>> getTournamentStages(String tournamentId) async {
+    final response = await _apiClient.get(ApiEndpoints.tournamentStages(tournamentId));
+    if (response is List) return response;
+    if (response is Map) {
+      if (response['data'] is List) return response['data'] as List;
+      if (response['stages'] is List) return response['stages'] as List;
+    }
+    return [];
+  }
+
+  /// Fetch player's active assignment and room credentials
+  Future<Map<String, dynamic>> getMyAssignment(String tournamentId) async {
+    final response = await _apiClient.get(ApiEndpoints.tournamentMyAssignment(tournamentId));
+    if (response is Map) {
+      final mapResp = Map<String, dynamic>.from(response);
+      if (mapResp['data'] is Map) {
+        return Map<String, dynamic>.from(mapResp['data'] as Map);
+      }
+      return mapResp;
+    }
+    return {};
+  }
+
+  /// Fetch Clash Squad single-elimination knockout bracket
+  Future<Map<String, dynamic>> getTournamentBracket(String tournamentId) async {
+    final response = await _apiClient.get(ApiEndpoints.tournamentBracket(tournamentId));
+    if (response is Map) {
+      final mapResp = Map<String, dynamic>.from(response);
+      if (mapResp['data'] is Map) {
+        return Map<String, dynamic>.from(mapResp['data'] as Map);
+      }
+      return mapResp;
+    }
+    return {};
+  }
+
+  /// Register FCM registration token with backend
+  Future<dynamic> registerFcmToken({required String fcmToken, String deviceType = 'android'}) async {
+    return await _apiClient.post(
+      ApiEndpoints.fcmToken,
+      data: {
+        'fcm_token': fcmToken,
+        'device_type': deviceType,
+      },
+    );
+  }
 }

@@ -1,7 +1,10 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/services/notification_navigator.dart';
+import '../../../core/services/notification_service.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../auth/providers/auth_provider.dart';
 import '../providers/splash_providers.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
@@ -75,6 +78,15 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
       // 2. Check Auth Session
       isLoggedIn = await repository.checkUserAuth();
+      if (isLoggedIn) {
+        try {
+          final authRepo = ref.read(authRepositoryProvider);
+          final storage = ref.read(storageServiceProvider);
+          NotificationService.instance.registerDeviceTokenWithBackend(authRepo, storage);
+        } catch (e) {
+          debugPrint('FCM Token registration error: $e');
+        }
+      }
     } catch (e) {
       debugPrint('Initialization Error: $e');
     } finally {
@@ -87,6 +99,10 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
             } else {
               Navigator.pushReplacementNamed(context, '/login');
             }
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              NotificationService.instance.showPermissionDeniedPromptIfNecessary(context);
+              NotificationNavigator.processPendingPayloadIfAny(isLoggedIn: isLoggedIn);
+            });
           }
         });
       }

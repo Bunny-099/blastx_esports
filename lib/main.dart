@@ -29,6 +29,7 @@ void main() async {
   }
 
   final container = ProviderContainer();
+  NotificationService.instance.setProviderContainer(container);
   try {
     await container.read(storageServiceProvider).init();
   } catch (e) {

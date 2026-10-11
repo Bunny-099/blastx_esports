@@ -2,6 +2,7 @@ import 'package:blastix_esports/core/sync/real_time_sync_manager.dart';
 import 'package:blastix_esports/features/live/data/models/room_details_model.dart';
 import 'package:blastix_esports/features/live/data/models/team_model.dart';
 import 'package:blastix_esports/features/live/data/models/tournament_model.dart';
+import 'package:blastix_esports/features/tournaments/data/models/tournament_format_models.dart' hide TournamentStatus;
 import 'package:blastix_esports/features/tournaments/data/repositories/tournament_repository.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -329,4 +330,64 @@ final registeredTeamsProvider = FutureProvider.family<List<TournamentTeamModel>,
   });
 
   return repo.getRegisteredTeams(tournamentId);
+});
+
+/// Family provider for fetching multi-stage group standings for a tournament
+final tournamentStagesProvider = FutureProvider.family<List<TournamentStageModel>, String>((ref, tournamentId) async {
+  final repo = ref.watch(tournamentRepositoryProvider);
+  final syncManager = ref.watch(realTimeSyncManagerProvider);
+
+  final taskKey = 'tournament_stages_$tournamentId';
+  syncManager.register(
+    key: taskKey,
+    fetcher: () => repo.getTournamentStages(tournamentId),
+    onChanged: (_) {
+      ref.invalidateSelf();
+    },
+  );
+  ref.onDispose(() {
+    syncManager.unregister(taskKey);
+  });
+
+  return repo.getTournamentStages(tournamentId);
+});
+
+/// Family provider for fetching signed-in player's assignment & room credentials
+final myActiveAssignmentProvider = FutureProvider.family<MyActiveAssignmentModel?, String>((ref, tournamentId) async {
+  final repo = ref.watch(tournamentRepositoryProvider);
+  final syncManager = ref.watch(realTimeSyncManagerProvider);
+
+  final taskKey = 'my_assignment_$tournamentId';
+  syncManager.register(
+    key: taskKey,
+    fetcher: () => repo.getMyActiveAssignment(tournamentId),
+    onChanged: (_) {
+      ref.invalidateSelf();
+    },
+  );
+  ref.onDispose(() {
+    syncManager.unregister(taskKey);
+  });
+
+  return repo.getMyActiveAssignment(tournamentId);
+});
+
+/// Family provider for fetching Clash Squad knockout bracket tree
+final tournamentBracketProvider = FutureProvider.family<ClashSquadBracketModel?, String>((ref, tournamentId) async {
+  final repo = ref.watch(tournamentRepositoryProvider);
+  final syncManager = ref.watch(realTimeSyncManagerProvider);
+
+  final taskKey = 'tournament_bracket_$tournamentId';
+  syncManager.register(
+    key: taskKey,
+    fetcher: () => repo.getTournamentBracket(tournamentId),
+    onChanged: (_) {
+      ref.invalidateSelf();
+    },
+  );
+  ref.onDispose(() {
+    syncManager.unregister(taskKey);
+  });
+
+  return repo.getTournamentBracket(tournamentId);
 });

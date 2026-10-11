@@ -1,3 +1,4 @@
+import 'package:blastix_esports/core/router/app_router.dart';
 import 'package:blastix_esports/core/sync/real_time_sync_manager.dart';
 import 'package:blastix_esports/core/theme/app_theme.dart';
 import 'package:blastix_esports/features/auth/presentation/login_screen.dart';
@@ -16,6 +17,7 @@ class MyApp extends ConsumerWidget {
     ref.watch(realTimeSyncManagerProvider);
 
     return MaterialApp(
+      navigatorKey: AppRouter.navigatorKey,
       title: 'BlastiX Arena',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.dark,

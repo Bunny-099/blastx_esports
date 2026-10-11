@@ -496,13 +496,17 @@ class TeamNotifier extends FamilyNotifier<TeamState, String> {
         final confirmedCount = team.confirmedMainCount;
         final modeUpper = mode.trim().toUpperCase();
 
-        if (modeUpper == 'SQUAD' || modeUpper.contains('SQUAD') || modeUpper.isEmpty) {
+        if (modeUpper == 'SQUAD' || modeUpper == 'CLASH_SQUAD' || modeUpper.contains('SQUAD') || modeUpper.contains('CLASH') || modeUpper.isEmpty) {
           if (confirmedCount < 4) {
-            throw const _TeamException('Tournament khelne ke liye team mein exactly 4 main playing members confirmed hone chahiye.');
+            throw const _TeamException('Squad BR & Clash Squad require a full squad of 4 confirmed main playing members.');
           }
         } else if (modeUpper == 'DUO' || modeUpper.contains('DUO')) {
           if (confirmedCount < 2) {
-            throw const _TeamException('Tournament khelne ke liye team mein kam se kam 2 members confirmed hone chahiye.');
+            throw const _TeamException('Duo BR requires 2 confirmed main playing members.');
+          }
+        } else if (modeUpper == 'SOLO' || modeUpper.contains('SOLO')) {
+          if (confirmedCount < 1) {
+            throw const _TeamException('Solo BR requires 1 registered player.');
           }
         }
 

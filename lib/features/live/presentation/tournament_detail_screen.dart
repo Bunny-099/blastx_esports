@@ -15,7 +15,10 @@ import 'team/join_tournament_screen.dart';
 import 'team/team_lobby_screen.dart';
 import 'tabs/leaderboard_tab.dart';
 import 'tabs/matches_tab.dart';
+import 'tabs/my_lobby_tab.dart';
 import 'tabs/overview_tab.dart';
+import 'tabs/roadmap_tab.dart';
+import 'tabs/standings_bracket_tab.dart';
 import 'tabs/teams_tab.dart';
 
 /// ============================================================
@@ -131,9 +134,9 @@ class _TournamentDetailScreenState
                   ),
                   tabs: const [
                     Tab(text: 'Overview'),
-                    Tab(text: 'Leaderboard'),
-                    Tab(text: 'Matches'),
-                    Tab(text: 'Teams'),
+                    Tab(text: 'Roadmap'),
+                    Tab(text: 'My Lobby / Room'),
+                    Tab(text: 'Standings / Brackets'),
                   ],
                 ),
               ),
@@ -148,9 +151,18 @@ class _TournamentDetailScreenState
               accentColor: accent,
               viewOnly: widget.viewOnly,
             ),
-            LeaderboardTab(tournamentId: t.id),
-            MatchesTab(tournamentId: t.id),
-            TeamsTab(tournamentId: t.id),
+            RoadmapTab(
+              tournament: t,
+              accentColor: accent,
+            ),
+            MyLobbyTab(
+              tournamentId: t.id,
+              accentColor: accent,
+            ),
+            StandingsBracketTab(
+              tournamentId: t.id,
+              accentColor: accent,
+            ),
           ],
         ),
       ),

@@ -3,6 +3,7 @@ import 'package:blastix_esports/features/live/data/models/room_details_model.dar
 import 'package:blastix_esports/features/live/data/models/team_model.dart';
 import 'package:blastix_esports/features/live/data/models/tournament_matches_model.dart';
 import 'package:blastix_esports/features/live/data/models/tournament_model.dart';
+import 'package:blastix_esports/features/tournaments/data/models/tournament_format_models.dart';
 import 'package:blastix_esports/features/splash/providers/splash_providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/tournament_api_service.dart';
@@ -233,4 +234,46 @@ class TournamentRepository {
       _apiService.register(tournamentId: id, teamId: teamId);
 
   Future<dynamic> unregister(String id) => _apiService.unregister(id);
+
+  /// Fetch stages and standings
+  Future<List<TournamentStageModel>> getTournamentStages(String id) async {
+    try {
+      final raw = await _apiService.getTournamentStages(id);
+      if (raw.isNotEmpty) {
+        return raw
+            .map((e) => TournamentStageModel.fromJson(Map<String, dynamic>.from(e as Map)))
+            .toList();
+      }
+    } catch (_) {}
+    return const [];
+  }
+
+  /// Fetch signed-in player's assignment and room credentials
+  Future<MyActiveAssignmentModel?> getMyActiveAssignment(String id) async {
+    try {
+      final data = await _apiService.getMyAssignment(id);
+      if (data.isNotEmpty) {
+        return MyActiveAssignmentModel.fromJson(data);
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  /// Fetch Clash Squad knockout bracket
+  Future<ClashSquadBracketModel?> getTournamentBracket(String id) async {
+    try {
+      final data = await _apiService.getTournamentBracket(id);
+      if (data.isNotEmpty) {
+        return ClashSquadBracketModel.fromJson(data);
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  /// Register FCM token
+  Future<void> registerFcmToken(String fcmToken, {String deviceType = 'android'}) async {
+    try {
+      await _apiService.registerFcmToken(fcmToken: fcmToken, deviceType: deviceType);
+    } catch (_) {}
+  }
 }

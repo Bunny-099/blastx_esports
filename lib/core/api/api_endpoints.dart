@@ -15,6 +15,8 @@ class ApiEndpoints {
 
   // User Profile & Game Profile Endpoints
   static const String userMe = '/users/me';
+  static const String deviceToken = '/users/me/device-token';
+  static const String fcmToken = '/user/fcm-token';
   static const String userGameProfile = '/users/me/game-profile';
   static const String userRank = '/users/me/rank';
   static String userRankByUserId(String userId) => '/users/$userId/rank';
@@ -42,6 +44,9 @@ class ApiEndpoints {
   static const String tournaments = '/tournaments';
   static const String myTournaments = '/tournaments/me';
   static String tournamentDetail(String tid) => '/tournaments/$tid';
+  static String tournamentStages(String tid) => '/tournaments/$tid/stages';
+  static String tournamentMyAssignment(String tid) => '/tournaments/$tid/my-assignment';
+  static String tournamentBracket(String tid) => '/tournaments/$tid/bracket';
   static String tournamentRoom(String tid) => '/tournaments/$tid/room';
   static String tournamentRegisteredTeams(String tid) => '/tournaments/$tid/registered-teams';
   static String tournamentParticipants(String tid) => '/tournaments/$tid/registered-teams';

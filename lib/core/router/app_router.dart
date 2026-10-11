@@ -13,6 +13,8 @@ import '../../features/splash/presentation/splash_screen.dart';
 /// ============================================================
 
 class AppRouter {
+  static final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
   static Route<dynamic>? onGenerateRoute(RouteSettings settings) {
     final uri = Uri.tryParse(settings.name ?? '');
 

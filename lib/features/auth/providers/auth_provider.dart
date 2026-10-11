@@ -3,6 +3,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import '../../../core/services/notification_navigator.dart';
+import '../../../core/services/notification_service.dart';
 import '../../notifications/providers/notification_provider.dart';
 import '../../profile/providers/profile_provider.dart';
 import '../../splash/providers/splash_providers.dart';
@@ -132,8 +134,10 @@ class AuthNotifier extends Notifier<AuthState> {
       if (user.token != null) {
         await storage.saveToken(user.token!);
       }
-      // You might want to save full user object too
-      // await storage.saveString('user_data', jsonEncode(user.toJson()));
+
+      // Register FCM device token with backend and process pending notification payload
+      NotificationService.instance.registerDeviceTokenWithBackend(_repository, storage);
+      NotificationNavigator.processPendingPayloadIfAny(isLoggedIn: true);
 
       state = state.copyWith(isLoading: false);
       return true;
@@ -168,6 +172,10 @@ class AuthNotifier extends Notifier<AuthState> {
         await storage.saveToken(user.token!);
       }
 
+      // Register FCM device token with backend and process pending notification payload
+      NotificationService.instance.registerDeviceTokenWithBackend(_repository, storage);
+      NotificationNavigator.processPendingPayloadIfAny(isLoggedIn: true);
+
       state = state.copyWith(isLoading: false);
       return true;
     } catch (e) {
@@ -201,9 +209,7 @@ class AuthNotifier extends Notifier<AuthState> {
         idToken: googleAuth.idToken,
       );
 
-      final UserCredential userCredential =
-          await FirebaseAuth.instance.signInWithCredential(credential);
-      final firebaseUser = userCredential.user;
+      await FirebaseAuth.instance.signInWithCredential(credential);
 
       final String idToken = googleAuth.idToken ?? googleUser.id;
 
@@ -220,6 +226,10 @@ class AuthNotifier extends Notifier<AuthState> {
         'email': user.email,
         'profile_pic': user.profilePic ?? googleUser.photoUrl,
       }));
+
+      // Register FCM device token with backend and process pending notification payload
+      NotificationService.instance.registerDeviceTokenWithBackend(_repository, storage);
+      NotificationNavigator.processPendingPayloadIfAny(isLoggedIn: true);
 
       state = state.copyWith(isLoading: false);
       return true;
@@ -241,6 +251,13 @@ class AuthNotifier extends Notifier<AuthState> {
   // Logout user
   Future<void> logout() async {
     state = state.copyWith(isLoading: true, errorMessage: null);
+
+    try {
+      // Unregister FCM device token BEFORE clearing local auth session
+      await NotificationService.instance.unregisterDeviceTokenFromBackend(_repository);
+    } catch (e) {
+      debugPrint('Unregister Device Token Error: $e');
+    }
 
     try {
       // 1. Call Backend Logout API

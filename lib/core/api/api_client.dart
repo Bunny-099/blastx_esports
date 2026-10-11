@@ -113,6 +113,25 @@ class ApiClient {
     }
   }
 
+  Future<dynamic> delete(
+    String endpoint, {
+    dynamic data,
+    Map<String, dynamic>? queryParameters,
+    Options? options,
+  }) async {
+    try {
+      final response = await _dio.delete(
+        endpoint,
+        data: data,
+        queryParameters: queryParameters,
+        options: options,
+      );
+      return _handleResponse(response);
+    } catch (e) {
+      rethrow;
+    }
+  }
+
   dynamic _handleResponse(Response response) {
     if (response.data != null && response.data['status'] == 'success') {
       return response.data['data'];

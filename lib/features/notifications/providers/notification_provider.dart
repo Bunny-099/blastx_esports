@@ -54,6 +54,12 @@ class NotificationNotifier extends StateNotifier<List<NotificationItemModel>> {
     state = [item, ...state];
   }
 
+  void addPushNotification(Map<String, dynamic> data, {String? title, String? body}) {
+    final item = NotificationItemModel.fromPushData(data, title: title, body: body);
+    if (state.any((e) => e.id == item.id)) return;
+    state = [item, ...state];
+  }
+
   void markAsRead(String id) {
     state = [
       for (final item in state)

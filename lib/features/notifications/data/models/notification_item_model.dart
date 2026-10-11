@@ -3,7 +3,7 @@ class NotificationItemModel {
   final String id;
   final String title;
   final String body;
-  final String type; // 'tournament', 'wallet', 'match', 'system'
+  final String type; // 'tournament', 'wallet', 'match', 'squad', 'team', 'leaderboard', 'system'
   final DateTime timestamp;
   final bool isRead;
   final Map<String, dynamic>? payload;
@@ -52,13 +52,88 @@ class NotificationItemModel {
 
   factory NotificationItemModel.fromJson(Map<String, dynamic> json) {
     return NotificationItemModel(
-      id: json['id'] as String,
-      title: json['title'] as String,
-      body: json['body'] as String,
-      type: json['type'] as String? ?? 'system',
-      timestamp: DateTime.parse(json['timestamp'] as String),
+      id: json['id']?.toString() ?? DateTime.now().millisecondsSinceEpoch.toString(),
+      title: json['title']?.toString() ?? 'Notification',
+      body: json['body']?.toString() ?? '',
+      type: json['type']?.toString() ?? 'system',
+      timestamp: json['timestamp'] != null
+          ? (DateTime.tryParse(json['timestamp'].toString()) ?? DateTime.now())
+          : DateTime.now(),
       isRead: json['isRead'] as bool? ?? false,
-      payload: json['payload'] as Map<String, dynamic>?,
+      payload: json['payload'] is Map<String, dynamic>
+          ? json['payload'] as Map<String, dynamic>
+          : null,
+    );
+  }
+
+  factory NotificationItemModel.fromPushData(
+    Map<String, dynamic> data, {
+    String? title,
+    String? body,
+  }) {
+    final rawType = data['type']?.toString().toLowerCase().trim() ?? 'system';
+    final parsedTitle = title ?? data['title']?.toString() ?? 'BlastiX Notification';
+    final parsedBody = body ?? data['body']?.toString() ?? '';
+    final id = data['notificationId']?.toString() ??
+        data['notification_id']?.toString() ??
+        DateTime.now().millisecondsSinceEpoch.toString();
+
+    String category;
+    switch (rawType) {
+      case 'room_published':
+      case 'room_details_live':
+      case 'group_allocated':
+      case 'schedule_changed':
+      case 'match_reminder':
+        category = 'match';
+        break;
+      case 'squad_invite':
+      case 'roster_approval_request':
+      case 'roster_approval_response':
+        category = 'squad';
+        break;
+      case 'join_request':
+      case 'join_approved':
+      case 'join_rejected':
+      case 'member_removed':
+        category = 'team';
+        break;
+      case 'payment_success':
+      case 'payment_failed':
+      case 'registration_submitted':
+        category = 'wallet';
+        break;
+      case 'result_published':
+      case 'qualified':
+      case 'eliminated':
+        category = 'leaderboard';
+        break;
+      case 'slot_confirmed':
+      case 'waitlisted':
+      case 'waitlist_promoted':
+      case 'registration_closing':
+      case 'registration_closed':
+      case 'registration_reopened':
+      case 'deadline_extended':
+      case 'wildcard_open':
+      case 'wildcard_selected':
+      case 'lan_instructions':
+      case 'tournament':
+        category = 'tournament';
+        break;
+      default:
+        category = 'system';
+        break;
+    }
+
+    return NotificationItemModel(
+      id: id,
+      title: parsedTitle,
+      body: parsedBody,
+      type: category,
+      timestamp: DateTime.now(),
+      isRead: false,
+      payload: data,
     );
   }
 }

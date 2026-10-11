@@ -33,4 +33,12 @@ class AuthRepository {
   Future<void> logout() async {
     await _apiService.logout();
   }
+
+  Future<void> registerDeviceToken(String token) async {
+    await _apiService.registerDeviceToken(token);
+  }
+
+  Future<void> unregisterDeviceToken(String token) async {
+    await _apiService.unregisterDeviceToken(token);
+  }
 }

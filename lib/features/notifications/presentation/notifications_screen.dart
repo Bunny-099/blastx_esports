@@ -85,7 +85,7 @@ class NotificationsScreen extends ConsumerWidget {
           : ListView.separated(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
               itemCount: notifications.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 12),
+              separatorBuilder: (_, _) => const SizedBox(height: 12),
               itemBuilder: (context, index) {
                 final item = notifications[index];
                 return _NotificationTile(item: item);
@@ -221,6 +221,18 @@ class _NotificationTile extends ConsumerWidget {
       case 'match':
         iconData = Icons.sports_esports_rounded;
         iconColor = const Color(0xFFFFB74D);
+        break;
+      case 'squad':
+        iconData = Icons.groups_rounded;
+        iconColor = const Color(0xFFE040FB);
+        break;
+      case 'team':
+        iconData = Icons.shield_rounded;
+        iconColor = const Color(0xFF00E676);
+        break;
+      case 'leaderboard':
+        iconData = Icons.leaderboard_rounded;
+        iconColor = const Color(0xFFFFD700);
         break;
       default:
         iconData = Icons.notifications_active_rounded;

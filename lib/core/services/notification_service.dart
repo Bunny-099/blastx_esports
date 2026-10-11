@@ -1,13 +1,88 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import 'package:blastix_esports/core/services/notification_navigator.dart';
+import 'package:blastix_esports/core/services/storage_service.dart';
+import 'package:blastix_esports/features/auth/data/auth_repository.dart';
+import 'package:blastix_esports/features/notifications/providers/notification_provider.dart';
+import 'package:blastix_esports/features/splash/providers/splash_providers.dart';
 
 /// Top-level background message handler required by FirebaseMessaging
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  debugPrint("Handling background message ID: ${message.messageId}");
+  try {
+    await Firebase.initializeApp();
+  } catch (e) {
+    debugPrint("Firebase.initializeApp in background handler error: $e");
+  }
+
+  // If message.notification != null, Android system handles showing it.
+  // Avoid duplicate notifications.
+  if (message.notification != null) {
+    debugPrint("Background message contains notification payload; skipping local display.");
+    return;
+  }
+
+  // If message.notification == null (data-only message), show local notification
+  try {
+    final title = message.data['title']?.toString() ?? 'BlastiX Alert';
+    final body = message.data['body']?.toString() ?? '';
+
+    if (body.isEmpty && title == 'BlastiX Alert') return;
+
+    final localNotifications = FlutterLocalNotificationsPlugin();
+    const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const iosInit = DarwinInitializationSettings();
+    await localNotifications.initialize(
+      settings: const InitializationSettings(
+        android: androidInit,
+        iOS: iosInit,
+      ),
+    );
+
+    const channel = AndroidNotificationChannel(
+      'blastix_high_importance_channel',
+      'BlastiX Notifications',
+      description: 'High importance notifications for tournaments and match alerts.',
+      importance: Importance.max,
+    );
+
+    await localNotifications
+        .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>()
+        ?.createNotificationChannel(channel);
+
+    await localNotifications.show(
+      id: message.messageId?.hashCode ?? DateTime.now().millisecondsSinceEpoch ~/ 1000,
+      title: title,
+      body: body,
+      notificationDetails: NotificationDetails(
+        android: AndroidNotificationDetails(
+          channel.id,
+          channel.name,
+          channelDescription: channel.description,
+          icon: '@mipmap/ic_launcher',
+          importance: Importance.max,
+          priority: Priority.high,
+          styleInformation: BigTextStyleInformation(body),
+        ),
+        iOS: const DarwinNotificationDetails(
+          presentAlert: true,
+          presentSound: true,
+          presentBadge: true,
+        ),
+      ),
+      payload: jsonEncode(message.data),
+    );
+  } catch (e) {
+    debugPrint("Error displaying data-only notification in background isolate: $e");
+  }
 }
 
 class NotificationService {
@@ -25,6 +100,11 @@ class NotificationService {
       _notificationStreamController.stream;
 
   bool _initialized = false;
+  ProviderContainer? _container;
+  StreamSubscription<String>? _tokenRefreshSub;
+  bool _permissionDenied = false;
+
+  bool get isPermissionDenied => _permissionDenied;
 
   static const AndroidNotificationChannel _channel = AndroidNotificationChannel(
     'blastix_high_importance_channel',
@@ -32,6 +112,11 @@ class NotificationService {
     description: 'High importance notifications for tournaments and match alerts.',
     importance: Importance.max,
   );
+
+  /// Set ProviderContainer reference for real-time provider updates
+  void setProviderContainer(ProviderContainer container) {
+    _container = container;
+  }
 
   /// Initialize Firebase Messaging & Local Notifications
   Future<void> init() async {
@@ -46,9 +131,18 @@ class NotificationService {
         provisional: false,
       );
 
+      _permissionDenied =
+          settings.authorizationStatus == AuthorizationStatus.denied;
       debugPrint('Notification Authorization Status: ${settings.authorizationStatus}');
 
-      // 2. Setup Local Notifications (For Foreground popup display)
+      // Set iOS foreground presentation options so iOS won't break Android
+      await _fcm.setForegroundNotificationPresentationOptions(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
+
+      // 2. Setup Local Notifications (For Foreground & Local display)
       const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
       const iosInit = DarwinInitializationSettings();
       const initSettings = InitializationSettings(
@@ -56,7 +150,6 @@ class NotificationService {
         iOS: iosInit,
       );
 
-      // Using named parameter 'settings:' for flutter_local_notifications v22+
       await _localNotifications.initialize(
         settings: initSettings,
         onDidReceiveNotificationResponse: (NotificationResponse response) {
@@ -75,28 +168,43 @@ class NotificationService {
       // 3. Register Background Handler
       FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
-      // 4. Foreground Message Listener
+      // 4. Foreground Message Listener (Task 3)
       FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-        debugPrint('Received foreground message: ${message.notification?.title}');
+        debugPrint('Received foreground FCM message: ${message.messageId}');
         _showForegroundNotification(message);
       });
 
-      // 5. Message Click Listeners
+      // 5. Message Click Listeners (Task 4 Entry Points a & b)
       FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-        debugPrint('App opened from notification in background: ${message.data}');
+        debugPrint('App opened from background via FCM push: ${message.data}');
         _handleRemoteMessageClick(message);
       });
 
-      // Check if opened from terminated state
+      // Check terminated launch via FCM (Entry Point b)
       final initialMessage = await _fcm.getInitialMessage();
-      if (initialMessage != null) {
-        debugPrint('App launched from terminated state via notification: ${initialMessage.data}');
-        _handleRemoteMessageClick(initialMessage);
+      if (initialMessage != null && initialMessage.data.isNotEmpty) {
+        debugPrint('App launched from terminated state via FCM push: ${initialMessage.data}');
+        NotificationNavigator.setPendingPayload(initialMessage.data);
       }
 
-      // 6. Get FCM Device Token
-      final token = await getToken();
-      debugPrint('🔥 FCM Device Token: $token');
+      // Check terminated launch via Local Notification (Entry Point d)
+      final launchDetails = await _localNotifications.getNotificationAppLaunchDetails();
+      if (launchDetails != null &&
+          launchDetails.didNotificationLaunchApp &&
+          launchDetails.notificationResponse?.payload != null) {
+        final payload = launchDetails.notificationResponse!.payload!;
+        try {
+          final data = jsonDecode(payload) as Map<String, dynamic>;
+          debugPrint('App launched from terminated state via local notification: $data');
+          NotificationNavigator.setPendingPayload(data);
+        } catch (_) {}
+      }
+
+      // 6. FCM Token Debug Log (Do NOT log full token in release)
+      if (kDebugMode) {
+        final token = await getToken();
+        debugPrint('🔥 FCM Device Token: $token');
+      }
 
       _initialized = true;
     } catch (e) {
@@ -114,18 +222,73 @@ class NotificationService {
     }
   }
 
-  /// Show Heads-Up Local Notification when App is in Foreground
+  /// Register Device Token with backend (Task 1)
+  Future<void> registerDeviceTokenWithBackend(
+    AuthRepository authRepository,
+    StorageService storageService,
+  ) async {
+    try {
+      final tokenStr = await storageService.getToken();
+      if (tokenStr == null || tokenStr.isEmpty) return;
+
+      final fcmToken = await getToken();
+      if (fcmToken != null && fcmToken.isNotEmpty) {
+        await authRepository.registerDeviceToken(fcmToken);
+      }
+
+      // Setup single token refresh listener
+      setupTokenRefreshListener(authRepository, storageService);
+    } catch (e) {
+      debugPrint("Error registering device token with backend: $e");
+    }
+  }
+
+  /// Listen to token refresh and re-send to backend if logged in
+  void setupTokenRefreshListener(
+    AuthRepository authRepository,
+    StorageService storageService,
+  ) {
+    _tokenRefreshSub ??= _fcm.onTokenRefresh.listen((newToken) async {
+      try {
+        final tokenStr = await storageService.getToken();
+        if (tokenStr != null && tokenStr.isNotEmpty && newToken.isNotEmpty) {
+          await authRepository.registerDeviceToken(newToken);
+        }
+      } catch (e) {
+        debugPrint("Error handling FCM token refresh: $e");
+      }
+    });
+  }
+
+  /// Unregister Device Token from backend on logout (Task 1)
+  Future<void> unregisterDeviceTokenFromBackend(
+    AuthRepository authRepository,
+  ) async {
+    try {
+      final fcmToken = await getToken();
+      if (fcmToken != null && fcmToken.isNotEmpty) {
+        await authRepository.unregisterDeviceToken(fcmToken);
+      }
+    } catch (_) {
+      // Ignore failures silently on logout
+    }
+  }
+
+  /// Show Heads-Up Local Notification when App is in Foreground (Task 3)
   void _showForegroundNotification(RemoteMessage message) {
-    final notification = message.notification;
-    if (notification == null) return;
+    final title = message.notification?.title ??
+        message.data['title']?.toString() ??
+        'BlastiX Alert';
+    final body = message.notification?.body ??
+        message.data['body']?.toString() ??
+        '';
 
     final android = message.notification?.android;
 
-    // Using named parameters for flutter_local_notifications v22+
     _localNotifications.show(
-      id: notification.hashCode,
-      title: notification.title,
-      body: notification.body,
+      id: message.messageId?.hashCode ?? DateTime.now().millisecondsSinceEpoch ~/ 1000,
+      title: title,
+      body: body,
       notificationDetails: NotificationDetails(
         android: AndroidNotificationDetails(
           _channel.id,
@@ -134,9 +297,7 @@ class NotificationService {
           icon: android?.smallIcon ?? '@mipmap/ic_launcher',
           importance: Importance.max,
           priority: Priority.high,
-          styleInformation: notification.body != null
-              ? BigTextStyleInformation(notification.body!)
-              : null,
+          styleInformation: body.isNotEmpty ? BigTextStyleInformation(body) : null,
         ),
         iOS: const DarwinNotificationDetails(
           presentAlert: true,
@@ -146,6 +307,17 @@ class NotificationService {
       ),
       payload: jsonEncode(message.data),
     );
+
+    // Refresh/Add in-app notification list and badge count (Task 3 & 6)
+    if (_container != null && message.data.isNotEmpty) {
+      try {
+        _container!
+            .read(notificationProvider.notifier)
+            .addPushNotification(message.data, title: title, body: body);
+      } catch (e) {
+        debugPrint("Error adding push to notificationProvider: $e");
+      }
+    }
   }
 
   /// Show local notification for room details release or tournament updates
@@ -182,13 +354,61 @@ class NotificationService {
     }
   }
 
-  void _handleNotificationClick(String payloadJson) {
+  Future<void> _handleNotificationClick(String payloadJson) async {
     try {
       final data = jsonDecode(payloadJson) as Map<String, dynamic>;
       debugPrint("Notification payload tapped: $data");
+
+      // Notify stream listeners (e.g. MatchesTab)
       _notificationStreamController.add(data);
+
+      // Add to in-app notifications screen if container available
+      if (_container != null) {
+        try {
+          _container!
+              .read(notificationProvider.notifier)
+              .addPushNotification(data);
+        } catch (_) {}
+      }
+
+      // Check user login state and route via NotificationNavigator
+      bool isLoggedIn = true;
+      if (_container != null) {
+        try {
+          final storage = _container!.read(storageServiceProvider);
+          final token = await storage.getToken();
+          isLoggedIn = token != null && token.isNotEmpty;
+        } catch (_) {}
+      }
+
+      NotificationNavigator.handleTap(data, isLoggedIn: isLoggedIn);
     } catch (e) {
       debugPrint("Error parsing notification payload: $e");
     }
+  }
+
+  /// Prompt user if notification permission is denied (Task 5)
+  void showPermissionDeniedPromptIfNecessary(BuildContext context) {
+    if (!_permissionDenied || !context.mounted) return;
+
+    // Show a small, non-blocking floating SnackBar offering to open settings (once)
+    _permissionDenied = false; // reset flag so prompt is shown only once
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text('Notifications are disabled for BlastiX Arena.'),
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 4),
+        action: SnackBarAction(
+          label: 'SETTINGS',
+          textColor: const Color(0xFF00E5FF),
+          onPressed: () {
+            _localNotifications
+                .resolvePlatformSpecificImplementation<
+                    AndroidFlutterLocalNotificationsPlugin>()
+                ?.requestNotificationsPermission();
+          },
+        ),
+      ),
+    );
   }
 }

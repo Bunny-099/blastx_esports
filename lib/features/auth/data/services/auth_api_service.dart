@@ -71,4 +71,41 @@ class AuthApiService {
       // Backend logout endpoint call failed or not yet deployed; catch safely so local logout completes.
     }
   }
+
+  Future<void> registerDeviceToken(String token) async {
+    if (token.isEmpty) return;
+    try {
+      await _apiClient.post(
+        ApiEndpoints.fcmToken,
+        data: {
+          'fcm_token': token,
+          'device_type': 'android',
+        },
+      );
+    } catch (_) {}
+    try {
+      await _apiClient.post(
+        ApiEndpoints.deviceToken,
+        data: {
+          'token': token,
+          'platform': 'android',
+        },
+      );
+    } catch (_) {}
+  }
+
+  Future<void> unregisterDeviceToken(String token) async {
+    if (token.isEmpty) return;
+    try {
+      await _apiClient.delete(
+        ApiEndpoints.deviceToken,
+        data: {
+          'token': token,
+          'platform': 'android',
+        },
+      );
+    } catch (_) {
+      // Ignore failures silently on logout
+    }
+  }
 }
