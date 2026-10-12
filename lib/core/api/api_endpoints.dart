@@ -54,6 +54,11 @@ class ApiEndpoints {
   static String tournamentLeaderboard(String tid) => '/tournaments/$tid/leaderboard';
   static String registerTournament(String tid) => '/tournaments/$tid/register';
 
+  // Section 5: Match Center, Match Detail & Room Credentials Endpoints
+  static String matchCenter(String tid) => '/tournaments/$tid/match-center';
+  static String matchDetail(String tid, String matchKey) => '/tournaments/$tid/matches/$matchKey';
+  static String matchRoomCredentials(String tid, String matchKey) => '/tournaments/$tid/matches/$matchKey/room';
+
   // Teams & Tournament Roster Endpoints
   static const String myTeams = '/teams/me';
   static String teamDetail(String teamId) => '/teams/$teamId';
@@ -61,11 +66,24 @@ class ApiEndpoints {
   static String tournamentTeams(String tid) => '/tournaments/$tid/teams';
   static String teamByCode(String tid, String code) => '/tournaments/$tid/teams/code/$code';
   static String joinTeam(String teamId) => '/teams/$teamId/join';
+  static String teamJoinRequests(String teamId) => '/teams/$teamId/join-requests';
+  static String approveJoinRequest(String teamId, String requestId) => '/teams/$teamId/join-requests/$requestId/approve';
+  static String rejectJoinRequest(String teamId, String requestId) => '/teams/$teamId/join-requests/$requestId/reject';
+  static String cancelJoinRequest(String requestId) => '/teams/join-requests/$requestId/cancel';
+  static String myJoinRequests([String status = 'PENDING']) => '/users/me/join-requests?status=$status';
   static String leaveTeam(String teamId) => '/teams/$teamId/leave';
   static String removeTeamMember(String teamId, String userId) => '/teams/$teamId/members/$userId';
   static String transferCaptain(String teamId) => '/teams/$teamId/transfer-captain';
   static String teamSubstitutes(String teamId) => '/teams/$teamId/substitutes';
   static String regenerateInvite(String teamId) => '/teams/$teamId/regenerate-invite';
+
+  // Section 3: Playing Roster & Registration Approvals Endpoints
+  static String updatePlayingRoster(String teamId) => '/teams/$teamId/playing-roster';
+  static String cancelRegistrationRequest(String tid, String teamId) => '/tournaments/$tid/teams/$teamId/registration/cancel-request';
+  static String myRegistrationApprovals([String status = 'PENDING']) => '/users/me/registration-approvals?status=$status';
+  static String registrationApprovalDetail(String id) => '/registration-approvals/$id';
+  static String approveRegistration(String id) => '/registration-approvals/$id/approve';
+  static String declineRegistration(String id) => '/registration-approvals/$id/decline';
 
   // Challenges Endpoints
   static const String challenges = '/challenges';
