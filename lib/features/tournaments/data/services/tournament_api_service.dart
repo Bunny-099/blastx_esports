@@ -258,4 +258,44 @@ class TournamentApiService {
       },
     );
   }
+
+  /// Section 5: Fetch Match Center
+  Future<Map<String, dynamic>> getMatchCenter(String tournamentId) async {
+    final response = await _apiClient.get(ApiEndpoints.matchCenter(tournamentId));
+    if (response is Map) {
+      return Map<String, dynamic>.from(response);
+    }
+    return {};
+  }
+
+  /// Section 5: Fetch single Match Unit Detail
+  Future<Map<String, dynamic>> getMatchDetail(String tournamentId, String matchKey) async {
+    final response = await _apiClient.get(ApiEndpoints.matchDetail(tournamentId, matchKey));
+    if (response is Map) {
+      final mapResp = Map<String, dynamic>.from(response);
+      if (mapResp['data'] is Map) {
+        return Map<String, dynamic>.from(mapResp['data'] as Map);
+      }
+      return mapResp;
+    }
+    return {};
+  }
+
+  /// Section 5: Fetch Room Credentials for a Match Unit
+  Future<Map<String, dynamic>> getMatchRoomCredentials(String tournamentId, String matchKey) async {
+    try {
+      final response = await _apiClient.get(ApiEndpoints.matchRoomCredentials(tournamentId, matchKey));
+      if (response is Map) {
+        return Map<String, dynamic>.from(response);
+      }
+      return {'status': 'success', 'data': response};
+    } on DioException catch (e) {
+      if (e.response != null && e.response?.data is Map) {
+        final errorData = Map<String, dynamic>.from(e.response!.data as Map);
+        errorData['statusCode'] = e.response?.statusCode;
+        return errorData;
+      }
+      rethrow;
+    }
+  }
 }

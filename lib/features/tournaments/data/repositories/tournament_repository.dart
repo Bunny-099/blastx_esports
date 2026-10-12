@@ -1,4 +1,6 @@
 import 'package:blastix_esports/features/live/data/models/leaderboard_model.dart';
+import 'package:blastix_esports/features/live/data/models/match_center_model.dart';
+import 'package:blastix_esports/features/live/data/models/room_credentials_model.dart';
 import 'package:blastix_esports/features/live/data/models/room_details_model.dart';
 import 'package:blastix_esports/features/live/data/models/team_model.dart';
 import 'package:blastix_esports/features/live/data/models/tournament_matches_model.dart';
@@ -275,5 +277,64 @@ class TournamentRepository {
     try {
       await _apiService.registerFcmToken(fcmToken: fcmToken, deviceType: deviceType);
     } catch (_) {}
+  }
+
+  /// Section 5: Fetch Match Center
+  Future<MatchCenterModel> getMatchCenter(String tournamentId) async {
+    final res = await _apiService.getMatchCenter(tournamentId);
+    return MatchCenterModel.fromJson(res);
+  }
+
+  /// Section 5: Fetch single Match Unit Detail
+  Future<MatchCenterMatchItemModel?> getMatchDetail(String tournamentId, String matchKey) async {
+    final res = await _apiService.getMatchDetail(tournamentId, matchKey);
+    if (res.isNotEmpty) {
+      return MatchCenterMatchItemModel.fromJson(res);
+    }
+    return null;
+  }
+
+  /// Section 5: Fetch Room Credentials for a Match Unit
+  Future<RoomCredentialsState> getMatchRoomCredentialsState(String tournamentId, String matchKey) async {
+    try {
+      final res = await _apiService.getMatchRoomCredentials(tournamentId, matchKey);
+
+      final code = (res['code'] ?? res['error_code'] ?? res['errorCode'] ?? '').toString().toUpperCase();
+      final statusCode = res['statusCode'] as int?;
+
+      if (code == 'ROOM_NOT_AVAILABLE' || statusCode == 425) {
+        final rawRevealAt = res['reveal_at'] ?? res['revealAt'] ?? res['visible_from'] ?? res['visibleFrom'];
+        final parsedRevealAt = rawRevealAt != null ? DateTime.tryParse(rawRevealAt.toString()) : null;
+        return RoomCredentialsNotYetAvailable(
+          revealAt: parsedRevealAt,
+          message: res['message']?.toString() ?? 'Room details will be published soon.',
+        );
+      }
+
+      if (code == 'NOT_PLAYING_MEMBER' ||
+          code == 'ELIMINATED' ||
+          code == 'NOT_IN_THIS_MATCH' ||
+          code == 'NOT_REGISTERED' ||
+          statusCode == 403) {
+        return RoomCredentialsNotEligible.fromCode(
+          code.isNotEmpty ? code : 'NOT_PLAYING_MEMBER',
+          customMsg: res['message']?.toString(),
+        );
+      }
+
+      final dataMap = res['data'] is Map ? Map<String, dynamic>.from(res['data'] as Map) : res;
+      final roomId = (dataMap['room_id'] ?? dataMap['roomId'] ?? '').toString();
+
+      if (roomId.isNotEmpty) {
+        return RoomCredentialsAvailable(RoomCredentialsModel.fromJson(dataMap));
+      }
+    } catch (e) {
+      return RoomCredentialsError(e.toString());
+    }
+
+    return const RoomCredentialsNotEligible(
+      code: 'NOT_ELIGIBLE',
+      userMessage: 'Room details are not available.',
+    );
   }
 }

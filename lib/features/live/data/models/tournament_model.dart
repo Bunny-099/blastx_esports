@@ -4,6 +4,98 @@
 
 enum TournamentStatus { live, upcoming, completed }
 
+enum MyRegistrationState {
+  forming,
+  pendingPlayerApproval,
+  pendingPayment,
+  confirmed,
+  waitlisted,
+  rosterChangeRequired,
+  unknown,
+}
+
+enum MyRegistrationRole {
+  leader,
+  manager,
+  player,
+  substitute,
+  solo,
+  unknown,
+}
+
+class MyRegistration {
+  final MyRegistrationState state;
+  final String? teamId;
+  final int? slotNumber;
+  final int? waitlistPosition;
+  final int? approvalsRequired;
+  final int? approvalsApproved;
+  final String? myPendingApprovalId;
+  final MyRegistrationRole? myRole;
+  final bool? isPlaying;
+
+  const MyRegistration({
+    required this.state,
+    this.teamId,
+    this.slotNumber,
+    this.waitlistPosition,
+    this.approvalsRequired,
+    this.approvalsApproved,
+    this.myPendingApprovalId,
+    this.myRole,
+    this.isPlaying,
+  });
+
+  factory MyRegistration.fromJson(Map<String, dynamic> json) {
+    final rawState = (json['state'] as String? ?? '').toUpperCase();
+    final parsedState = switch (rawState) {
+      'FORMING' => MyRegistrationState.forming,
+      'PENDING_PLAYER_APPROVAL' => MyRegistrationState.pendingPlayerApproval,
+      'PENDING_PAYMENT' => MyRegistrationState.pendingPayment,
+      'CONFIRMED' => MyRegistrationState.confirmed,
+      'WAITLISTED' => MyRegistrationState.waitlisted,
+      'ROSTER_CHANGE_REQUIRED' => MyRegistrationState.rosterChangeRequired,
+      _ => MyRegistrationState.unknown,
+    };
+
+    final rawRole = (json['my_role'] as String? ?? '').toUpperCase();
+    final parsedRole = rawRole.isNotEmpty
+        ? switch (rawRole) {
+            'LEADER' => MyRegistrationRole.leader,
+            'MANAGER' => MyRegistrationRole.manager,
+            'PLAYER' => MyRegistrationRole.player,
+            'SUBSTITUTE' => MyRegistrationRole.substitute,
+            'SOLO' => MyRegistrationRole.solo,
+            _ => MyRegistrationRole.unknown,
+          }
+        : null;
+
+    return MyRegistration(
+      state: parsedState,
+      teamId: json['team_id'] as String?,
+      slotNumber: (json['slot_number'] as num?)?.toInt(),
+      waitlistPosition: (json['waitlist_position'] as num?)?.toInt(),
+      approvalsRequired: (json['approvals_required'] as num?)?.toInt(),
+      approvalsApproved: (json['approvals_approved'] as num?)?.toInt(),
+      myPendingApprovalId: json['my_pending_approval_id'] as String?,
+      myRole: parsedRole,
+      isPlaying: json['is_playing'] as bool?,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'state': state.name.toUpperCase(),
+        if (teamId != null) 'team_id': teamId,
+        if (slotNumber != null) 'slot_number': slotNumber,
+        if (waitlistPosition != null) 'waitlist_position': waitlistPosition,
+        if (approvalsRequired != null) 'approvals_required': approvalsRequired,
+        if (approvalsApproved != null) 'approvals_approved': approvalsApproved,
+        if (myPendingApprovalId != null) 'my_pending_approval_id': myPendingApprovalId,
+        if (myRole != null) 'my_role': myRole!.name.toUpperCase(),
+        if (isPlaying != null) 'is_playing': isPlaying,
+      };
+}
+
 class PrizeTier {
   final String label; // "1st", "2nd", "4th-10th"
   final double amount;
@@ -87,6 +179,8 @@ class TournamentModel {
   final DateTime? registrationClosesAt;
   final int? maxSlots;
   final int? filledSlots;
+  final int? waitlistCount;
+  final MyRegistration? myRegistration;
   final String description;
 
   const TournamentModel({
@@ -128,6 +222,8 @@ class TournamentModel {
     this.registrationClosesAt,
     this.maxSlots,
     this.filledSlots,
+    this.waitlistCount,
+    this.myRegistration,
     this.description = '',
   });
 
@@ -185,6 +281,7 @@ class TournamentModel {
   String money(double v) => '$currency${v.toInt()}';
   String get formattedPrizePool => money(prizePool);
   String get formattedEntryFee => isFree ? 'FREE' : money(entryFee);
+  String get entryFeeText => formattedEntryFee;
   String get teamsFilled =>
       maxTeams > 0 ? '${registeredCount > 0 ? registeredCount : teams.length}/$maxTeams' : '${teams.length}';
 
@@ -353,6 +450,10 @@ class TournamentModel {
       registrationClosesAt: json['registration_closes_at'] != null ? DateTime.tryParse(json['registration_closes_at'] as String) : null,
       maxSlots: (json['max_slots'] as num?)?.toInt(),
       filledSlots: (json['filled_slots'] as num?)?.toInt(),
+      waitlistCount: (json['waitlist_count'] as num?)?.toInt(),
+      myRegistration: json['my_registration'] != null && json['my_registration'] is Map<String, dynamic>
+          ? MyRegistration.fromJson(json['my_registration'] as Map<String, dynamic>)
+          : null,
       description: (json['description'] as String? ?? ''),
     );
   }
@@ -397,6 +498,8 @@ class TournamentModel {
     'registration_closes_at': registrationClosesAt?.toIso8601String(),
     'max_slots': maxSlots,
     'filled_slots': filledSlots,
+    'waitlist_count': waitlistCount,
+    'my_registration': myRegistration?.toJson(),
   };
 
   /// Returns stages directly from backend API
