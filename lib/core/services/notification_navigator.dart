@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import '../router/app_router.dart';
 import '../transitions/fire_page_route.dart';
-import '../../features/live/presentation/team/tournament_match_room_screen.dart';
+import '../../features/live/presentation/match_detail_screen.dart';
+import '../../features/live/presentation/team/player_approval_screen.dart';
 import '../../features/live/presentation/team/team_lobby_screen.dart';
 import '../../features/live/presentation/tournament_detail_screen.dart';
 import '../../features/notifications/presentation/notifications_screen.dart';
@@ -71,31 +72,45 @@ class NotificationNavigator {
 
     final type = data['type']?.toString().toLowerCase().trim() ?? '';
     final tournamentId = data['tournamentId']?.toString() ?? data['tournament_id']?.toString();
+    final matchKey = data['matchKey']?.toString() ?? data['match_key']?.toString() ?? '';
 
-    debugPrint("NotificationNavigator handling tap -> type: '$type', tid: '$tournamentId'");
+    debugPrint("NotificationNavigator handling tap -> type: '$type', tid: '$tournamentId', matchKey: '$matchKey'");
 
     try {
       switch (type) {
         case 'room_credentials_released':
         case 'room_released':
         case 'room_published':
+        case 'room_details':
         case 'room_details_live':
         case 'match_starting_soon':
-        case 'match_reminder':
           if (tournamentId != null && tournamentId.isNotEmpty) {
-            navState.push(
-              FirePageRoute(
-                page: TournamentDetailScreen(
-                  tournamentId: tournamentId,
-                  initialTabIndex: 2, // My Lobby / Room Tab
+            if (matchKey.isNotEmpty) {
+              navState.push(
+                FirePageRoute(
+                  page: MatchDetailScreen(
+                    tournamentId: tournamentId,
+                    matchKey: matchKey,
+                  ),
                 ),
-              ),
-            );
+              );
+            } else {
+              navState.push(
+                FirePageRoute(
+                  page: TournamentDetailScreen(
+                    tournamentId: tournamentId,
+                    initialTabIndex: 4, // Match Tab
+                  ),
+                ),
+              );
+            }
           } else {
             _navigateToNotifications(navState);
           }
           break;
 
+        case 'match_reminder':
+        case 'group_allocated':
         case 'stage_advanced':
         case 'stage_qualified':
         case 'qualified':
@@ -106,7 +121,7 @@ class NotificationNavigator {
               FirePageRoute(
                 page: TournamentDetailScreen(
                   tournamentId: tournamentId,
-                  initialTabIndex: 3, // Standings / Brackets Tab
+                  initialTabIndex: 4, // Match Tab
                 ),
               ),
             );
@@ -125,9 +140,66 @@ class NotificationNavigator {
           );
           break;
 
+        case 'registration_approval':
+        case 'roster_change_requested':
+          final approvalId = data['approvalId']?.toString() ?? data['approval_id']?.toString() ?? '';
+          if (approvalId.isNotEmpty) {
+            navState.push(
+              FirePageRoute(
+                page: PlayerApprovalScreen(
+                  approvalId: approvalId,
+                  tournamentId: tournamentId,
+                ),
+              ),
+            );
+          } else if (tournamentId != null && tournamentId.isNotEmpty) {
+            navState.push(
+              FirePageRoute(
+                page: TeamLobbyScreen(tournamentId: tournamentId),
+              ),
+            );
+          } else {
+            _navigateToNotifications(navState);
+          }
+          break;
+
+        case 'registration_approval_response':
+        case 'roster_change_required':
+        case 'roster_change_applied':
+        case 'roster_change_declined':
+        case 'roster_change_expired':
+          if (tournamentId != null && tournamentId.isNotEmpty) {
+            navState.push(
+              FirePageRoute(
+                page: TeamLobbyScreen(tournamentId: tournamentId),
+              ),
+            );
+          } else {
+            _navigateToNotifications(navState);
+          }
+          break;
+
+        case 'registration_invalidated':
+          if (tournamentId != null && tournamentId.isNotEmpty) {
+            navState.push(
+              FirePageRoute(
+                page: TeamLobbyScreen(tournamentId: tournamentId),
+              ),
+            );
+            ScaffoldMessenger.of(navState.context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                  'Registration request was invalidated because the team roster changed.',
+                ),
+              ),
+            );
+          } else {
+            _navigateToNotifications(navState);
+          }
+          break;
+
         case 'join_request':
         case 'join_approved':
-        case 'join_rejected':
         case 'member_removed':
           if (tournamentId != null && tournamentId.isNotEmpty) {
             navState.push(
@@ -144,25 +216,57 @@ class NotificationNavigator {
           }
           break;
 
+        case 'join_rejected':
+          if (tournamentId != null && tournamentId.isNotEmpty) {
+            navState.push(
+              FirePageRoute(
+                page: TournamentDetailScreen(tournamentId: tournamentId),
+              ),
+            );
+            ScaffoldMessenger.of(navState.context).showSnackBar(
+              const SnackBar(content: Text('Your request to join the team was rejected.')),
+            );
+          } else {
+            _navigateToNotifications(navState);
+          }
+          break;
+
         case 'payment_success':
         case 'payment_failed':
         case 'registration_submitted':
         case 'slot_confirmed':
         case 'waitlisted':
         case 'waitlist_promoted':
-        case 'registration_closing':
-        case 'registration_closed':
-        case 'registration_reopened':
-        case 'deadline_extended':
-        case 'wildcard_open':
-        case 'wildcard_selected':
-        case 'lan_instructions':
-        case 'group_allocated':
-        case 'schedule_changed':
+        case 'waitlist_invalidated':
           if (tournamentId != null && tournamentId.isNotEmpty) {
             navState.push(
               FirePageRoute(
-                page: TournamentDetailScreen(tournamentId: tournamentId),
+                page: TeamLobbyScreen(tournamentId: tournamentId),
+              ),
+            );
+            if (type == 'waitlist_promoted') {
+              ScaffoldMessenger.of(navState.context).showSnackBar(
+                const SnackBar(
+                  content: Text(
+                    '🎉 Your team has been promoted from the waitlist to confirmed registered!',
+                  ),
+                ),
+              );
+            }
+          } else {
+            _navigateToNotifications(navState);
+          }
+          break;
+
+        case 'wildcard_selected':
+        case 'announcement':
+          if (tournamentId != null && tournamentId.isNotEmpty) {
+            navState.push(
+              FirePageRoute(
+                page: TournamentDetailScreen(
+                  tournamentId: tournamentId,
+                  initialTabIndex: 0,
+                ),
               ),
             );
           } else {

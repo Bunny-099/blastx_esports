@@ -9,7 +9,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:blastix_esports/core/services/notification_navigator.dart';
 import 'package:blastix_esports/core/services/storage_service.dart';
+import 'package:blastix_esports/core/sync/real_time_sync_manager.dart';
 import 'package:blastix_esports/features/auth/data/auth_repository.dart';
+import 'package:blastix_esports/features/live/providers/live_provider.dart';
+import 'package:blastix_esports/features/live/providers/team_provider.dart';
 import 'package:blastix_esports/features/notifications/providers/notification_provider.dart';
 import 'package:blastix_esports/features/splash/providers/splash_providers.dart';
 
@@ -314,6 +317,35 @@ class NotificationService {
         _container!
             .read(notificationProvider.notifier)
             .addPushNotification(message.data, title: title, body: body);
+
+        // Trigger instant sync across active sync tasks on join request or waitlist foreground push
+        final type = message.data['type']?.toString().toLowerCase().trim() ?? '';
+        if (type == 'join_request' ||
+            type == 'join_approved' ||
+            type == 'join_rejected' ||
+            type == 'registration_approval' ||
+            type == 'registration_approval_response' ||
+            type == 'roster_change_required' ||
+            type == 'roster_change_requested' ||
+            type == 'roster_change_applied' ||
+            type == 'roster_change_declined' ||
+            type == 'roster_change_expired' ||
+            type == 'registration_invalidated' ||
+            type == 'waitlisted' ||
+            type == 'waitlist_promoted' ||
+            type == 'waitlist_invalidated') {
+          RealTimeSyncManager().triggerInstantSync();
+          if (_container != null) {
+            _container!.invalidate(appTournamentsProvider);
+            _container!.invalidate(blastxLiveTournamentsApiProvider);
+            _container!.invalidate(blastxUpcomingTournamentsApiProvider);
+            final tid = message.data['tournamentId']?.toString() ?? message.data['tournament_id']?.toString();
+            if (tid != null && tid.isNotEmpty) {
+              _container!.invalidate(teamProvider(tid));
+              _container!.invalidate(tournamentByIdProvider(tid));
+            }
+          }
+        }
       } catch (e) {
         debugPrint("Error adding push to notificationProvider: $e");
       }

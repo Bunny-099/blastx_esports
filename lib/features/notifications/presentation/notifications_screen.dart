@@ -209,7 +209,36 @@ class _NotificationTile extends ConsumerWidget {
     IconData iconData;
     Color iconColor;
 
-    switch (type) {
+    switch (type.toLowerCase()) {
+      case 'join_request':
+        iconData = Icons.person_add_rounded;
+        iconColor = AppColors.accentOrange;
+        break;
+      case 'join_approved':
+        iconData = Icons.check_circle_rounded;
+        iconColor = AppColors.success;
+        break;
+      case 'join_rejected':
+        iconData = Icons.cancel_rounded;
+        iconColor = AppColors.error;
+        break;
+      case 'registration_approval':
+      case 'roster_change_requested':
+        iconData = Icons.rate_review_rounded;
+        iconColor = AppColors.primaryNeon;
+        break;
+      case 'registration_approval_response':
+      case 'roster_change_applied':
+        iconData = Icons.how_to_reg_rounded;
+        iconColor = AppColors.success;
+        break;
+      case 'roster_change_required':
+      case 'roster_change_declined':
+      case 'roster_change_expired':
+      case 'registration_invalidated':
+        iconData = Icons.warning_amber_rounded;
+        iconColor = AppColors.error;
+        break;
       case 'tournament':
         iconData = Icons.emoji_events_rounded;
         iconColor = AppColors.primaryNeon;

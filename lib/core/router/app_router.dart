@@ -8,9 +8,12 @@ import '../../features/splash/presentation/splash_screen.dart';
 /// APP ROUTER & DEEP LINK HANDLER
 /// Supports deep links:
 /// - blastix://tournaments/:id/match
+/// - blastix://tournaments/:id/teams
 /// - blastix://tournaments/:id/standings
 /// - blastix://tournaments/:id/wildcard
 /// ============================================================
+
+import '../../features/profile/presentation/profile_setup_screen.dart';
 
 class AppRouter {
   static final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -18,7 +21,7 @@ class AppRouter {
   static Route<dynamic>? onGenerateRoute(RouteSettings settings) {
     final uri = Uri.tryParse(settings.name ?? '');
 
-    // Handle deep links: blastix://tournaments/:id/match, /standings, /wildcard
+    // Handle deep links: blastix://tournaments/:id/match, /teams, /standings, /wildcard
     if (uri != null && (uri.scheme == 'blastix' || settings.name?.startsWith('/tournaments') == true)) {
       final pathSegments = uri.pathSegments;
       if (pathSegments.length >= 2 && pathSegments[0] == 'tournaments') {
@@ -27,13 +30,15 @@ class AppRouter {
         if (pathSegments.length >= 3) {
           final action = pathSegments[2].toLowerCase();
           if (action == 'match') {
-            initialTab = 1; // Matches Tab
-          } else if (action == 'standings' || action == 'leaderboard') {
-            initialTab = 2; // Leaderboard Tab
+            initialTab = 4; // Match Tab
           } else if (action == 'teams') {
-            initialTab = 3; // Teams Tab
+            initialTab = 2; // Teams Tab
+          } else if (action == 'standings' || action == 'leaderboard') {
+            initialTab = 3; // Standings / Brackets Tab
+          } else if (action == 'roadmap') {
+            initialTab = 1; // Roadmap Tab
           } else if (action == 'wildcard') {
-            initialTab = 0; // Overview Tab with Wildcard
+            initialTab = 0; // Overview Tab
           }
         }
 
@@ -74,5 +79,6 @@ class AppRouter {
         '/': (context) => const SplashScreen(),
         '/login': (context) => const LoginScreen(),
         '/home': (context) => const MainScreen(),
+        '/profile-setup': (context) => const ProfileSetupScreen(),
       };
 }
