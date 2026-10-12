@@ -124,6 +124,7 @@ class _ActiveRecordingOverlayState extends ConsumerState<ActiveRecordingOverlay>
 
       // Agar file 100 KB se choti hai
       if (fileSize < 100 * 1024) {
+        recordingService.reset();
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
