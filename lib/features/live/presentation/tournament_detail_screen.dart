@@ -8,22 +8,26 @@ import '../../../core/theme/app_text_styles.dart';
 import '../../../core/transitions/fire_page_route.dart';
 import '../../../features/squad/presentation/widgets/ask_leader_dialog.dart';
 import '../../../features/squad/providers/squad_provider.dart';
+import '../data/models/registration_status_helper.dart';
+import '../data/models/team_model.dart';
 import '../data/models/tournament_model.dart';
 import '../providers/live_provider.dart';
 import '../providers/team_provider.dart';
-import 'team/join_tournament_screen.dart';
-import 'team/team_lobby_screen.dart';
-import 'tabs/leaderboard_tab.dart';
-import 'tabs/matches_tab.dart';
 import 'tabs/my_lobby_tab.dart';
 import 'tabs/overview_tab.dart';
 import 'tabs/roadmap_tab.dart';
 import 'tabs/standings_bracket_tab.dart';
 import 'tabs/teams_tab.dart';
+import 'team/duo_join_screen.dart';
+import 'team/join_tournament_screen.dart';
+import 'team/player_approval_screen.dart';
+import 'team/solo_register_screen.dart';
+import 'team/team_lobby_screen.dart';
 
 /// ============================================================
 /// TOURNAMENT DETAIL SCREEN — Command Center Tabbed Edition
-/// Header (Hero banner -> Title & stats) + Pinned TabBar (Overview, Leaderboard, Matches, Teams)
+/// Header (Hero banner -> Title & stats) + Pinned TabBar
+/// Tabs: Overview, Roadmap, Teams, Standings/Brackets, and Match (if confirmed)
 /// + Sticky bottom action bar (Register / Watch Live)
 /// ============================================================
 
@@ -46,23 +50,47 @@ class TournamentDetailScreen extends ConsumerStatefulWidget {
 
 class _TournamentDetailScreenState
     extends ConsumerState<TournamentDetailScreen>
-    with SingleTickerProviderStateMixin {
-  late final TabController _tabController;
+    with TickerProviderStateMixin {
+  TabController? _tabController;
+  bool _hasCheckedDeepLinkSnackBar = false;
 
-  @override
-  void initState() {
-    super.initState();
-    final clampedIndex = widget.initialTabIndex.clamp(0, 3);
-    _tabController = TabController(
-      length: 4,
-      vsync: this,
-      initialIndex: clampedIndex,
-    );
+  void _updateTabController(bool isConfirmed) {
+    final newLength = isConfirmed ? 5 : 4;
+    if (_tabController == null || _tabController!.length != newLength) {
+      _tabController?.dispose();
+
+      int initialIndex = widget.initialTabIndex;
+
+      if (widget.initialTabIndex == 4 && !isConfirmed) {
+        initialIndex = 0; // Fallback to Overview
+        if (!_hasCheckedDeepLinkSnackBar) {
+          _hasCheckedDeepLinkSnackBar = true;
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text(
+                    'Match tab is only available for confirmed registered teams.',
+                  ),
+                ),
+              );
+            }
+          });
+        }
+      }
+
+      final clampedIndex = initialIndex.clamp(0, newLength - 1);
+      _tabController = TabController(
+        length: newLength,
+        vsync: this,
+        initialIndex: clampedIndex,
+      );
+    }
   }
 
   @override
   void dispose() {
-    _tabController.dispose();
+    _tabController?.dispose();
     super.dispose();
   }
 
@@ -88,8 +116,14 @@ class _TournamentDetailScreenState
     }
 
     final teamState = ref.watch(teamProvider(widget.tournamentId));
-    final isRegistered = t.effectiveIsRegistered ||
-        (teamState.team != null && (teamState.team!.isRegistered || teamState.team!.members.isNotEmpty));
+    final team = teamState.team;
+
+    final isConfirmed = t.myRegistration?.state == MyRegistrationState.confirmed ||
+        t.effectiveIsRegistered ||
+        team?.isRegistered == true ||
+        team?.registrationState == TeamRegistrationState.confirmed;
+
+    _updateTabController(isConfirmed);
 
     final accent = _accentColor(t.accentColorHex);
 
@@ -98,7 +132,12 @@ class _TournamentDetailScreenState
       bottomNavigationBar: _BottomCta(
         tournament: t,
         viewOnly: widget.viewOnly,
-        isRegistered: isRegistered,
+        isRegistered: isConfirmed,
+        onNavigateToMatchTab: isConfirmed
+            ? () {
+                _tabController?.animateTo(4);
+              }
+            : null,
       ),
       body: NestedScrollView(
         physics: const BouncingScrollPhysics(),
@@ -111,16 +150,16 @@ class _TournamentDetailScreenState
               delegate: _PinnedTabBarDelegate(
                 tabBar: TabBar(
                   controller: _tabController,
-                  isScrollable: false,
+                  isScrollable: isConfirmed,
                   labelColor: AppColors.accentOrange,
                   unselectedLabelColor: AppColors.textSecondary,
                   labelStyle: AppTextStyles.button.copyWith(
                     fontWeight: FontWeight.bold,
-                    fontSize: 14,
+                    fontSize: 13,
                   ),
                   unselectedLabelStyle: AppTextStyles.button.copyWith(
                     fontWeight: FontWeight.w500,
-                    fontSize: 14,
+                    fontSize: 13,
                   ),
                   indicatorColor: AppColors.accentOrange,
                   indicatorWeight: 3.0,
@@ -132,11 +171,12 @@ class _TournamentDetailScreenState
                     ),
                     borderRadius: BorderRadius.circular(3),
                   ),
-                  tabs: const [
-                    Tab(text: 'Overview'),
-                    Tab(text: 'Roadmap'),
-                    Tab(text: 'My Lobby / Room'),
-                    Tab(text: 'Standings / Brackets'),
+                  tabs: [
+                    const Tab(text: 'Overview'),
+                    const Tab(text: 'Roadmap'),
+                    const Tab(text: 'Teams'),
+                    const Tab(text: 'Standings / Brackets'),
+                    if (isConfirmed) const Tab(text: 'Match'),
                   ],
                 ),
               ),
@@ -155,14 +195,18 @@ class _TournamentDetailScreenState
               tournament: t,
               accentColor: accent,
             ),
-            MyLobbyTab(
+            TeamsTab(
               tournamentId: t.id,
-              accentColor: accent,
             ),
             StandingsBracketTab(
               tournamentId: t.id,
               accentColor: accent,
             ),
+            if (isConfirmed)
+              MyLobbyTab(
+                tournamentId: t.id,
+                accentColor: accent,
+              ),
           ],
         ),
       ),
@@ -355,10 +399,12 @@ class _BottomCta extends ConsumerStatefulWidget {
     required this.tournament,
     this.viewOnly = false,
     this.isRegistered = false,
+    this.onNavigateToMatchTab,
   });
   final TournamentModel tournament;
   final bool viewOnly;
   final bool isRegistered;
+  final VoidCallback? onNavigateToMatchTab;
 
   @override
   ConsumerState<_BottomCta> createState() => _BottomCtaState();
@@ -436,212 +482,11 @@ class _BottomCtaState extends ConsumerState<_BottomCta> {
   @override
   Widget build(BuildContext context) {
     final t = widget.tournament;
+    final teamState = ref.watch(teamProvider(t.id));
+    final team = teamState.team;
 
-    if (widget.isRegistered) {
-      return SafeArea(
-        child: Container(
-          padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
-          decoration: const BoxDecoration(
-            color: AppColors.background,
-            border: Border(top: BorderSide(color: AppColors.border)),
-          ),
-          child: GestureDetector(
-            onTap: () {
-              Navigator.of(context).push(
-                FirePageRoute(
-                  page: TeamLobbyScreen(tournamentId: t.id),
-                ),
-              );
-            },
-            child: Container(
-              height: 52,
-              decoration: BoxDecoration(
-                color: AppColors.surfaceNavy,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: AppColors.primaryNeon.withValues(alpha: 0.6),
-                ),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: const [
-                  Icon(Icons.check_circle_rounded,
-                      color: AppColors.primaryNeon, size: 20),
-                  SizedBox(width: 8),
-                  Text(
-                    'JOINED ✓ • VIEW TEAM LOBBY',
-                    style: TextStyle(
-                      color: AppColors.primaryNeon,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      );
-    }
+    final ctaState = getCtaState(t, team);
 
-    if (widget.viewOnly) {
-      if (t.status == TournamentStatus.upcoming) {
-        return SafeArea(
-          child: Container(
-            padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
-            decoration: const BoxDecoration(
-              color: AppColors.background,
-              border: Border(top: BorderSide(color: AppColors.border)),
-            ),
-            child: Container(
-              height: 48,
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppColors.border),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(
-                    Icons.schedule_rounded,
-                    color: AppColors.accentOrange,
-                    size: 18,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    _formatLiveCountdown(t.effectiveStartsAt),
-                    style: AppTextStyles.bodyLg.copyWith(
-                      color: AppColors.textPrimary,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      } else {
-        return const SizedBox.shrink();
-      }
-    }
-
-    // ── Regular Interaction CTA Mode ──
-    if (t.status == TournamentStatus.upcoming) {
-      final isZero = t.effectiveStartsAt.difference(DateTime.now()).inSeconds <= 0;
-      return SafeArea(
-        child: Container(
-          padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
-          decoration: const BoxDecoration(
-            color: AppColors.background,
-            border: Border(top: BorderSide(color: AppColors.border)),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                height: 52,
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: AppColors.surfaceElevated,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppColors.accentOrange.withValues(alpha: 0.4)),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    _isRefreshingStatus || isZero
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: AppColors.accentOrange,
-                            ),
-                          )
-                        : const Icon(Icons.lock_clock_rounded,
-                            color: AppColors.accentOrange, size: 20),
-                    const SizedBox(width: 10),
-                    Flexible(
-                      child: Text(
-                        _isRefreshingStatus || isZero
-                            ? 'VERIFYING BACKEND STATUS...'
-                            : 'REGISTRATION OPENS WHEN LIVE • ${_formatLiveCountdown(t.effectiveStartsAt)}',
-                        style: AppTextStyles.button.copyWith(
-                          color: AppColors.textPrimary,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 12,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                        maxLines: 1,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    if (t.status == TournamentStatus.live) {
-      final label = t.isFree ? 'JOIN NOW • FREE' : 'JOIN NOW • ${t.formattedEntryFee}';
-      return SafeArea(
-        child: Container(
-          padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
-          decoration: const BoxDecoration(
-            color: AppColors.background,
-            border: Border(top: BorderSide(color: AppColors.border)),
-          ),
-          child: GestureDetector(
-            onTap: () {
-              final squadState = ref.read(squadProvider);
-              if (squadState.hasSquad && !squadState.isOwner) {
-                showAskLeaderDialog(context);
-              } else {
-                Navigator.of(context).push(
-                  FirePageRoute(
-                    page: JoinTournamentScreen(tournamentId: t.id),
-                  ),
-                );
-              }
-            },
-            child: Container(
-              height: 52,
-              decoration: BoxDecoration(
-                gradient: AppColors.fireGradient,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.secondary.withValues(alpha: 0.4),
-                    blurRadius: 16,
-                  ),
-                ],
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.sports_esports_rounded,
-                      color: AppColors.bgNavy, size: 20),
-                  const SizedBox(width: 8),
-                  Text(
-                    label,
-                    style: const TextStyle(
-                      color: AppColors.bgNavy,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      );
-    }
-
-    // Completed
     return SafeArea(
       child: Container(
         padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
@@ -649,32 +494,421 @@ class _BottomCtaState extends ConsumerState<_BottomCta> {
           color: AppColors.background,
           border: Border(top: BorderSide(color: AppColors.border)),
         ),
-        child: Container(
+        child: _buildCtaContent(context, t, team, ctaState),
+      ),
+    );
+  }
+
+  Widget _buildCtaContent(
+    BuildContext context,
+    TournamentModel t,
+    TournamentTeamModel? team,
+    CtaState ctaState,
+  ) {
+    switch (ctaState.type) {
+      // 1. Completed
+      case CtaType.completed:
+        return Container(
           height: 52,
           decoration: BoxDecoration(
-            color: AppColors.surface,
+            color: ctaState.backgroundColor,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(color: AppColors.border),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
-            children: const [
-              Icon(Icons.emoji_events_rounded,
-                  color: AppColors.gold, size: 20),
-              SizedBox(width: 8),
+            children: [
+              if (ctaState.icon != null) ...[
+                Icon(ctaState.icon, color: AppColors.gold, size: 20),
+                const SizedBox(width: 8),
+              ],
               Text(
-                'TOURNAMENT COMPLETED',
+                ctaState.label,
                 style: TextStyle(
-                  color: Colors.white,
+                  color: ctaState.textColor,
                   fontWeight: FontWeight.w800,
                   letterSpacing: 0.5,
                 ),
               ),
             ],
           ),
-        ),
-      ),
-    );
+        );
+
+      // 2. Upcoming Countdown
+      case CtaType.upcomingCountdown:
+        final isZero = t.effectiveStartsAt.difference(DateTime.now()).inSeconds <= 0;
+        final countdownText = _isRefreshingStatus || isZero
+            ? 'VERIFYING BACKEND STATUS...'
+            : 'REGISTRATION OPENS WHEN LIVE • ${_formatLiveCountdown(t.effectiveStartsAt)}';
+
+        return Container(
+          height: 52,
+          decoration: BoxDecoration(
+            color: ctaState.backgroundColor,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.accentOrange.withValues(alpha: 0.4)),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _isRefreshingStatus || isZero
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: AppColors.accentOrange,
+                      ),
+                    )
+                  : Icon(ctaState.icon, color: AppColors.accentOrange, size: 20),
+              const SizedBox(width: 10),
+              Flexible(
+                child: Text(
+                  countdownText,
+                  style: AppTextStyles.button.copyWith(
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 12,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
+                ),
+              ),
+            ],
+          ),
+        );
+
+      // 3. Confirmed
+      case CtaType.confirmed:
+        return GestureDetector(
+          onTap: () {
+            if (widget.onNavigateToMatchTab != null) {
+              widget.onNavigateToMatchTab!();
+            } else {
+              Navigator.of(context).push(
+                FirePageRoute(
+                  page: TeamLobbyScreen(tournamentId: t.id),
+                ),
+              );
+            }
+          },
+          child: Container(
+            height: 52,
+            decoration: BoxDecoration(
+              color: ctaState.backgroundColor,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: AppColors.primaryNeon.withValues(alpha: 0.6),
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (ctaState.icon != null) ...[
+                  Icon(ctaState.icon, color: ctaState.textColor, size: 20),
+                  const SizedBox(width: 8),
+                ],
+                Text(
+                  ctaState.label,
+                  style: TextStyle(
+                    color: ctaState.textColor,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+
+      // 4. Waitlisted
+      case CtaType.waitlisted:
+        return GestureDetector(
+          onTap: () {
+            Navigator.of(context).push(
+              FirePageRoute(
+                page: TeamLobbyScreen(tournamentId: t.id),
+              ),
+            );
+          },
+          child: Container(
+            height: 52,
+            decoration: BoxDecoration(
+              color: ctaState.backgroundColor,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: AppColors.accentOrange.withValues(alpha: 0.6),
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (ctaState.icon != null) ...[
+                  Icon(ctaState.icon, color: ctaState.textColor, size: 20),
+                  const SizedBox(width: 8),
+                ],
+                Text(
+                  ctaState.label,
+                  style: TextStyle(
+                    color: ctaState.textColor,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 12,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+
+      // 5. Approve Participation
+      case CtaType.approveParticipation:
+        final approvalId = t.myRegistration?.myPendingApprovalId ?? team?.myPendingApprovalId ?? '';
+        return GestureDetector(
+          onTap: () {
+            Navigator.of(context).push(
+              FirePageRoute(
+                page: PlayerApprovalScreen(
+                  approvalId: approvalId,
+                  tournamentId: t.id,
+                ),
+              ),
+            );
+          },
+          child: Container(
+            height: 52,
+            decoration: BoxDecoration(
+              color: ctaState.backgroundColor,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.primaryNeon.withValues(alpha: 0.3),
+                  blurRadius: 12,
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (ctaState.icon != null) ...[
+                  Icon(ctaState.icon, color: ctaState.textColor, size: 20),
+                  const SizedBox(width: 8),
+                ],
+                Text(
+                  ctaState.label,
+                  style: TextStyle(
+                    color: ctaState.textColor,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+
+      // 6. Waiting Approvals
+      case CtaType.waitingApprovals:
+        return GestureDetector(
+          onTap: () {
+            Navigator.of(context).push(
+              FirePageRoute(
+                page: TeamLobbyScreen(tournamentId: t.id),
+              ),
+            );
+          },
+          child: Container(
+            height: 52,
+            decoration: BoxDecoration(
+              color: ctaState.backgroundColor,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: AppColors.accentOrange.withValues(alpha: 0.6),
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (ctaState.icon != null) ...[
+                  Icon(ctaState.icon, color: ctaState.textColor, size: 20),
+                  const SizedBox(width: 8),
+                ],
+                Text(
+                  ctaState.label,
+                  style: TextStyle(
+                    color: ctaState.textColor,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 12,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+
+      // 7. Roster Change Required
+      case CtaType.rosterChangeRequired:
+        return GestureDetector(
+          onTap: () {
+            Navigator.of(context).push(
+              FirePageRoute(
+                page: TeamLobbyScreen(tournamentId: t.id),
+              ),
+            );
+          },
+          child: Container(
+            height: 52,
+            decoration: BoxDecoration(
+              color: ctaState.backgroundColor,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: AppColors.error.withValues(alpha: 0.6),
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (ctaState.icon != null) ...[
+                  Icon(ctaState.icon, color: ctaState.textColor, size: 20),
+                  const SizedBox(width: 8),
+                ],
+                Text(
+                  ctaState.label,
+                  style: TextStyle(
+                    color: ctaState.textColor,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 12,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+
+      // 8. Forming (Team exists)
+      case CtaType.forming:
+        return GestureDetector(
+          onTap: () {
+            Navigator.of(context).push(
+              FirePageRoute(
+                page: TeamLobbyScreen(tournamentId: t.id),
+              ),
+            );
+          },
+          child: Container(
+            height: 52,
+            decoration: BoxDecoration(
+              color: ctaState.backgroundColor,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.primaryNeon.withValues(alpha: 0.3),
+                  blurRadius: 12,
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (ctaState.icon != null) ...[
+                  Icon(ctaState.icon, color: ctaState.textColor, size: 20),
+                  const SizedBox(width: 8),
+                ],
+                Text(
+                  ctaState.label,
+                  style: TextStyle(
+                    color: ctaState.textColor,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+
+      // 9 & 10. Live Full / Live Join Now
+      case CtaType.liveFullNoRegistration:
+      case CtaType.liveJoinNow:
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            GestureDetector(
+              onTap: () {
+                final modeUpper = t.mode.trim().toUpperCase();
+                if (modeUpper == 'SOLO' || modeUpper.contains('SOLO')) {
+                  Navigator.of(context).push(
+                    FirePageRoute(
+                      page: SoloRegisterScreen(tournamentId: t.id),
+                    ),
+                  );
+                } else if (modeUpper == 'DUO' || modeUpper.contains('DUO')) {
+                  Navigator.of(context).push(
+                    FirePageRoute(
+                      page: DuoJoinScreen(tournamentId: t.id),
+                    ),
+                  );
+                } else {
+                  final squadState = ref.read(squadProvider);
+                  if (squadState.hasSquad && !squadState.isOwner) {
+                    showAskLeaderDialog(context);
+                  } else {
+                    Navigator.of(context).push(
+                      FirePageRoute(
+                        page: JoinTournamentScreen(tournamentId: t.id),
+                      ),
+                    );
+                  }
+                }
+              },
+              child: Container(
+                height: 52,
+                decoration: BoxDecoration(
+                  gradient: AppColors.fireGradient,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.secondary.withValues(alpha: 0.4),
+                      blurRadius: 16,
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    if (ctaState.icon != null) ...[
+                      Icon(ctaState.icon, color: AppColors.bgNavy, size: 20),
+                      const SizedBox(width: 8),
+                    ],
+                    Text(
+                      ctaState.label,
+                      style: const TextStyle(
+                        color: AppColors.bgNavy,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            if (ctaState.subNote != null) ...[
+              const SizedBox(height: 6),
+              Text(
+                ctaState.subNote!,
+                style: AppTextStyles.caption.copyWith(
+                  color: AppColors.accentOrange,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 11,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ],
+        );
+    }
   }
 }
 
