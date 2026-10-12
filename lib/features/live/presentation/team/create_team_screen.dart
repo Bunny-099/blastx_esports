@@ -10,8 +10,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class CreateTeamScreen extends ConsumerStatefulWidget {
-  const CreateTeamScreen({super.key, required this.tournamentId});
+  const CreateTeamScreen({
+    super.key,
+    required this.tournamentId,
+    this.isDuoMode = false,
+  });
+
   final String tournamentId;
+  final bool isDuoMode;
 
   @override
   ConsumerState<CreateTeamScreen> createState() => _CreateTeamScreenState();
@@ -195,7 +201,8 @@ class _CreateTeamScreenState extends ConsumerState<CreateTeamScreen> {
 
     final s = ref.watch(teamProvider(widget.tournamentId));
     final error = _localError ?? s.error;
-    final isManager = _selectedRole == TeamOwnerRole.manager;
+    final isDuo = widget.isDuoMode;
+    final isManager = !isDuo && _selectedRole == TeamOwnerRole.manager;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -206,7 +213,7 @@ class _CreateTeamScreenState extends ConsumerState<CreateTeamScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('CREATE TEAM', style: AppTextStyles.display),
+            Text(isDuo ? 'CREATE DUO TEAM' : 'CREATE TEAM', style: AppTextStyles.display),
             const SizedBox(height: 12),
 
             // Banner Notice
@@ -224,9 +231,11 @@ class _CreateTeamScreenState extends ConsumerState<CreateTeamScreen> {
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      isManager
-                          ? 'You will join as Manager. You manage the team without occupying a player slot and need 4 players.'
-                          : 'You will join as Leader. You occupy 1 player slot and need 3 more players.',
+                      isDuo
+                          ? 'You are the Leader. Share your Team Code with your partner.'
+                          : (isManager
+                              ? 'You will join as Manager. You manage the team without occupying a player slot and need 4 players.'
+                              : 'You will join as Leader. You occupy 1 player slot and need 3 more players.'),
                       style: AppTextStyles.bodySm,
                     ),
                   ),
@@ -234,25 +243,27 @@ class _CreateTeamScreenState extends ConsumerState<CreateTeamScreen> {
               ),
             ),
 
-            const SizedBox(height: 18),
-            Text('CHOOSE YOUR ROLE', style: AppTextStyles.headingMd),
-            const SizedBox(height: 10),
+            if (!isDuo) ...[
+              const SizedBox(height: 18),
+              Text('CHOOSE YOUR ROLE', style: AppTextStyles.headingMd),
+              const SizedBox(height: 10),
 
-            // Role Choice 1: Leader
-            _buildRoleCard(
-              role: TeamOwnerRole.leader,
-              title: 'Join as Leader (Playing Member)',
-              icon: Icons.sports_esports_rounded,
-            ),
+              // Role Choice 1: Leader
+              _buildRoleCard(
+                role: TeamOwnerRole.leader,
+                title: 'Join as Leader (Playing Member)',
+                icon: Icons.sports_esports_rounded,
+              ),
 
-            const SizedBox(height: 10),
+              const SizedBox(height: 10),
 
-            // Role Choice 2: Manager
-            _buildRoleCard(
-              role: TeamOwnerRole.manager,
-              title: 'Join as Manager (Non-Playing Owner)',
-              icon: Icons.admin_panel_settings_rounded,
-            ),
+              // Role Choice 2: Manager
+              _buildRoleCard(
+                role: TeamOwnerRole.manager,
+                title: 'Join as Manager (Non-Playing Owner)',
+                icon: Icons.admin_panel_settings_rounded,
+              ),
+            ],
 
             const SizedBox(height: 16),
             _label('TEAM NAME'),
