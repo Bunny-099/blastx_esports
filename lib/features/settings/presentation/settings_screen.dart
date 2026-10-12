@@ -113,11 +113,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   );
                 },
               ),
-              _buildSettingTile(
-                icon: Icons.mail_outline_rounded,
-                title: 'Change Email',
-                onTap: () {},
-              ),
 
               const SizedBox(height: 32),
 
@@ -143,16 +138,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               _buildSettingTile(
                 icon: Icons.help_outline_rounded,
                 title: 'Help Centre & FAQs',
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const FaqScreen()),
-                  );
-                },
-              ),
-              _buildSettingTile(
-                icon: Icons.headset_mic_outlined,
-                title: 'Contact Support',
                 onTap: () {
                   Navigator.push(
                     context,
