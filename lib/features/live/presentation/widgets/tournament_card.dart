@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../data/models/registration_status_helper.dart';
 import '../../data/models/tournament_model.dart';
 
 /// ============================================================
@@ -309,6 +310,30 @@ class _TournamentCardState extends State<TournamentCard> {
   /// Builds the top-right registration / capacity chip
   Widget _buildTopRightBadges(TournamentModel tournament) {
     if (widget.viewOnly) return const SizedBox.shrink();
+
+    final myBadge = getRegistrationBadge(tournament);
+    if (myBadge != null) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4.5),
+        decoration: BoxDecoration(
+          color: myBadge.backgroundColor,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: myBadge.borderColor,
+            width: 0.8,
+          ),
+        ),
+        child: Text(
+          myBadge.label,
+          style: AppTextStyles.caption.copyWith(
+            color: myBadge.textColor,
+            fontWeight: FontWeight.w800,
+            fontSize: 10,
+          ),
+        ),
+      );
+    }
+
     final isReg = tournament.effectiveIsRegistered;
 
     if (isReg) {

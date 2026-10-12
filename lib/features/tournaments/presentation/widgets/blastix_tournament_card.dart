@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../live/data/models/registration_status_helper.dart';
 import '../../../live/data/models/tournament_model.dart';
 
 class BlastIXTournamentCard extends StatelessWidget {
@@ -15,6 +16,12 @@ class BlastIXTournamentCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final slotsLeftStr = tournament.isFull
+        ? 'Full'
+        : (tournament.slotsLeft > 0
+            ? '${tournament.slotsLeft} slots left'
+            : tournament.slotsText);
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -47,7 +54,7 @@ class BlastIXTournamentCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              // Dynamic Top Status Badge
+              // Dynamic Top Status / Registration Badge
               _buildTopStatusBadge(tournament),
               const SizedBox(height: 8),
               Text(
@@ -64,6 +71,14 @@ class BlastIXTournamentCard extends StatelessWidget {
                     style: AppTextStyles.bodySm.copyWith(
                       color: AppColors.glowLight,
                       fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    slotsLeftStr,
+                    style: AppTextStyles.caption.copyWith(
+                      color: tournament.isFull ? AppColors.error : AppColors.textSecondary,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                   const Spacer(),
@@ -93,21 +108,40 @@ class BlastIXTournamentCard extends StatelessWidget {
   }
 
   Widget _buildTopStatusBadge(TournamentModel t) {
+    // 1. MyRegistration Badge (Priority)
+    final myBadge = getRegistrationBadge(t);
+    if (myBadge != null) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: myBadge.backgroundColor,
+          borderRadius: BorderRadius.circular(4),
+          border: Border.all(color: myBadge.borderColor, width: 0.8),
+        ),
+        child: Text(
+          myBadge.label,
+          style: TextStyle(
+            color: myBadge.textColor,
+            fontSize: 10,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      );
+    }
+
+    // 2. Default Status Badges
     Color bg;
     String label;
 
     if (t.isLive) {
       bg = AppColors.primaryDeep;
       label = 'LIVE';
-    } else if (t.effectiveIsRegistered) {
-      bg = const Color(0x3334C759);
-      label = 'REGISTERED ✓';
     } else if (t.isRegistrationOpen) {
       bg = const Color(0x3334C759);
       label = 'REGISTRATION OPEN';
-    } else if (t.isRegistrationClosed) {
+    } else if (t.isRegistrationClosed || t.isFull) {
       bg = AppColors.surfaceElevated;
-      label = 'REGISTRATION CLOSED';
+      label = t.isFull ? 'FULL' : 'REGISTRATION CLOSED';
     } else if (t.isRegistrationOpensSoon) {
       bg = AppColors.accentOrange.withValues(alpha: 0.3);
       label = 'OPENS SOON';
@@ -125,7 +159,7 @@ class BlastIXTournamentCard extends StatelessWidget {
       child: Text(
         label,
         style: TextStyle(
-          color: t.isLive ? Colors.white : (t.isRegistrationOpen || t.effectiveIsRegistered ? const Color(0xFF34C759) : AppColors.textSecondary),
+          color: t.isLive ? Colors.white : (t.isRegistrationOpen ? const Color(0xFF34C759) : AppColors.textSecondary),
           fontSize: 10,
           fontWeight: FontWeight.bold,
         ),

@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../../features/live/data/models/tournament_model.dart';
+import '../../../live/data/models/registration_status_helper.dart';
+import '../../../live/data/models/tournament_model.dart';
 
 /// ============================================================
 /// UPCOMING TOURNAMENT CARD
 /// ============================================================
-/// Adapted from TournamentCard for upcoming events.
+/// Information-only card for upcoming events.
 /// Maintains the asymmetric "Bullet Strike" silhouette.
 /// ============================================================
 
@@ -36,6 +37,7 @@ class UpcomingTournamentCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final accent = _accentColor;
+    final myBadge = getRegistrationBadge(tournament);
 
     return GestureDetector(
       onTap: onTap,
@@ -148,34 +150,58 @@ class UpcomingTournamentCard extends StatelessWidget {
                 ),
 
                 // =================================================
-                // GAME BADGE
+                // GAME / MY REGISTRATION BADGE
                 // =================================================
                 Positioned(
                   top: 14,
                   right: 24,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 5,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.55),
-                      borderRadius: BorderRadius.circular(5),
-                      border: Border.all(
-                        color: accent.withValues(alpha: 0.75),
-                        width: 1,
-                      ),
-                    ),
-                    child: Text(
-                      tournament.game,
-                      style: TextStyle(
-                        color: accent,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 0.4,
-                      ),
-                    ),
-                  ),
+                  child: myBadge != null
+                      ? Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 5,
+                          ),
+                          decoration: BoxDecoration(
+                            color: myBadge.backgroundColor,
+                            borderRadius: BorderRadius.circular(5),
+                            border: Border.all(
+                              color: myBadge.borderColor,
+                              width: 1,
+                            ),
+                          ),
+                          child: Text(
+                            myBadge.label,
+                            style: TextStyle(
+                              color: myBadge.textColor,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 0.4,
+                            ),
+                          ),
+                        )
+                      : Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 5,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.55),
+                            borderRadius: BorderRadius.circular(5),
+                            border: Border.all(
+                              color: accent.withValues(alpha: 0.75),
+                              width: 1,
+                            ),
+                          ),
+                          child: Text(
+                            tournament.game,
+                            style: TextStyle(
+                              color: accent,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 0.4,
+                            ),
+                          ),
+                        ),
                 ),
 
                 // =================================================
@@ -301,7 +327,8 @@ class UpcomingTournamentCard extends StatelessWidget {
 
   String _getUpcomingStatusLabel(TournamentModel t) {
     if (t.isLive) return 'LIVE • WATCH';
-    if (t.effectiveIsRegistered) return 'Registered ✓';
+    final myBadge = getRegistrationBadge(t);
+    if (myBadge != null) return myBadge.label;
     if (t.isRegistrationOpen) return 'Registration Open';
     if (t.isRegistrationClosed) return 'Registration Closed';
     if (t.isRegistrationOpensSoon) return 'Opens Soon';
