@@ -1,17 +1,20 @@
 import 'package:blastix_esports/core/api/api_client.dart';
 import 'package:blastix_esports/core/api/api_endpoints.dart';
 import 'package:blastix_esports/core/sync/real_time_sync_manager.dart';
+import 'package:blastix_esports/features/profile/providers/profile_provider.dart';
 import 'package:blastix_esports/features/splash/providers/splash_providers.dart';
 import 'package:blastix_esports/features/squad/data/models/squad_model.dart';
 import 'package:blastix_esports/features/squad/providers/squad_provider.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../data/models/registration_approval_model.dart';
 import '../data/models/team_member_model.dart';
 import '../data/models/team_model.dart';
+import 'live_provider.dart';
 
 /// ============================================================
-/// TEAM PROVIDER
+/// TEAM PROVIDER & DATA LAYER
 /// ============================================================
 
 final teamApiClientProvider = Provider<ApiClient>((ref) {
@@ -19,13 +22,13 @@ final teamApiClientProvider = Provider<ApiClient>((ref) {
 });
 
 final teamRepositoryProvider = Provider<TeamRepository>(
-        (ref) => TeamRepository(ref.watch(teamApiClientProvider)));
+    (ref) => TeamRepository(ref.watch(teamApiClientProvider)));
 
 class TeamRepository {
   TeamRepository(this._api);
   final ApiClient _api;
 
-  TournamentTeamModel _team(dynamic d) {
+  TournamentTeamModel parseTeam(dynamic d) {
     final map = (d is Map && d['team'] is Map) ? d['team'] : d;
     return TournamentTeamModel.fromJson(Map<String, dynamic>.from(map as Map));
   }
@@ -37,7 +40,7 @@ class TeamRepository {
       if (d is Map && (d['code'] == 'NOT_FOUND' || d['code'] == 'TEAM_NOT_FOUND')) {
         return null;
       }
-      return _team(d);
+      return parseTeam(d);
     } on DioException catch (e) {
       if (e.response?.statusCode == 404) return null;
       final data = e.response?.data;
@@ -49,28 +52,44 @@ class TeamRepository {
   }
 
   Future<TournamentTeamModel> create(String tid, Map<String, dynamic> body) async =>
-      _team(await _api.post(ApiEndpoints.tournamentTeams(tid), data: body));
+      parseTeam(await _api.post(ApiEndpoints.tournamentTeams(tid), data: body));
+
+  Future<TeamPreview> lookupTeamPreview(String tid, String code) async {
+    final data = await _api.get(ApiEndpoints.teamByCode(tid, code));
+    if (data is Map) {
+      return TeamPreview.fromJson(Map<String, dynamic>.from(data));
+    }
+    throw const _TeamException('Invalid response when searching for team code');
+  }
 
   Future<TournamentTeamModel> byCode(String tid, String code) async =>
-      _team(await _api.get(ApiEndpoints.teamByCode(tid, code)));
+      parseTeam(await _api.get(ApiEndpoints.teamByCode(tid, code)));
+
+  Future<JoinResult> requestToJoin(String teamId, Map<String, dynamic> body) async {
+    final data = await _api.post(ApiEndpoints.joinTeam(teamId), data: body);
+    if (data is Map) {
+      return JoinResult.fromJson(Map<String, dynamic>.from(data));
+    }
+    return const JoinResult(status: JoinResultStatus.joined);
+  }
 
   Future<TournamentTeamModel> join(String teamId, Map<String, dynamic> body) async =>
-      _team(await _api.post(ApiEndpoints.joinTeam(teamId), data: body));
+      parseTeam(await _api.post(ApiEndpoints.joinTeam(teamId), data: body));
 
   Future<void> leave(String teamId) => _api.post(ApiEndpoints.leaveTeam(teamId));
 
   Future<TournamentTeamModel> removeMember(String teamId, String userId) async =>
-      _team(await _api.post(ApiEndpoints.removeTeamMember(teamId, userId)));
+      parseTeam(await _api.post(ApiEndpoints.removeTeamMember(teamId, userId)));
 
   Future<TournamentTeamModel> transferCaptain(String teamId, String userId) async =>
-      _team(await _api.post(
+      parseTeam(await _api.post(
         ApiEndpoints.transferCaptain(teamId),
         data: {'new_captain_id': userId, 'userId': userId},
       ));
 
   Future<TournamentTeamModel> setAcceptingSubstitutes(
       String teamId, bool value) async =>
-      _team(await _api.patch(
+      parseTeam(await _api.patch(
         ApiEndpoints.teamSubstitutes(teamId),
         data: {'accepting_substitutes': value, 'acceptingSubstitutes': value},
       ));
@@ -80,6 +99,123 @@ class TeamRepository {
         ApiEndpoints.registerTournament(tournamentId),
         data: {'team_id': teamId},
       );
+
+  Future<dynamic> unregisterTournament(String tournamentId) async =>
+      await _api.delete(
+        ApiEndpoints.registerTournament(tournamentId),
+      );
+
+  // ── Section 2: Join Request Management API ──
+
+  Future<List<JoinRequest>> ownerJoinRequests(String teamId) async {
+    final d = await _api.get(ApiEndpoints.teamJoinRequests(teamId));
+    if (d is List) {
+      return d
+          .map((e) => JoinRequest.fromJson(Map<String, dynamic>.from(e as Map)))
+          .toList();
+    } else if (d is Map && d['requests'] is List) {
+      return (d['requests'] as List)
+          .map((e) => JoinRequest.fromJson(Map<String, dynamic>.from(e as Map)))
+          .toList();
+    }
+    return [];
+  }
+
+  Future<void> approveJoinRequest(String teamId, String requestId) async {
+    await _api.post(ApiEndpoints.approveJoinRequest(teamId, requestId));
+  }
+
+  Future<void> rejectJoinRequest(String teamId, String requestId) async {
+    await _api.post(ApiEndpoints.rejectJoinRequest(teamId, requestId));
+  }
+
+  Future<void> cancelJoinRequest(String requestId) async {
+    await _api.post(ApiEndpoints.cancelJoinRequest(requestId));
+  }
+
+  Future<List<JoinRequest>> myJoinRequests([String status = 'PENDING']) async {
+    final d = await _api.get(ApiEndpoints.myJoinRequests(status));
+    if (d is List) {
+      return d
+          .map((e) => JoinRequest.fromJson(Map<String, dynamic>.from(e as Map)))
+          .toList();
+    } else if (d is Map && d['requests'] is List) {
+      return (d['requests'] as List)
+          .map((e) => JoinRequest.fromJson(Map<String, dynamic>.from(e as Map)))
+          .toList();
+    }
+    return [];
+  }
+
+  // ── Section 3: Roster Update & Registration Approval API ──
+
+  Future<TournamentTeamModel> updatePlayingRoster(
+      String teamId, List<String> mainUserIds) async {
+    final data = await _api.put(
+      ApiEndpoints.updatePlayingRoster(teamId),
+      data: {'main_user_ids': mainUserIds},
+    );
+    return parseTeam(data);
+  }
+
+  Future<TournamentTeamModel> cancelRegistrationRequest(
+      String tid, String teamId) async {
+    final data = await _api.post(
+      ApiEndpoints.cancelRegistrationRequest(tid, teamId),
+    );
+    return parseTeam(data);
+  }
+
+  Future<List<RegistrationApproval>> myApprovals([String status = 'PENDING']) async {
+    final d = await _api.get(ApiEndpoints.myRegistrationApprovals(status));
+    if (d is List) {
+      return d
+          .map((e) => RegistrationApproval.fromJson(Map<String, dynamic>.from(e as Map)))
+          .toList();
+    } else if (d is Map && d['approvals'] is List) {
+      return (d['approvals'] as List)
+          .map((e) => RegistrationApproval.fromJson(Map<String, dynamic>.from(e as Map)))
+          .toList();
+    }
+    return [];
+  }
+
+  Future<RegistrationApproval> approvalDetail(String id) async {
+    final d = await _api.get(ApiEndpoints.registrationApprovalDetail(id));
+    final map = (d is Map && d['approval'] is Map) ? d['approval'] : d;
+    return RegistrationApproval.fromJson(Map<String, dynamic>.from(map as Map));
+  }
+
+  Future<void> approveRegistration(String id) async {
+    await _api.post(ApiEndpoints.approveRegistration(id));
+  }
+
+  Future<void> declineRegistration(String id) async {
+    await _api.post(ApiEndpoints.declineRegistration(id));
+  }
+
+  // ── Section 7: Post-Confirmation Roster Change API ──
+
+  Future<TournamentTeamModel> requestRosterChange(
+    String teamId,
+    List<String> mainUserIds, {
+    List<String>? removeUserIds,
+  }) async {
+    final data = await _api.post(
+      '/teams/$teamId/roster-change',
+      data: {
+        'main_user_ids': mainUserIds,
+        if (removeUserIds != null && removeUserIds.isNotEmpty)
+          'remove_user_ids': removeUserIds,
+      },
+    );
+    return parseTeam(data);
+  }
+
+  Future<TournamentTeamModel> cancelRosterChange(String teamId) async {
+    final data = await _api.post('/teams/$teamId/roster-change/cancel');
+    return parseTeam(data);
+  }
 }
 
 class _TeamException implements Exception {
@@ -89,7 +225,7 @@ class _TeamException implements Exception {
 
 class TeamState {
   final TournamentTeamModel? team;
-  final TournamentTeamModel? previewTeam;
+  final TeamPreview? previewTeam;
   final bool isLoading;
   final String? error;
 
@@ -103,7 +239,7 @@ class TeamState {
   TeamState copyWith({
     TournamentTeamModel? team,
     bool clearTeam = false,
-    TournamentTeamModel? previewTeam,
+    TeamPreview? previewTeam,
     bool clearPreview = false,
     bool? isLoading,
     String? error,
@@ -153,8 +289,62 @@ class TeamNotifier extends FamilyNotifier<TeamState, String> {
       final data = e.response?.data;
       final errCode = data is Map ? (data['code'] ?? data['error_code'])?.toString() : null;
       switch (errCode) {
+        case 'ROSTER_LOCKED_BY_TIME':
+          return 'Roster changes are locked by time limit';
+        case 'ROSTER_CHANGE_PENDING':
+          return 'A roster change request is already pending approval';
+        case 'NO_ROSTER_CHANGE':
+          return 'No roster changes were submitted';
+        case 'DUO_NO_MANAGER':
+          return 'Manager role is not available in Duo mode';
+        case 'ROSTER_FULL':
+          return 'Roster is full. Remove a player or reject this request';
+        case 'TEAM_ROSTER_LOCKED':
+          return 'Team registration is locked';
+        case 'JOIN_REQUEST_LIMIT':
+          return 'You have too many pending requests';
+        case 'ALREADY_IN_TOURNAMENT':
+        case 'ALREADY_REGISTERED':
+          return 'You are already part of a team in this tournament';
+        case 'COMPETITION_STARTED':
+          return 'Registration can no longer be cancelled';
+        case 'NOT_TEAM_OWNER':
+          return 'Only the team owner can perform this action';
+        case 'JOIN_REQUEST_NOT_PENDING':
+          return 'This join request is no longer pending';
+        case 'JOIN_REQUEST_NOT_FOUND':
+          return 'Join request not found';
+        case 'ROSTER_VERSION_MISMATCH':
+        case 'APPROVAL_NOT_PENDING':
+          return 'This request is no longer valid because the roster changed';
+        case 'REGISTRATION_NOT_PENDING':
+          return 'This registration request is no longer pending';
+        case 'APPROVAL_NOT_FOUND':
+          return 'Approval request not found';
+        case 'NOT_APPROVER':
+          return 'You are not an authorized approver for this request';
+        case 'LEADER_MUST_PLAY':
+          return 'The team leader must be in the playing roster';
+        case 'MANAGER_CANNOT_PLAY':
+          return 'The manager cannot be in the playing roster';
+        case 'SUBSTITUTE_LIMIT':
+          return 'Substitute limit exceeded';
+        case 'INVALID_PLAYING_ROSTER':
+          return 'Invalid playing roster configuration';
+        case 'INVALID_MEMBER_COUNT':
+        case 'INVALID_ROSTER_SIZE':
+          return 'Team must have 4 confirmed main playing members to register.';
         case 'NON_LEADER_REGISTRATION_FORBIDDEN':
-          return 'please ask team leader to register the tournament';
+          return 'Only the team leader or manager can register for the tournament.';
+        case 'PAID_TOURNAMENTS_UNAVAILABLE':
+          return 'Paid entry is not available yet';
+        case 'TOURNAMENT_FULL':
+        case 'CAPACITY_FULL':
+        case 'SLOTS_FULL':
+          return 'Tournament is full. Registration is closed.';
+        case 'TOURNAMENT_NOT_LIVE':
+        case 'NOT_LIVE':
+          return 'Registration is only available when tournament is LIVE.';
         case 'TEAM_NOT_FOUND':
           return 'Team not found. Please check the code and try again.';
         case 'TEAM_FULL':
@@ -165,14 +355,6 @@ class TeamNotifier extends FamilyNotifier<TeamState, String> {
           return 'Registration for this tournament has ended.';
         case 'CAPTAIN_MUST_TRANSFER':
           return 'Transfer ownership/captaincy before leaving the team.';
-        case 'TOURNAMENT_NOT_LIVE':
-        case 'NOT_LIVE':
-          return 'Registration backend par status LIVE hone par hi shuru hoti hai.';
-        case 'PAID_TOURNAMENTS_UNAVAILABLE':
-          return 'Paid tournaments are currently unavailable.';
-        case 'INVALID_MEMBER_COUNT':
-        case 'INVALID_ROSTER_SIZE':
-          return 'Tournament khelne ke liye team mein exactly 4 main playing members chahiye.';
       }
       if (e.type == DioExceptionType.connectionError ||
           e.type == DioExceptionType.connectionTimeout ||
@@ -205,14 +387,12 @@ class TeamNotifier extends FamilyNotifier<TeamState, String> {
   Future<void> loadMyTeam() => _guard(() async {
     final t = await _repo.myTeam(_tid);
     state = t == null ? state.copyWith(clearTeam: true) : state.copyWith(team: t);
-    _checkAutoRegister();
   });
 
   Future<void> refresh() async {
     try {
       final t = await _repo.myTeam(_tid);
       state = t == null ? state.copyWith(clearTeam: true) : state.copyWith(team: t);
-      _checkAutoRegister();
     } catch (e) {
       state = state.copyWith(error: _message(e));
     }
@@ -220,6 +400,9 @@ class TeamNotifier extends FamilyNotifier<TeamState, String> {
 
   /// Helper to sync tournament team to persistent squad state
   Future<void> _syncTeamToSquad(TournamentTeamModel team) async {
+    if (team.isDuoMode || team.isSoloMode || team.maxMainPlayers <= 2) {
+      return; // Duo and Solo teams must never appear in or change MySquad screens
+    }
     final squadOwnerRole = team.isManagerOwned ? SquadRole.manager : SquadRole.leader;
     final squadMembers = team.members.map((m) {
       SquadRole role;
@@ -249,17 +432,6 @@ class TeamNotifier extends FamilyNotifier<TeamState, String> {
     );
   }
 
-  /// Auto-registers the team if 4 main playing members are confirmed
-  Future<void> _checkAutoRegister() async {
-    final currentTeam = state.team;
-    if (currentTeam != null &&
-        currentTeam.confirmedMainCount >= 4 &&
-        !currentTeam.isRegistered &&
-        !currentTeam.isLocked) {
-      await completeRegistration();
-    }
-  }
-
   Future<bool> createTeam({
     required String teamName,
     required String tag,
@@ -271,46 +443,15 @@ class TeamNotifier extends FamilyNotifier<TeamState, String> {
     bool acceptingSubstitutes = true,
   }) =>
       _guard(() async {
-        final currentUserId = ref.read(squadProvider).viewerUserId;
-        try {
-          final t = await _repo.create(_tid, {
-            'name': teamName,
-            'tag': tag,
-            'logo_url': logoUrl ?? '',
-            'owner_role': ownerRole.name.toUpperCase(),
-            'accepting_substitutes': acceptingSubstitutes,
-            'player': {'name': playerName, 'ign': ign, 'uid': uid},
-          });
-          state = state.copyWith(team: t);
-        } catch (_) {
-          // Local/mock fallback when backend API is not yet active
-          final isManager = ownerRole == TeamOwnerRole.manager;
-          final ownerMember = TeamMemberModel(
-            userId: currentUserId,
-            name: playerName,
-            ign: ign,
-            uid: uid,
-            role: isManager ? TeamRole.manager : TeamRole.captain,
-            rosterType: RosterType.main,
-            status: TeamMemberStatus.confirmed,
-          );
-
-          final team = TournamentTeamModel(
-            id: 'team_${DateTime.now().millisecondsSinceEpoch}',
-            tournamentId: _tid,
-            code: 'BLX-${tag.isNotEmpty ? tag : "TEAM"}',
-            name: teamName,
-            tag: tag,
-            logoUrl: logoUrl ?? '',
-            captainId: currentUserId,
-            ownerRole: ownerRole,
-            viewerUserId: currentUserId,
-            members: [ownerMember],
-            status: TeamRegistrationStatus.forming,
-          );
-
-          state = state.copyWith(team: team);
-        }
+        final t = await _repo.create(_tid, {
+          'name': teamName,
+          'tag': tag,
+          'logo_url': logoUrl ?? '',
+          'owner_role': ownerRole.name.toUpperCase(),
+          'accepting_substitutes': acceptingSubstitutes,
+          'player': {'name': playerName, 'ign': ign, 'uid': uid},
+        });
+        state = state.copyWith(team: t);
 
         if (state.team != null) {
           await _syncTeamToSquad(state.team!);
@@ -369,6 +510,7 @@ class TeamNotifier extends FamilyNotifier<TeamState, String> {
       viewerUserId: ownerUserId,
       members: teamMembers,
       status: TeamRegistrationStatus.forming,
+      registrationState: TeamRegistrationState.forming,
     );
 
     state = state.copyWith(team: team);
@@ -383,8 +525,8 @@ class TeamNotifier extends FamilyNotifier<TeamState, String> {
 
   Future<bool> lookupTeam(String code) => _guard(() async {
     try {
-      final t = await _repo.byCode(_tid, code);
-      state = state.copyWith(previewTeam: t);
+      final preview = await _repo.lookupTeamPreview(_tid, code);
+      state = state.copyWith(previewTeam: preview);
     } on DioException catch (e) {
       if (e.response?.statusCode == 404) {
         throw const _TeamException(
@@ -394,92 +536,52 @@ class TeamNotifier extends FamilyNotifier<TeamState, String> {
     }
   });
 
-  Future<bool> joinTeam({
+  /// Request to join or join team directly
+  Future<JoinResult?> joinTeam({
     required String playerName,
     String ign = '',
     required String uid,
-  }) =>
-      _guard(() async {
-        final preview = state.previewTeam!;
-        final isSub = preview.isMainFull;
-        try {
-          final t = await _repo.join(preview.id, {
-            'invite_code': preview.code,
-            'as_substitute': isSub,
-            'rosterType': isSub ? 'SUBSTITUTE' : 'MAIN',
-            'player': {'name': playerName, 'ign': ign, 'uid': uid},
-          });
-          state = state.copyWith(team: t, clearPreview: true);
-        } catch (_) {
-          // Local/mock fallback when backend API is not yet active
-          final currentUserId = ref.read(squadProvider).viewerUserId;
-          final newMember = TeamMemberModel(
-            userId: currentUserId,
-            name: playerName,
-            ign: ign,
-            uid: uid,
-            role: TeamRole.member,
-            rosterType: isSub ? RosterType.substitute : RosterType.main,
-            status: TeamMemberStatus.confirmed,
-          );
-          final updatedMembers = [...preview.members, newMember];
-          final joinedTeam = preview.copyWith(members: updatedMembers);
-          state = state.copyWith(team: joinedTeam, clearPreview: true);
+  }) async {
+    JoinResult? result;
+    final ok = await _guard(() async {
+      final preview = state.previewTeam!;
+      final isSub = preview.isMainFull;
+      result = await _repo.requestToJoin(preview.id, {
+        'invite_code': preview.code,
+        'as_substitute': isSub,
+        'rosterType': isSub ? 'SUBSTITUTE' : 'MAIN',
+        'player': {'name': playerName, 'ign': ign, 'uid': uid},
+      });
+
+      if (result != null && result!.status == JoinResultStatus.joined) {
+        if (result!.team != null) {
+          state = state.copyWith(team: result!.team, clearPreview: true);
+        } else {
+          final t = await _repo.myTeam(_tid);
+          if (t != null) state = state.copyWith(team: t, clearPreview: true);
         }
-        await _checkAutoRegister();
         if (state.team != null) {
           await _syncTeamToSquad(state.team!);
         }
-      });
+      }
+    });
+    if (!ok) return null;
+    return result;
+  }
 
   Future<bool> removeMember(String userId) => _guard(() async {
-    try {
-      final t = await _repo.removeMember(state.team!.id, userId);
-      state = state.copyWith(team: t);
-    } catch (_) {
-      if (state.team != null) {
-        final updatedMembers = state.team!.members.where((m) => m.userId != userId).toList();
-        state = state.copyWith(team: state.team!.copyWith(members: updatedMembers));
-      }
-    }
+    final t = await _repo.removeMember(state.team!.id, userId);
+    state = state.copyWith(team: t);
   });
 
   Future<bool> transferCaptain(String userId) => _guard(() async {
-    try {
-      final t = await _repo.transferCaptain(state.team!.id, userId);
-      state = state.copyWith(team: t);
-    } catch (_) {
-      if (state.team != null) {
-        final currentOwnerRole = state.team!.ownerRole;
-        final updatedMembers = state.team!.members.map((m) {
-          if (m.userId == userId) {
-            return m.copyWith(role: currentOwnerRole == TeamOwnerRole.manager ? TeamRole.manager : TeamRole.captain);
-          } else if (m.isCaptain || m.isManager) {
-            return m.copyWith(role: TeamRole.member);
-          }
-          return m;
-        }).toList();
-        state = state.copyWith(
-          team: state.team!.copyWith(
-            captainId: userId,
-            members: updatedMembers,
-          ),
-        );
-      }
-    }
+    final t = await _repo.transferCaptain(state.team!.id, userId);
+    state = state.copyWith(team: t);
   });
 
   Future<bool> setAcceptingSubstitutes(bool value) => _guard(() async {
-    try {
-      final t = await _repo.setAcceptingSubstitutes(state.team!.id, value);
-      state = state.copyWith(team: t);
-    } catch (_) {
-      if (state.team != null) {
-        state = state.copyWith(
-          team: state.team!.copyWith(acceptingSubstitutes: value),
-        );
-      }
-    }
+    final t = await _repo.setAcceptingSubstitutes(state.team!.id, value);
+    state = state.copyWith(team: t);
   });
 
   Future<bool> leaveTeam() => _guard(() async {
@@ -488,6 +590,16 @@ class TeamNotifier extends FamilyNotifier<TeamState, String> {
     } catch (_) {}
     state = state.copyWith(clearTeam: true);
   });
+
+  Future<bool> registerSolo({required String ign, required String uid}) => _guard(() async {
+        await _repo.registerTournament(_tid, '');
+        ref.read(profileProvider.notifier).updateFullProfile(
+          name: ign.isNotEmpty ? ign : (ref.read(profileProvider).user?.name ?? ''),
+          freeFireUid: uid,
+          inGameName: ign,
+        );
+        ref.invalidate(tournamentByIdProvider(_tid));
+      });
 
   Future<bool> completeRegistration({String mode = 'SQUAD'}) => _guard(() async {
         final team = state.team;
@@ -498,7 +610,7 @@ class TeamNotifier extends FamilyNotifier<TeamState, String> {
 
         if (modeUpper == 'SQUAD' || modeUpper == 'CLASH_SQUAD' || modeUpper.contains('SQUAD') || modeUpper.contains('CLASH') || modeUpper.isEmpty) {
           if (confirmedCount < 4) {
-            throw const _TeamException('Squad BR & Clash Squad require a full squad of 4 confirmed main playing members.');
+            throw const _TeamException('Team must have 4 confirmed main playing members to register.');
           }
         } else if (modeUpper == 'DUO' || modeUpper.contains('DUO')) {
           if (confirmedCount < 2) {
@@ -510,23 +622,340 @@ class TeamNotifier extends FamilyNotifier<TeamState, String> {
           }
         }
 
-        try {
-          final res = await _repo.registerTournament(_tid, team.id);
-          if (res is Map && res['team'] != null) {
-            state = state.copyWith(team: _repo._team(res));
-          } else {
-            await refresh();
+        final res = await _repo.registerTournament(_tid, team.id);
+        if (res is Map && res['team'] != null) {
+          state = state.copyWith(team: _repo.parseTeam(res));
+        } else {
+          final updated = await _repo.myTeam(_tid);
+          if (updated != null) {
+            state = state.copyWith(team: updated);
           }
-        } catch (_) {
-          // If mock/backend returns non-200 or not live, update local status to registered for mock test flow
-          final registeredTeam = team.copyWith(status: TeamRegistrationStatus.registered);
-          state = state.copyWith(team: registeredTeam);
         }
 
-        // Save squad persistently upon first registration completion
-        await _syncTeamToSquad(team);
+        // Save squad persistently upon registration completion
+        if (state.team != null) {
+          await _syncTeamToSquad(state.team!);
+        }
+      });
+
+  Future<bool> updatePlayingRoster(List<String> mainUserIds) => _guard(() async {
+        final t = await _repo.updatePlayingRoster(state.team!.id, mainUserIds);
+        state = state.copyWith(team: t);
+      });
+
+  Future<bool> cancelRegistrationRequest() => _guard(() async {
+        final t = await _repo.cancelRegistrationRequest(_tid, state.team!.id);
+        state = state.copyWith(team: t);
+      });
+
+  Future<bool> requestRosterChange({
+    required List<String> mainUserIds,
+    List<String>? removeUserIds,
+  }) => _guard(() async {
+        final t = await _repo.requestRosterChange(
+          state.team!.id,
+          mainUserIds,
+          removeUserIds: removeUserIds,
+        );
+        state = state.copyWith(team: t);
+      });
+
+  Future<bool> cancelRosterChange() => _guard(() async {
+        final t = await _repo.cancelRosterChange(state.team!.id);
+        state = state.copyWith(team: t);
+      });
+
+  Future<bool> leaveWaitlist() => _guard(() async {
+        await _repo.unregisterTournament(_tid);
+        final updated = await _repo.myTeam(_tid);
+        if (updated != null) {
+          state = state.copyWith(team: updated);
+        } else {
+          state = state.copyWith(clearTeam: true);
+        }
+        ref.invalidate(tournamentByIdProvider(_tid));
       });
 }
 
 final teamProvider =
 NotifierProvider.family<TeamNotifier, TeamState, String>(TeamNotifier.new);
+
+// ── Section 2: Owner Join Requests Notifier / Provider ──
+
+class OwnerJoinRequestsState {
+  final List<JoinRequest> requests;
+  final bool isLoading;
+  final String? error;
+  final String? actioningRequestId; // ID of request currently approving/rejecting
+
+  const OwnerJoinRequestsState({
+    this.requests = const [],
+    this.isLoading = false,
+    this.error,
+    this.actioningRequestId,
+  });
+
+  OwnerJoinRequestsState copyWith({
+    List<JoinRequest>? requests,
+    bool? isLoading,
+    String? error,
+    bool clearError = false,
+    String? actioningRequestId,
+    bool clearActioningRequestId = false,
+  }) {
+    return OwnerJoinRequestsState(
+      requests: requests ?? this.requests,
+      isLoading: isLoading ?? this.isLoading,
+      error: clearError ? null : (error ?? this.error),
+      actioningRequestId: clearActioningRequestId ? null : (actioningRequestId ?? this.actioningRequestId),
+    );
+  }
+}
+
+class OwnerJoinRequestsNotifier extends FamilyNotifier<OwnerJoinRequestsState, String> {
+  String get _teamId => arg;
+  TeamRepository get _repo => ref.read(teamRepositoryProvider);
+  String get _taskKey => 'owner_join_requests_$_teamId';
+
+  @override
+  OwnerJoinRequestsState build(String arg) {
+    final syncManager = ref.watch(realTimeSyncManagerProvider);
+
+    ref.onDispose(() {
+      syncManager.unregister(_taskKey);
+    });
+
+    if (_teamId.isNotEmpty) {
+      syncManager.register(
+        key: _taskKey,
+        fetcher: () => _repo.ownerJoinRequests(_teamId),
+        onChanged: (data) {
+          if (data is List<JoinRequest>) {
+            state = state.copyWith(requests: data);
+          }
+        },
+        runImmediately: true,
+      );
+    }
+
+    return const OwnerJoinRequestsState();
+  }
+
+  Future<void> fetchRequests() async {
+    if (_teamId.isEmpty) return;
+    state = state.copyWith(isLoading: true, clearError: true);
+    try {
+      final list = await _repo.ownerJoinRequests(_teamId);
+      state = state.copyWith(requests: list, isLoading: false);
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: TeamNotifier._message(e));
+    }
+  }
+
+  Future<bool> approveRequest(String requestId) async {
+    state = state.copyWith(actioningRequestId: requestId, clearError: true);
+    try {
+      await _repo.approveJoinRequest(_teamId, requestId);
+      state = state.copyWith(clearActioningRequestId: true);
+      await fetchRequests();
+      return true;
+    } catch (e) {
+      state = state.copyWith(clearActioningRequestId: true, error: TeamNotifier._message(e));
+      return false;
+    }
+  }
+
+  Future<bool> rejectRequest(String requestId) async {
+    state = state.copyWith(actioningRequestId: requestId, clearError: true);
+    try {
+      await _repo.rejectJoinRequest(_teamId, requestId);
+      state = state.copyWith(clearActioningRequestId: true);
+      await fetchRequests();
+      return true;
+    } catch (e) {
+      state = state.copyWith(clearActioningRequestId: true, error: TeamNotifier._message(e));
+      return false;
+    }
+  }
+}
+
+final ownerJoinRequestsProvider =
+NotifierProvider.family<OwnerJoinRequestsNotifier, OwnerJoinRequestsState, String>(
+  OwnerJoinRequestsNotifier.new,
+);
+
+// ── Section 2: User's Pending Requests Notifier / Provider ──
+
+class MyPendingRequestsState {
+  final List<JoinRequest> pendingRequests;
+  final bool isLoading;
+  final String? error;
+
+  const MyPendingRequestsState({
+    this.pendingRequests = const [],
+    this.isLoading = false,
+    this.error,
+  });
+
+  MyPendingRequestsState copyWith({
+    List<JoinRequest>? pendingRequests,
+    bool? isLoading,
+    String? error,
+    bool clearError = false,
+  }) {
+    return MyPendingRequestsState(
+      pendingRequests: pendingRequests ?? this.pendingRequests,
+      isLoading: isLoading ?? this.isLoading,
+      error: clearError ? null : (error ?? this.error),
+    );
+  }
+}
+
+class MyPendingRequestsNotifier extends Notifier<MyPendingRequestsState> {
+  TeamRepository get _repo => ref.read(teamRepositoryProvider);
+  static const String _taskKey = 'my_pending_requests';
+
+  @override
+  MyPendingRequestsState build() {
+    final syncManager = ref.watch(realTimeSyncManagerProvider);
+
+    ref.onDispose(() {
+      syncManager.unregister(_taskKey);
+    });
+
+    syncManager.register(
+      key: _taskKey,
+      fetcher: () => _repo.myJoinRequests('PENDING'),
+      onChanged: (data) {
+        if (data is List<JoinRequest>) {
+          state = state.copyWith(pendingRequests: data);
+        }
+      },
+      runImmediately: true,
+    );
+
+    return const MyPendingRequestsState();
+  }
+
+  Future<void> fetchPendingRequests() async {
+    state = state.copyWith(isLoading: true, clearError: true);
+    try {
+      final list = await _repo.myJoinRequests('PENDING');
+      state = state.copyWith(pendingRequests: list, isLoading: false);
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: TeamNotifier._message(e));
+    }
+  }
+
+  Future<bool> cancelRequest(String requestId) async {
+    state = state.copyWith(isLoading: true, clearError: true);
+    try {
+      await _repo.cancelJoinRequest(requestId);
+      state = state.copyWith(isLoading: false);
+      await fetchPendingRequests();
+      return true;
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: TeamNotifier._message(e));
+      return false;
+    }
+  }
+}
+
+final myPendingRequestsProvider =
+NotifierProvider<MyPendingRequestsNotifier, MyPendingRequestsState>(
+  MyPendingRequestsNotifier.new,
+);
+
+// ── Section 3: Registration Approvals Notifier & Provider ──
+
+class ApprovalsState {
+  final List<RegistrationApproval> pendingApprovals;
+  final bool isLoading;
+  final String? error;
+
+  const ApprovalsState({
+    this.pendingApprovals = const [],
+    this.isLoading = false,
+    this.error,
+  });
+
+  ApprovalsState copyWith({
+    List<RegistrationApproval>? pendingApprovals,
+    bool? isLoading,
+    String? error,
+    bool clearError = false,
+  }) {
+    return ApprovalsState(
+      pendingApprovals: pendingApprovals ?? this.pendingApprovals,
+      isLoading: isLoading ?? this.isLoading,
+      error: clearError ? null : (error ?? this.error),
+    );
+  }
+}
+
+class ApprovalsNotifier extends Notifier<ApprovalsState> {
+  TeamRepository get _repo => ref.read(teamRepositoryProvider);
+  static const String _taskKey = 'my_registration_approvals';
+
+  @override
+  ApprovalsState build() {
+    final syncManager = ref.watch(realTimeSyncManagerProvider);
+
+    ref.onDispose(() {
+      syncManager.unregister(_taskKey);
+    });
+
+    syncManager.register(
+      key: _taskKey,
+      fetcher: () => _repo.myApprovals('PENDING'),
+      onChanged: (data) {
+        if (data is List<RegistrationApproval>) {
+          state = state.copyWith(pendingApprovals: data);
+        }
+      },
+      runImmediately: true,
+    );
+
+    return const ApprovalsState();
+  }
+
+  Future<void> fetchApprovals() async {
+    state = state.copyWith(isLoading: true, clearError: true);
+    try {
+      final list = await _repo.myApprovals('PENDING');
+      state = state.copyWith(pendingApprovals: list, isLoading: false);
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: TeamNotifier._message(e));
+    }
+  }
+
+  Future<bool> approve(String id) async {
+    state = state.copyWith(isLoading: true, clearError: true);
+    try {
+      await _repo.approveRegistration(id);
+      state = state.copyWith(isLoading: false);
+      await fetchApprovals();
+      return true;
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: TeamNotifier._message(e));
+      return false;
+    }
+  }
+
+  Future<bool> decline(String id) async {
+    state = state.copyWith(isLoading: true, clearError: true);
+    try {
+      await _repo.declineRegistration(id);
+      state = state.copyWith(isLoading: false);
+      await fetchApprovals();
+      return true;
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: TeamNotifier._message(e));
+      return false;
+    }
+  }
+}
+
+final approvalsProvider = NotifierProvider<ApprovalsNotifier, ApprovalsState>(
+  ApprovalsNotifier.new,
+);

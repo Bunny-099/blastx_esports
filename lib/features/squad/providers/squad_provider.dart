@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../features/live/providers/team_provider.dart';
 import '../../../features/profile/providers/profile_provider.dart';
 import '../../../features/splash/providers/splash_providers.dart';
 import '../data/models/squad_invitation_model.dart';
@@ -40,7 +41,7 @@ class SquadState {
     this.isLoading = false,
     this.errorMessage,
     this.successMessage,
-    this.viewerUserId = 'user_001',
+    this.viewerUserId = '',
   });
 
   bool get hasSquad => squad != null;
@@ -80,7 +81,7 @@ class SquadNotifier extends Notifier<SquadState> {
   SquadState build() {
     // Resolve logged in viewer user ID if available
     final profileState = ref.watch(profileProvider);
-    final userId = profileState.user?.id ?? 'user_001';
+    final userId = profileState.user?.id ?? '';
 
     final initialState = SquadState(viewerUserId: userId);
 
@@ -315,10 +316,19 @@ class SquadNotifier extends Notifier<SquadState> {
 
   Future<bool> respondToInvitation(String invitationId, bool accept) async {
     state = state.copyWith(isLoading: true, clearError: true);
+    final invite = state.pendingInvitations
+        .where((i) => i.id == invitationId)
+        .firstOrNull;
+    final tid = invite?.tournamentId;
+
     try {
       await _repo.respondToInvitation(invitationId, accept);
       final invites = await _repo.getPendingInvitations();
       final updatedSquad = await _repo.getMySquad();
+
+      if (accept && tid != null && tid.isNotEmpty) {
+        ref.read(teamProvider(tid).notifier).refresh();
+      }
 
       state = state.copyWith(
         squad: updatedSquad,

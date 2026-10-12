@@ -12,10 +12,11 @@ import 'package:blastix_esports/features/challenges/data/services/game_launcher_
 import 'package:blastix_esports/features/challenges/data/services/screen_recording_service.dart';
 import 'package:blastix_esports/features/challenges/presentation/widgets/active_recording_overlay.dart';
 import 'package:blastix_esports/features/challenges/providers/challenges_provider.dart';
+import 'package:blastix_esports/features/live/data/models/match_center_model.dart';
 import 'package:blastix_esports/features/live/data/models/room_details_model.dart';
 import 'package:blastix_esports/features/live/data/models/team_model.dart';
 import 'package:blastix_esports/features/live/data/models/tournament_model.dart';
-import 'package:blastix_esports/features/live/presentation/team/tournament_match_room_screen.dart';
+import 'package:blastix_esports/features/live/presentation/widgets/match_recording_section.dart';
 import 'package:blastix_esports/features/live/presentation/widgets/room_details_card.dart';
 import 'package:blastix_esports/features/live/providers/live_provider.dart';
 import 'package:blastix_esports/features/tournaments/data/repositories/tournament_repository.dart';
@@ -122,6 +123,10 @@ void main() {
   late TournamentModel sampleLiveTournament;
   late TournamentModel sampleUpcomingTournament;
 
+  setUpAll(() {
+    GoogleFonts.config.allowRuntimeFetching = false;
+  });
+
   setUp(() {
     RealTimeSyncManager.isTestMode = true;
 
@@ -204,6 +209,7 @@ void main() {
       expect(find.text('8492041'), findsNothing);
 
       await tester.pumpWidget(const SizedBox());
+      await tester.pump(const Duration(seconds: 1));
     });
 
     // ------------------------------------------------------------------------
@@ -342,11 +348,18 @@ void main() {
             registeredTeamsProvider('tourney_101').overrideWith((ref) async => []),
           ],
           child: MaterialApp(
-            home: Consumer(
-              builder: (context, ref, child) {
-                capturedRef = ref;
-                return const TournamentMatchRoomScreen(tournamentId: 'tourney_101');
-              },
+            home: Scaffold(
+              body: Consumer(
+                builder: (context, ref, child) {
+                  capturedRef = ref;
+                  return const MatchRecordingSection(
+                    tournamentId: 'tourney_101',
+                    matchKey: 'm1',
+                    myAccess: MyAccess.playing,
+                    roomState: RoomState.published,
+                  );
+                },
+              ),
             ),
           ),
         ),
@@ -366,8 +379,9 @@ void main() {
       expect(recordingService.isRecording, isTrue);
 
       // Verify SnackBar feedback
-      expect(find.textContaining('480p Screen Recording Active! Launching Free Fire...'), findsOneWidget);
+      expect(find.textContaining('Match Screen Recording Active! Launching Free Fire...'), findsOneWidget);
 
+      await recordingService.stopRecording();
       await tester.pumpWidget(const SizedBox());
     });
 
@@ -399,11 +413,18 @@ void main() {
             registeredTeamsProvider('tourney_101').overrideWith((ref) async => []),
           ],
           child: MaterialApp(
-            home: Consumer(
-              builder: (context, ref, child) {
-                capturedRef = ref;
-                return const TournamentMatchRoomScreen(tournamentId: 'tourney_101');
-              },
+            home: Scaffold(
+              body: Consumer(
+                builder: (context, ref, child) {
+                  capturedRef = ref;
+                  return const MatchRecordingSection(
+                    tournamentId: 'tourney_101',
+                    matchKey: 'm1',
+                    myAccess: MyAccess.playing,
+                    roomState: RoomState.published,
+                  );
+                },
+              ),
             ),
           ),
         ),
@@ -612,7 +633,14 @@ void main() {
             registeredTeamsProvider('tourney_101').overrideWith((ref) async => []),
           ],
           child: const MaterialApp(
-            home: TournamentMatchRoomScreen(tournamentId: 'tourney_101'),
+            home: Scaffold(
+              body: MatchRecordingSection(
+                tournamentId: 'tourney_101',
+                matchKey: 'm1',
+                myAccess: MyAccess.playing,
+                roomState: RoomState.published,
+              ),
+            ),
           ),
         ),
       );

@@ -29,6 +29,62 @@ class FakeRealTimeSyncManager implements RealTimeSyncManager {
   dynamic noSuchMethod(Invocation invocation) => null;
 }
 
+class FakeTeamRepository implements TeamRepository {
+  @override
+  Future<TournamentTeamModel> create(String tid, Map<String, dynamic> body) async {
+    final playerName = (body['player'] as Map?)?['name']?.toString() ?? 'Leader';
+    final name = body['name']?.toString() ?? 'Alpha Squad';
+    final tag = body['tag']?.toString() ?? 'ALPHA';
+    return TournamentTeamModel(
+      id: 'team_fake_1',
+      tournamentId: tid,
+      code: 'BLX-$tag',
+      name: name,
+      tag: tag,
+      captainId: 'user_001',
+      members: [
+        TeamMemberModel(
+          userId: 'user_001',
+          name: playerName,
+          role: TeamRole.captain,
+          status: TeamMemberStatus.confirmed,
+        ),
+      ],
+      status: TeamRegistrationStatus.forming,
+    );
+  }
+
+  @override
+  Future<TournamentTeamModel> join(String teamId, Map<String, dynamic> body) async {
+    final playerName = (body['player'] as Map?)?['name']?.toString() ?? 'Joiner';
+    return TournamentTeamModel(
+      id: teamId,
+      tournamentId: 'tourney_999',
+      code: 'BLX-ALPHA',
+      name: 'Alpha Squad',
+      captainId: 'captain_001',
+      members: [
+        const TeamMemberModel(
+          userId: 'captain_001',
+          name: 'Captain Alpha',
+          role: TeamRole.captain,
+          status: TeamMemberStatus.confirmed,
+        ),
+        TeamMemberModel(
+          userId: 'user_001',
+          name: playerName,
+          role: TeamRole.member,
+          status: TeamMemberStatus.confirmed,
+        ),
+      ],
+      status: TeamRegistrationStatus.forming,
+    );
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => null;
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -176,9 +232,11 @@ void main() {
 
     test('createTeam automatically syncs squad and unlocks squadProvider', () async {
       final fakeSyncManager = FakeRealTimeSyncManager();
+      final fakeTeamRepo = FakeTeamRepository();
       final container = ProviderContainer(
         overrides: [
           realTimeSyncManagerProvider.overrideWithValue(fakeSyncManager),
+          teamRepositoryProvider.overrideWithValue(fakeTeamRepo),
           useMockSquadRepositoryProvider.overrideWith((ref) => true),
         ],
       );
@@ -202,9 +260,11 @@ void main() {
 
     test('joinTeam automatically syncs squad and unlocks squadProvider', () async {
       final fakeSyncManager = FakeRealTimeSyncManager();
+      final fakeTeamRepo = FakeTeamRepository();
       final container = ProviderContainer(
         overrides: [
           realTimeSyncManagerProvider.overrideWithValue(fakeSyncManager),
+          teamRepositoryProvider.overrideWithValue(fakeTeamRepo),
           useMockSquadRepositoryProvider.overrideWith((ref) => true),
         ],
       );
@@ -212,21 +272,17 @@ void main() {
 
       expect(container.read(squadProvider).hasSquad, isFalse);
 
-      final previewTeam = TournamentTeamModel(
+      final previewTeam = TeamPreview(
         id: 'team_001',
         tournamentId: 'tourney_999',
         code: 'BLX-ALPHA',
         name: 'Alpha Squad',
         tag: 'ALPHA',
-        captainId: 'captain_001',
+        responsiblePerson: const ResponsiblePerson(name: 'Captain Alpha', role: 'LEADER'),
         members: const [
-          TeamMemberModel(
-            userId: 'captain_001',
+          TeamPreviewMember(
             name: 'Captain Alpha',
-            ign: 'CAPTAIN',
-            uid: '111222',
-            role: TeamRole.captain,
-            status: TeamMemberStatus.confirmed,
+            role: 'LEADER',
           ),
         ],
       );
@@ -234,12 +290,12 @@ void main() {
       container.read(teamProvider('tourney_999').notifier).state =
           container.read(teamProvider('tourney_999')).copyWith(previewTeam: previewTeam);
 
-      final ok = await container.read(teamProvider('tourney_999').notifier).joinTeam(
+      final res = await container.read(teamProvider('tourney_999').notifier).joinTeam(
         playerName: 'Joiner Player',
         uid: '333444',
       );
 
-      expect(ok, isTrue);
+      expect(res != null, isTrue);
       final squadState = container.read(squadProvider);
       expect(squadState.hasSquad, isTrue);
       expect(squadState.squad?.name, 'Alpha Squad');
