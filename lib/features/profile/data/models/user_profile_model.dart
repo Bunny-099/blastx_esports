@@ -47,6 +47,10 @@ class UserProfileModel {
   /// Current rank tier derived from RankSystem
   RankTier get currentRankTier => RankSystem.getRankFromXP(xp);
 
+  /// True if phone number or profile name is missing
+  bool get needsProfileSetup =>
+      phone == null || phone!.trim().isEmpty || name.trim().isEmpty;
+
   factory UserProfileModel.fromJson(Map<String, dynamic> json) {
     final tPlayed = (json['tournaments_played'] ??
             json['tournamentsPlayed'] ??

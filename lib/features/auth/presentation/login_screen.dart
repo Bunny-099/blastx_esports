@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:pushable_button/pushable_button.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/custom_textfield.dart';
+import '../../profile/data/repositories/user_repository.dart';
 import '../../splash/providers/splash_providers.dart';
 import '../providers/auth_provider.dart';
 import 'ios_waitlist_dialog.dart';
@@ -244,10 +245,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 await IosWaitlistDialog.show(context);
                               }
                             } else {
-                              navigator.pushNamedAndRemoveUntil(
-                                '/home',
-                                (route) => false,
-                              );
+                              try {
+                                final profile = await ref.read(userRepositoryProvider).getUserProfile();
+                                final routeName = (profile.phone == null || profile.phone!.trim().isEmpty) ? '/profile-setup' : '/home';
+                                navigator.pushNamedAndRemoveUntil(
+                                  routeName,
+                                  (route) => false,
+                                );
+                              } catch (_) {
+                                navigator.pushNamedAndRemoveUntil(
+                                  '/home',
+                                  (route) => false,
+                                );
+                              }
                             }
                           }
                         }),

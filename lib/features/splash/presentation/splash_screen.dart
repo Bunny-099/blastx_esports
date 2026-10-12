@@ -5,6 +5,7 @@ import '../../../core/services/notification_navigator.dart';
 import '../../../core/services/notification_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../../profile/data/repositories/user_repository.dart';
 import '../providers/splash_providers.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
@@ -67,6 +68,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
   Future<void> _initializeApp() async {
     bool isLoggedIn = false;
+    bool needsSetup = false;
     try {
       // 1. Fetch App Config (Maintenance/Update)
       final repository = ref.read(splashRepositoryProvider);
@@ -83,8 +85,12 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
           final authRepo = ref.read(authRepositoryProvider);
           final storage = ref.read(storageServiceProvider);
           NotificationService.instance.registerDeviceTokenWithBackend(authRepo, storage);
+
+          final userRepo = ref.read(userRepositoryProvider);
+          final user = await userRepo.getUserProfile();
+          needsSetup = user.phone == null || user.phone!.trim().isEmpty;
         } catch (e) {
-          debugPrint('FCM Token registration error: $e');
+          debugPrint('FCM / Profile check error: $e');
         }
       }
     } catch (e) {
@@ -95,7 +101,11 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
         _navTimer = Timer(const Duration(milliseconds: 2200), () {
           if (mounted) {
             if (isLoggedIn) {
-              Navigator.pushReplacementNamed(context, '/home');
+              if (needsSetup) {
+                Navigator.pushReplacementNamed(context, '/profile-setup');
+              } else {
+                Navigator.pushReplacementNamed(context, '/home');
+              }
             } else {
               Navigator.pushReplacementNamed(context, '/login');
             }

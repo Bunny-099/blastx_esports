@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/theme/app_colors.dart';
 
@@ -8,6 +9,7 @@ class CustomTextField extends StatelessWidget {
   final TextInputType keyboardType;
   final int? maxLength;
   final bool obscureText;
+  final List<TextInputFormatter>? inputFormatters;
 
   const CustomTextField({
     super.key,
@@ -16,6 +18,7 @@ class CustomTextField extends StatelessWidget {
     this.keyboardType = TextInputType.text,
     this.maxLength,
     this.obscureText = false,
+    this.inputFormatters,
   });
 
   @override
@@ -25,6 +28,7 @@ class CustomTextField extends StatelessWidget {
       keyboardType: keyboardType,
       maxLength: maxLength,
       obscureText: obscureText,
+      inputFormatters: inputFormatters,
       style: GoogleFonts.poppins(color: AppColors.textPrimary),
       decoration: InputDecoration(
         hintText: hintText,
