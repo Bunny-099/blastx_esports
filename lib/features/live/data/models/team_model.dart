@@ -655,6 +655,7 @@ class TournamentTeamModel {
   final String captainId;
   final TeamOwnerRole ownerRole;
   final String viewerUserId;
+  final bool? isOwnerExplicit;
   final List<TeamMemberModel> members;
   final int maxMainPlayers;
   final int maxSubstitutes;
@@ -687,6 +688,7 @@ class TournamentTeamModel {
     this.tag = '',
     this.logoUrl = '',
     this.viewerUserId = '',
+    this.isOwnerExplicit,
     this.members = const [],
     this.maxMainPlayers = 4,
     this.maxSubstitutes = 2,
@@ -742,12 +744,14 @@ class TournamentTeamModel {
       status == TeamRegistrationStatus.registered;
 
   bool get viewerIsCaptain =>
-      viewerUserId.isNotEmpty && viewerUserId == captainId;
+      (viewerUserId.isNotEmpty && viewerUserId == captainId) || (isOwnerExplicit == true);
 
   bool get viewerIsManager =>
-      isManagerOwned && manager != null && manager!.userId == viewerUserId;
+      isManagerOwned &&
+      manager != null &&
+      ((viewerUserId.isNotEmpty && manager!.userId == viewerUserId) || (isOwnerExplicit == true));
 
-  bool get viewerIsOwner => viewerIsCaptain || viewerIsManager || viewerIsOwnerMember;
+  bool get viewerIsOwner => (isOwnerExplicit == true) || viewerIsCaptain || viewerIsManager || viewerIsOwnerMember;
 
   bool get viewerIsOwnerMember => members.any(
         (m) => m.userId == viewerUserId && (m.isCaptain || m.isManager),
@@ -791,6 +795,7 @@ class TournamentTeamModel {
     String? captainId,
     TeamOwnerRole? ownerRole,
     String? viewerUserId,
+    bool? isOwnerExplicit,
     List<TeamMemberModel>? members,
     int? maxMainPlayers,
     int? maxSubstitutes,
@@ -819,6 +824,7 @@ class TournamentTeamModel {
       captainId: captainId ?? this.captainId,
       ownerRole: ownerRole ?? this.ownerRole,
       viewerUserId: viewerUserId ?? this.viewerUserId,
+      isOwnerExplicit: isOwnerExplicit ?? this.isOwnerExplicit,
       members: members ?? this.members,
       maxMainPlayers: maxMainPlayers ?? this.maxMainPlayers,
       maxSubstitutes: maxSubstitutes ?? this.maxSubstitutes,
@@ -958,6 +964,21 @@ class TournamentTeamModel {
 
     final bool parsedCanChangeRoster = (json['can_change_roster'] ?? json['canChangeRoster'] as bool?) ?? true;
 
+    final String parsedViewerUserId = (json['viewerUserId'] ??
+            json['viewer_user_id'] ??
+            json['viewer_id'] ??
+            json['my_user_id'] ??
+            json['user_id'] ??
+            '')
+        .toString();
+
+    final bool? parsedIsOwner = (json['is_owner'] ??
+            json['isOwner'] ??
+            json['viewer_is_owner'] ??
+            json['viewerIsOwner'] ??
+            json['is_captain'] ??
+            json['isCaptain']) as bool?;
+
     return TournamentTeamModel(
       id: (json['id'] ?? '') as String,
       tournamentId:
@@ -969,7 +990,8 @@ class TournamentTeamModel {
       logoUrl: (json['logo_url'] ?? json['logoUrl'] ?? '') as String,
       captainId: (json['captain_id'] ?? json['captainId'] ?? '') as String,
       ownerRole: ownerRoleParsed,
-      viewerUserId: (json['viewerUserId'] ?? '') as String,
+      viewerUserId: parsedViewerUserId,
+      isOwnerExplicit: parsedIsOwner,
       members: parsedMembers,
       maxMainPlayers: parsedMaxMain,
       maxSubstitutes: (rosterInfo?['max_substitutes'] ??

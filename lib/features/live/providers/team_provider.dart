@@ -384,15 +384,28 @@ class TeamNotifier extends FamilyNotifier<TeamState, String> {
   void clearError() => state = state.copyWith(clearError: true);
   void clearPreview() => state = state.copyWith(clearPreview: true);
 
+  TournamentTeamModel _ensureViewerUserId(TournamentTeamModel team) {
+    final currentUserId =
+        ref.read(profileProvider).user?.id ?? ref.read(squadProvider).viewerUserId;
+    if (team.viewerUserId.isEmpty && currentUserId.isNotEmpty) {
+      return team.copyWith(viewerUserId: currentUserId);
+    }
+    return team;
+  }
+
   Future<void> loadMyTeam() => _guard(() async {
     final t = await _repo.myTeam(_tid);
-    state = t == null ? state.copyWith(clearTeam: true) : state.copyWith(team: t);
+    state = t == null
+        ? state.copyWith(clearTeam: true)
+        : state.copyWith(team: _ensureViewerUserId(t));
   });
 
   Future<void> refresh() async {
     try {
       final t = await _repo.myTeam(_tid);
-      state = t == null ? state.copyWith(clearTeam: true) : state.copyWith(team: t);
+      state = t == null
+          ? state.copyWith(clearTeam: true)
+          : state.copyWith(team: _ensureViewerUserId(t));
     } catch (e) {
       state = state.copyWith(error: _message(e));
     }

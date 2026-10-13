@@ -1251,7 +1251,10 @@ class _JoinRequestsSection extends ConsumerWidget {
     final requestsState = ref.watch(ownerJoinRequestsProvider(team.id));
     final requests = requestsState.requests;
 
-    if (requests.isEmpty && team.pendingJoinRequestsCount == 0) {
+    if (requests.isEmpty &&
+        team.pendingJoinRequestsCount == 0 &&
+        !requestsState.isLoading &&
+        requestsState.error == null) {
       return const SizedBox.shrink();
     }
 
