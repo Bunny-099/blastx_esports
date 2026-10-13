@@ -32,18 +32,29 @@ class TournamentRepository {
     String? q,
     String? cursor,
   }) async {
-    final response = await _apiService.getFreeFireLiveTournaments(
+    try {
+      final response = await _apiService.getFreeFireLiveTournaments(
+        page: page,
+        limit: limit,
+        status: status,
+        q: q,
+        cursor: cursor,
+      );
+
+      final items = (response['items'] as List<dynamic>?) ?? [];
+      final parsed = items
+          .map((e) => TournamentModel.fromJson(Map<String, dynamic>.from(e as Map)))
+          .toList();
+      if (parsed.isNotEmpty) return parsed;
+    } catch (_) {}
+
+    return getTournaments(
       page: page,
       limit: limit,
       status: status,
       q: q,
       cursor: cursor,
     );
-
-    final items = (response['items'] as List<dynamic>?) ?? [];
-    return items
-        .map((e) => TournamentModel.fromJson(Map<String, dynamic>.from(e as Map)))
-        .toList();
   }
 
   Future<List<TournamentModel>> getTournaments({

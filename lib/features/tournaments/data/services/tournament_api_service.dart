@@ -7,6 +7,39 @@ class TournamentApiService {
 
   TournamentApiService(this._apiClient);
 
+  List<dynamic> _extractItemList(Map<String, dynamic> mapResp) {
+    if (mapResp['data'] is Map) {
+      final dataMap = Map<String, dynamic>.from(mapResp['data'] as Map);
+      if (dataMap['items'] is List) return dataMap['items'] as List;
+      if (dataMap['data'] is List) return dataMap['data'] as List;
+      if (dataMap['docs'] is List) return dataMap['docs'] as List;
+      if (dataMap['results'] is List) return dataMap['results'] as List;
+    }
+    if (mapResp['data'] is List) return mapResp['data'] as List;
+    if (mapResp['items'] is List) return mapResp['items'] as List;
+    if (mapResp['docs'] is List) return mapResp['docs'] as List;
+    if (mapResp['results'] is List) return mapResp['results'] as List;
+    return [];
+  }
+
+  int _extractInt(Map<String, dynamic> mapResp, String key, int fallback) {
+    if (mapResp[key] is int) return mapResp[key] as int;
+    if (mapResp['data'] is Map) {
+      final dataMap = mapResp['data'] as Map;
+      if (dataMap[key] is int) return dataMap[key] as int;
+    }
+    return fallback;
+  }
+
+  dynamic _extractCursor(Map<String, dynamic> mapResp) {
+    if (mapResp.containsKey('next_cursor')) return mapResp['next_cursor'];
+    if (mapResp['data'] is Map) {
+      final dataMap = mapResp['data'] as Map;
+      if (dataMap.containsKey('next_cursor')) return dataMap['next_cursor'];
+    }
+    return null;
+  }
+
   /// Dedicated fetch call for Free Fire Live section API
   Future<Map<String, dynamic>> getFreeFireLiveTournaments({
     int page = 1,
@@ -32,14 +65,13 @@ class TournamentApiService {
 
     if (response is Map) {
       final mapResp = Map<String, dynamic>.from(response);
-      final rawItems = mapResp['data'] ?? mapResp['items'] ?? [];
-      final itemList = rawItems is List ? rawItems : [];
+      final itemList = _extractItemList(mapResp);
       return {
         'items': itemList,
-        'next_cursor': mapResp['next_cursor'],
-        'page': mapResp['page'] ?? page,
-        'limit': mapResp['limit'] ?? limit,
-        'total': mapResp['total'] ?? itemList.length,
+        'next_cursor': _extractCursor(mapResp),
+        'page': _extractInt(mapResp, 'page', page),
+        'limit': _extractInt(mapResp, 'limit', limit),
+        'total': _extractInt(mapResp, 'total', itemList.length),
       };
     }
     if (response is List) {
@@ -87,14 +119,13 @@ class TournamentApiService {
 
     if (response is Map) {
       final mapResp = Map<String, dynamic>.from(response);
-      final rawItems = mapResp['data'] ?? mapResp['items'] ?? [];
-      final itemList = rawItems is List ? rawItems : [];
+      final itemList = _extractItemList(mapResp);
       return {
         'items': itemList,
-        'next_cursor': mapResp['next_cursor'],
-        'page': mapResp['page'] ?? page,
-        'limit': mapResp['limit'] ?? limit,
-        'total': mapResp['total'] ?? itemList.length,
+        'next_cursor': _extractCursor(mapResp),
+        'page': _extractInt(mapResp, 'page', page),
+        'limit': _extractInt(mapResp, 'limit', limit),
+        'total': _extractInt(mapResp, 'total', itemList.length),
       };
     }
     if (response is List) {
