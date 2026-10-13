@@ -102,10 +102,12 @@ class RealTimeSyncManager with WidgetsBindingObserver {
     }
   }
 
+  /// Set to true if periodic background polling is required. Disabled by default to prevent excessive API calls.
+  static bool enablePeriodicPolling = false;
   static bool isTestMode = false;
 
   void _startTimer() {
-    if (isTestMode) return;
+    if (!enablePeriodicPolling || isTestMode) return;
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(milliseconds: SYNC_INTERVAL_MS), (_) {
       if (_isAppInForeground) {
@@ -188,9 +190,11 @@ class RealTimeSyncManager with WidgetsBindingObserver {
     switch (state) {
       case AppLifecycleState.resumed:
         _isAppInForeground = true;
-        debugPrint('RealTimeSyncManager: App RESUMED to foreground. Starting timer & running instant check.');
-        _startTimer();
-        _syncAllTasks(isInstant: true);
+        if (enablePeriodicPolling) {
+          debugPrint('RealTimeSyncManager: App RESUMED to foreground. Starting timer & running instant check.');
+          _startTimer();
+          _syncAllTasks(isInstant: true);
+        }
         break;
 
       case AppLifecycleState.paused:
@@ -198,8 +202,10 @@ class RealTimeSyncManager with WidgetsBindingObserver {
       case AppLifecycleState.detached:
       case AppLifecycleState.hidden:
         _isAppInForeground = false;
-        debugPrint('RealTimeSyncManager: App Moved to BACKGROUND ($state). Pausing 10s sync timer.');
-        _stopTimer();
+        if (enablePeriodicPolling) {
+          debugPrint('RealTimeSyncManager: App Moved to BACKGROUND ($state). Pausing sync timer.');
+          _stopTimer();
+        }
         break;
     }
   }

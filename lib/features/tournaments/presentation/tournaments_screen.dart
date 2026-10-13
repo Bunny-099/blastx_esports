@@ -41,6 +41,23 @@ class _TournamentsScreenState extends ConsumerState<TournamentsScreen> with Tick
     super.dispose();
   }
 
+  Future<void> _handleRefresh() async {
+    ref.invalidate(blastxLiveTournamentsApiProvider);
+    ref.invalidate(blastxUpcomingTournamentsApiProvider);
+    ref.invalidate(blastxTournamentsApiProvider);
+    ref.invalidate(apiTournamentsProvider);
+    try {
+      await Future.wait([
+        ref.read(blastxLiveTournamentsApiProvider.future),
+        ref.read(blastxUpcomingTournamentsApiProvider.future),
+        ref.read(blastxTournamentsApiProvider.future),
+        ref.read(apiTournamentsProvider.future),
+      ]);
+    } catch (_) {
+      // Ignored: Riverpod AsyncValue in UI handles error state
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -91,8 +108,8 @@ class _TournamentsScreenState extends ConsumerState<TournamentsScreen> with Tick
                   child: TabBarView(
                     controller: _tabController,
                     children: [
-                      _TournamentsList(isLive: true),
-                      _TournamentsList(isLive: false),
+                      _TournamentsList(isLive: true, onRefresh: _handleRefresh),
+                      _TournamentsList(isLive: false, onRefresh: _handleRefresh),
                     ],
                   ),
                 ),
@@ -107,7 +124,12 @@ class _TournamentsScreenState extends ConsumerState<TournamentsScreen> with Tick
 
 class _TournamentsList extends ConsumerWidget {
   final bool isLive;
-  const _TournamentsList({required this.isLive});
+  final Future<void> Function() onRefresh;
+
+  const _TournamentsList({
+    required this.isLive,
+    required this.onRefresh,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -116,44 +138,64 @@ class _TournamentsList extends ConsumerWidget {
         : ref.watch(filteredUpcomingTournamentsProvider);
 
     if (tournaments.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              isLive ? Icons.videocam_off_outlined : Icons.event_busy_rounded,
-              color: AppColors.textMuted,
-              size: 48,
+      return RefreshIndicator(
+        color: AppColors.primaryNeon,
+        backgroundColor: AppColors.surfaceNavy,
+        onRefresh: onRefresh,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(
+            parent: BouncingScrollPhysics(),
+          ),
+          child: Container(
+            height: MediaQuery.of(context).size.height * 0.5,
+            alignment: Alignment.center,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  isLive ? Icons.videocam_off_outlined : Icons.event_busy_rounded,
+                  color: AppColors.textMuted,
+                  size: 48,
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  isLive ? 'No live tournaments now' : 'No upcoming tournaments',
+                  style: AppTextStyles.bodyMd.copyWith(color: AppColors.textSecondary),
+                ),
+              ],
             ),
-            const SizedBox(height: 12),
-            Text(
-              isLive ? 'No live tournaments now' : 'No upcoming tournaments',
-              style: AppTextStyles.bodyMd.copyWith(color: AppColors.textSecondary),
-            ),
-          ],
+          ),
         ),
       );
     }
 
-    return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 80),
-      itemCount: tournaments.length,
-      itemBuilder: (context, index) {
-        final tournament = tournaments[index];
-        return isLive 
-            ? BlastIXTournamentCard(
-                tournament: tournament,
-                onTap: () {
-                  handleTournamentCardTap(context, ref, tournament);
-                },
-              ).animate().fadeIn(delay: (index * 100).ms).slideY(begin: 0.2, end: 0)
-            : UpcomingTournamentCard(
-                tournament: tournament,
-                onTap: () {
-                  handleTournamentCardTap(context, ref, tournament);
-                },
-              ).animate().fadeIn(delay: (index * 100).ms).slideY(begin: 0.2, end: 0);
-      },
+    return RefreshIndicator(
+      color: AppColors.primaryNeon,
+      backgroundColor: AppColors.surfaceNavy,
+      onRefresh: onRefresh,
+      child: ListView.builder(
+        physics: const AlwaysScrollableScrollPhysics(
+          parent: BouncingScrollPhysics(),
+        ),
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 80),
+        itemCount: tournaments.length,
+        itemBuilder: (context, index) {
+          final tournament = tournaments[index];
+          return isLive 
+              ? BlastIXTournamentCard(
+                  tournament: tournament,
+                  onTap: () {
+                    handleTournamentCardTap(context, ref, tournament);
+                  },
+                ).animate().fadeIn(delay: (index * 100).ms).slideY(begin: 0.2, end: 0)
+              : UpcomingTournamentCard(
+                  tournament: tournament,
+                  onTap: () {
+                    handleTournamentCardTap(context, ref, tournament);
+                  },
+                ).animate().fadeIn(delay: (index * 100).ms).slideY(begin: 0.2, end: 0);
+        },
+      ),
     );
   }
 }

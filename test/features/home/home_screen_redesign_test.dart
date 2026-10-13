@@ -106,6 +106,7 @@ void main() {
         ProviderScope(
           overrides: [
             liveStreamsProvider.overrideWith((ref) => [sampleLiveStream]),
+            homeFeaturedTournamentsProvider.overrideWith((ref) => []),
           ],
           child: const MaterialApp(
             home: HomeScreen(username: 'ProGamer'),

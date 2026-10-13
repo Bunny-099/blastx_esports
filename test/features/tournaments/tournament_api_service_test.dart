@@ -8,9 +8,11 @@ class FakeStorageService extends StorageService {}
 class FakeDeviceInfoService extends DeviceInfoService {}
 
 class RecordingMockApiClient extends ApiClient {
-  RecordingMockApiClient() : super(FakeStorageService(), FakeDeviceInfoService());
+  RecordingMockApiClient({this.mockResponse})
+      : super(FakeStorageService(), FakeDeviceInfoService());
 
   Map<String, dynamic>? lastQueryParameters;
+  dynamic mockResponse;
 
   @override
   Future<dynamic> get(
@@ -19,12 +21,13 @@ class RecordingMockApiClient extends ApiClient {
     dynamic options,
   }) async {
     lastQueryParameters = queryParameters;
-    return {
-      'data': [],
-      'page': 1,
-      'limit': 20,
-      'total': 0,
-    };
+    return mockResponse ??
+        {
+          'data': [],
+          'page': 1,
+          'limit': 20,
+          'total': 0,
+        };
   }
 }
 
@@ -69,6 +72,64 @@ void main() {
 
       expect(mockClient.lastQueryParameters, isNotNull);
       expect(mockClient.lastQueryParameters!.containsKey('status'), isFalse);
+    });
+
+    test('getTournaments correctly parses nested data.items response object', () async {
+      final mockClient = RecordingMockApiClient(
+        mockResponse: {
+          'status': 'success',
+          'data': {
+            'items': [
+              {
+                'id': 'tourn_1',
+                'title': '[BlastX] Test Tournament',
+                'status': 'LIVE',
+              }
+            ],
+            'page': 1,
+            'limit': 20,
+            'total': 1,
+          }
+        },
+      );
+      final apiService = TournamentApiService(mockClient);
+
+      final result = await apiService.getTournaments(status: 'LIVE');
+
+      expect(result['items'], isA<List>());
+      final items = result['items'] as List;
+      expect(items.length, equals(1));
+      expect(items.first['id'], equals('tourn_1'));
+      expect(items.first['title'], equals('[BlastX] Test Tournament'));
+      expect(result['total'], equals(1));
+    });
+
+    test('getFreeFireLiveTournaments correctly parses nested data.items response object', () async {
+      final mockClient = RecordingMockApiClient(
+        mockResponse: {
+          'data': {
+            'items': [
+              {
+                'id': 'ff_1',
+                'title': 'Free Fire Live Championship',
+                'status': 'UPCOMING',
+              }
+            ],
+            'page': 1,
+            'limit': 10,
+            'total': 1,
+          }
+        },
+      );
+      final apiService = TournamentApiService(mockClient);
+
+      final result = await apiService.getFreeFireLiveTournaments(status: 'UPCOMING');
+
+      expect(result['items'], isA<List>());
+      final items = result['items'] as List;
+      expect(items.length, equals(1));
+      expect(items.first['id'], equals('ff_1'));
+      expect(result['total'], equals(1));
     });
   });
 }
