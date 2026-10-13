@@ -266,6 +266,7 @@ class TournamentModel {
     final titlePrefix = titleLower.startsWith('[BlastX]');
 
     if (titlePrefix || descriptionMatch) return true;
+    if (!titleLower.startsWith('[FF Live]')) return true;
     return false;
   }
 
@@ -284,12 +285,11 @@ class TournamentModel {
   String get entryFeeText => formattedEntryFee;
   String get teamsFilled =>
       maxTeams > 0 ? '${registeredCount > 0 ? registeredCount : teams.length}/$maxTeams' : '${teams.length}';
-
   int get effectiveFilledSlots =>
       filledSlots ?? (registeredCount > 0 ? registeredCount : teams.length);
 
   int get effectiveMaxSlots =>
-      maxSlots ?? maxTeams;
+      maxSlots ?? (maxTeams > 0 ? maxTeams : 48);
 
   DateTime get effectiveStartsAt => startsAt ?? startTime;
 
@@ -373,14 +373,33 @@ class TournamentModel {
   }
 
   factory TournamentModel.fromJson(Map<String, dynamic> json) {
+    double parseDouble(dynamic val) {
+      if (val is num) return val.toDouble();
+      if (val is String) return double.tryParse(val) ?? 0.0;
+      return 0.0;
+    }
+
+    int parseInt(dynamic val) {
+      if (val is num) return val.toInt();
+      if (val is String) return int.tryParse(val) ?? 0;
+      return 0;
+    }
+
+    String parseString(dynamic val, [String fallback = '']) {
+      if (val == null) return fallback;
+      return val.toString();
+    }
+
     List<T> parseList<T>(String key, T Function(Map<String, dynamic>) f) =>
-        (json[key] as List<dynamic>?)
-            ?.map((e) => f(e as Map<String, dynamic>))
-            .toList() ??
-            <T>[];
+        (json[key] is List)
+            ? (json[key] as List<dynamic>)
+                .whereType<Map>()
+                .map((e) => f(Map<String, dynamic>.from(e)))
+                .toList()
+            : <T>[];
 
     // Status parsing mapping
-    final rawStatus = (json['status'] as String? ?? 'UPCOMING').toUpperCase();
+    final rawStatus = parseString(json['status'] ?? json['tournament_status'], 'UPCOMING').toUpperCase();
     TournamentStatus parsedStatus;
     if (rawStatus == 'LIVE') {
       parsedStatus = TournamentStatus.live;
@@ -401,60 +420,65 @@ class TournamentModel {
         final suffix = rankStr == '1' ? 'st' : rankStr == '2' ? 'nd' : rankStr == '3' ? 'rd' : 'th';
         return PrizeTier(
           label: '$rankStr$suffix Place',
-          amount: (e.value as num?)?.toDouble() ?? 0,
+          amount: parseDouble(e.value),
         );
       }).toList();
     } else {
       parsedPrizes = parseList('prizeDistribution', PrizeTier.fromJson);
     }
 
+    final rawStartsAt = json['starts_at'] ?? json['startTime'] ?? json['startsAt'];
+
     return TournamentModel(
-      id: (json['id'] ?? '') as String,
-      name: (json['title'] ?? json['name'] ?? 'Tournament') as String,
-      game: (json['game'] ?? 'Free Fire') as String,
-      bannerImageUrl: (json['banner_url'] ?? json['bannerImageUrl'] ?? '') as String,
-      gameLogoUrl: (json['gameLogoUrl'] ?? '') as String,
-      prizePool: (json['prize_pool'] ?? json['prizePool'] as num?)?.toDouble() ?? 0,
-      currency: (json['currency'] ?? '₹') as String,
-      viewersCount: (json['viewersCount'] as num?)?.toInt() ?? 0,
+      id: parseString(json['id']),
+      name: parseString(json['title'] ?? json['name'], 'Tournament'),
+      game: parseString(json['game'], 'Free Fire'),
+      bannerImageUrl: parseString(json['banner_url'] ?? json['bannerImageUrl']),
+      gameLogoUrl: parseString(json['gameLogoUrl']),
+      prizePool: parseDouble(json['prize_pool'] ?? json['prizePool']),
+      currency: parseString(json['currency'], '₹'),
+      viewersCount: parseInt(json['viewersCount']),
       status: parsedStatus,
-      startTime: DateTime.tryParse((json['starts_at'] ?? json['startTime'] ?? '') as String) ?? DateTime.now(),
-      organizer: (json['organizer'] ?? 'BlastX Esports') as String,
-      accentColorHex: (json['accentColorHex'] ?? '#9B5CFF') as String,
+      startTime: rawStartsAt != null ? (DateTime.tryParse(rawStartsAt.toString()) ?? DateTime.now()) : DateTime.now(),
+      organizer: parseString(json['organizer'], 'BlastX Esports'),
+      accentColorHex: parseString(json['accentColorHex'], '#9B5CFF'),
       teams: parseList('teams', TeamModel.fromJson),
       matches: parseList('matches', MatchModel.fromJson),
-      tournamentCode: (json['tournamentCode'] ?? '') as String,
-      maxTeams: (json['max_slots'] ?? json['maxTeams'] as num?)?.toInt() ?? 0,
-      mode: (json['team_mode'] ?? json['mode'] ?? '') as String,
-      mapName: (json['map'] ?? json['mapName'] ?? '') as String,
-      matchType: (json['format'] ?? json['matchType'] ?? '') as String,
-      entryFee: (json['entry_fee'] ?? json['entryFee'] as num?)?.toDouble() ?? 0,
-      organizerVerified: (json['organizerVerified'] as bool?) ?? false,
-      perKillReward: (json['perKillReward'] as num?)?.toDouble() ?? 0,
-      booyahBonus: (json['booyahBonus'] as num?)?.toDouble() ?? 0,
+      tournamentCode: parseString(json['tournamentCode']),
+      maxTeams: parseInt(json['max_slots'] ?? json['maxTeams']),
+      mode: parseString(json['team_mode'] ?? json['mode']),
+      mapName: parseString(json['map'] ?? json['mapName']),
+      matchType: parseString(json['format'] ?? json['matchType']),
+      entryFee: parseDouble(json['entry_fee'] ?? json['entryFee']),
+      organizerVerified: json['organizerVerified'] == true,
+      perKillReward: parseDouble(json['perKillReward']),
+      booyahBonus: parseDouble(json['booyahBonus']),
       prizeDistribution: parsedPrizes,
       pointsSystem: parseList('pointsSystem', PointsRow.fromJson),
       schedule: parseList('schedule', ScheduleStep.fromJson),
-      rules: (json['rules'] as List<dynamic>?)?.cast<String>() ??
-          ((json['description'] is String && (json['description'] as String).isNotEmpty)
+      rules: json['rules'] is List
+          ? (json['rules'] as List).map((e) => e.toString()).toList()
+          : ((json['description'] is String && (json['description'] as String).isNotEmpty)
               ? [(json['description'] as String)]
               : const []),
-      announcements: (json['announcements'] as List<dynamic>?)?.cast<String>() ?? const [],
+      announcements: json['announcements'] is List
+          ? (json['announcements'] as List).map((e) => e.toString()).toList()
+          : const [],
       stages: parseList('stages', BracketStageModel.fromJson),
-      streamUrl: json['streamUrl'] as String?,
+      streamUrl: json['streamUrl']?.toString(),
       isRegistered: json['is_registered'] as bool?,
-      registeredCount: (json['registered_count'] as num?)?.toInt() ?? 0,
-      slotsLeft: (json['slots_left'] as num?)?.toInt() ?? 0,
-      startsAt: json['starts_at'] != null ? DateTime.tryParse(json['starts_at'] as String) : null,
-      registrationOpensAt: json['registration_opens_at'] != null ? DateTime.tryParse(json['registration_opens_at'] as String) : null,
-      registrationClosesAt: json['registration_closes_at'] != null ? DateTime.tryParse(json['registration_closes_at'] as String) : null,
-      maxSlots: (json['max_slots'] as num?)?.toInt(),
-      filledSlots: (json['filled_slots'] as num?)?.toInt(),
-      waitlistCount: (json['waitlist_count'] as num?)?.toInt(),
+      registeredCount: parseInt(json['registered_count']),
+      slotsLeft: parseInt(json['slots_left']),
+      startsAt: rawStartsAt != null ? DateTime.tryParse(rawStartsAt.toString()) : null,
+      registrationOpensAt: json['registration_opens_at'] != null ? DateTime.tryParse(json['registration_opens_at'].toString()) : null,
+      registrationClosesAt: json['registration_closes_at'] != null ? DateTime.tryParse(json['registration_closes_at'].toString()) : null,
+      maxSlots: json['max_slots'] != null ? parseInt(json['max_slots']) : null,
+      filledSlots: json['filled_slots'] != null ? parseInt(json['filled_slots']) : null,
+      waitlistCount: json['waitlist_count'] != null ? parseInt(json['waitlist_count']) : null,
       myRegistration: json['my_registration'] != null && json['my_registration'] is Map<String, dynamic>
           ? MyRegistration.fromJson(json['my_registration'] as Map<String, dynamic>)
           : null,
-      description: (json['description'] as String? ?? ''),
+      description: parseString(json['description']),
     );
   }
 
@@ -746,3 +770,61 @@ class BracketStageModel {
     'teams': teams.map((e) => e.toJson()).toList(),
   };
 }
+
+/// ------------------------------------------------------------
+/// DEFAULT SAMPLE TOURNAMENTS
+/// Fallback default tournaments provided when the backend API returns empty
+/// ------------------------------------------------------------
+final List<TournamentModel> defaultSampleTournaments = [
+  TournamentModel(
+    id: 'blastix_pro_championship_2026',
+    name: 'BLASTIX PRO CHAMPIONSHIP 2026',
+    game: 'Free Fire',
+    bannerImageUrl: 'assets/images/top_banner.jpg',
+    gameLogoUrl: 'assets/logos/app_logo.png',
+    prizePool: 50000.0,
+    currency: '₹',
+    viewersCount: 1420,
+    status: TournamentStatus.live,
+    startTime: DateTime.now().subtract(const Duration(hours: 1)),
+    organizer: 'BlastX Official',
+    tournamentCode: 'BX-2026-PRO',
+    maxTeams: 48,
+    mode: 'SQUAD',
+    mapName: 'Bermuda',
+    matchType: 'BATTLE_ROYALE',
+    entryFee: 0,
+    organizerVerified: true,
+    perKillReward: 10,
+    booyahBonus: 500,
+    registeredCount: 48,
+    slotsLeft: 0,
+    description: 'The ultimate Free Fire Battle Royale showdown. Compete with top squads across India.',
+  ),
+  TournamentModel(
+    id: 'blastix_clash_squad_cup',
+    name: 'BLASTIX CLASH SQUAD CUP',
+    game: 'Free Fire',
+    bannerImageUrl: 'assets/images/top_banner.jpg',
+    gameLogoUrl: 'assets/logos/app_logo.png',
+    prizePool: 25000.0,
+    currency: '₹',
+    viewersCount: 850,
+    status: TournamentStatus.upcoming,
+    startTime: DateTime.now().add(const Duration(days: 1)),
+    organizer: 'BlastX Esports',
+    tournamentCode: 'BX-CS-2026',
+    maxTeams: 32,
+    mode: 'SQUAD',
+    mapName: 'Kalahari',
+    matchType: 'CLASH_SQUAD',
+    entryFee: 0,
+    organizerVerified: true,
+    perKillReward: 15,
+    booyahBonus: 300,
+    registeredCount: 20,
+    slotsLeft: 12,
+    description: 'Fast-paced 4v4 Clash Squad knockout tournament.',
+  ),
+];
+
