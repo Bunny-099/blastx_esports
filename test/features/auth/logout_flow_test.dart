@@ -55,6 +55,9 @@ class FakeRealTimeSyncManager implements RealTimeSyncManager {
   void unregister(String key) {}
 
   @override
+  void clearAll() {}
+
+  @override
   dynamic noSuchMethod(Invocation invocation) => null;
 }
 

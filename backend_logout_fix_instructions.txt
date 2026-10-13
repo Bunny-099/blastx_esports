@@ -1,0 +1,50 @@
+================================================================================
+BACKEND INSTRUCTIONS: USER LOGOUT & DATA ISOLATION FIX
+================================================================================
+
+ISSUE SUMMARY:
+When a user logs out and a new account logs in on the same device/app session,
+tournament cards and team details were occasionally showing previous user registration
+data (e.g. "VIEW TEAM LOBBY" and old team member details).
+
+FRONTEND CHANGES MADE:
+1. Purged RealTimeSyncManager background sync tasks and cached payload hashes upon logout and login.
+2. Invalidated all Riverpod providers across teams, tournaments, room details, matches, and user stats on logout and login.
+3. Ensured JWT Auth token is completely deleted from local storage on logout.
+
+================================================================================
+BACKEND REQUIREMENTS & CHECKLIST FOR BACKEND DEVELOPER:
+================================================================================
+
+1. STRICT JWT AUTHORIZATION RESOLUTION:
+   - For endpoints:
+     * GET /tournaments
+     * GET /free-fire-live
+     * GET /tournaments/:id
+   - The user identity must be dynamically extracted EXCLUSIVELY from the
+     `Authorization: Bearer <token>` header in the HTTP request.
+   - If the token belongs to a newly logged-in / unregistered user, the backend
+     MUST return `my_registration: null` in the JSON response payload. Never return
+     registration details based on IP address, socket connection, or server memory session.
+
+2. TEAM ENDPOINT ISOLATION (GET /tournaments/:id/my-team):
+   - When a request is sent to `GET /tournaments/:id/my-team` with a valid JWT token
+     for a user who is NOT part of any team in that tournament, the backend MUST return:
+     * HTTP Status: 404 Not Found
+     * Payload: {"code": "TEAM_NOT_FOUND", "message": "No team found for this user in this tournament"}
+   - Avoid returning 200 OK with default or last-fetched team data.
+
+3. LOGOUT ENDPOINT TOKEN INVALIDATION (POST /auth/logout):
+   - Ensure `POST /auth/logout` invalidates or blacklists the issued JWT token / session key in Redis/DB
+     so subsequent requests using the old token are immediately rejected with HTTP 401 Unauthorized.
+
+4. HTTP CACHE-CONTROL HEADERS:
+   - On all user-dependent endpoints (`/tournaments`, `/free-fire-live`, `/tournaments/:id`, `/my-team`, `/my-requests`):
+     Add the following response headers to prevent intermediate proxies or CDNs from caching user-specific data:
+     * Cache-Control: no-store, no-cache, must-revalidate, max-age=0
+     * Pragma: no-cache
+     * Vary: Authorization
+
+================================================================================
+END OF FILE
+================================================================================

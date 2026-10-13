@@ -89,6 +89,13 @@ class RealTimeSyncManager with WidgetsBindingObserver {
     debugPrint('RealTimeSyncManager: Unregistered task "$key"');
   }
 
+  /// Clears all registered tasks and cached payload hashes (e.g. on user logout/login)
+  void clearAll() {
+    _tasks.clear();
+    _inProgressKeys.clear();
+    debugPrint('RealTimeSyncManager: Cleared all registered sync tasks & payload hashes.');
+  }
+
   /// Triggers a manual instant sync across all registered tasks
   Future<void> triggerInstantSync() async {
     await _syncAllTasks(isInstant: true);

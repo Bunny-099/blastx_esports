@@ -5,7 +5,12 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import '../../../core/services/notification_navigator.dart';
 import '../../../core/services/notification_service.dart';
+import '../../../core/sync/real_time_sync_manager.dart';
+import '../../challenges/providers/challenges_provider.dart';
+import '../../home/providers/home_provider.dart';
 import '../../home/providers/navigation_provider.dart';
+import '../../live/providers/live_provider.dart';
+import '../../live/providers/team_provider.dart';
 import '../../notifications/providers/notification_provider.dart';
 import '../../profile/providers/profile_provider.dart';
 import '../../splash/providers/splash_providers.dart';
@@ -129,6 +134,9 @@ class AuthNotifier extends Notifier<AuthState> {
 
     try {
       final user = await _repository.login(state.email, otp);
+
+      // Purge any residual cached provider state from previous sessions
+      _clearUserCacheAndProviders();
       
       // Save token and user data
       final storage = ref.read(storageServiceProvider);
@@ -173,6 +181,9 @@ class AuthNotifier extends Notifier<AuthState> {
         email: state.email,
         otp: otp,
       );
+
+      // Purge any residual cached provider state from previous sessions
+      _clearUserCacheAndProviders();
       
       // Save token and user data
       final storage = ref.read(storageServiceProvider);
@@ -230,6 +241,9 @@ class AuthNotifier extends Notifier<AuthState> {
 
       final UserModel user = await _repository.socialLogin(idToken, 'google');
 
+      // Purge any residual cached provider state from previous sessions
+      _clearUserCacheAndProviders();
+
       final storage = ref.read(storageServiceProvider);
       if (user.token != null) {
         await storage.saveToken(user.token!);
@@ -261,6 +275,48 @@ class AuthNotifier extends Notifier<AuthState> {
   // Email step pe wapas jaana
   void backToEmailStep() {
     state = state.copyWith(step: AuthStep.enterEmail, errorMessage: null);
+  }
+
+  /// Clears cached sync tasks and invalidates all Riverpod providers across features
+  void _clearUserCacheAndProviders() {
+    try {
+      // 1. Reset RealTimeSyncManager tasks & cached payload hashes
+      ref.read(realTimeSyncManagerProvider).clearAll();
+    } catch (e) {
+      debugPrint('Sync Manager Reset Error: $e');
+    }
+
+    try {
+      // 2. Invalidate user profile, squad, notifications & navigation
+      ref.invalidate(profileProvider);
+      ref.invalidate(squadProvider);
+      ref.invalidate(notificationProvider);
+      ref.invalidate(navigationIndexProvider);
+
+      // 3. Invalidate team and join request family providers
+      ref.invalidate(teamProvider);
+      ref.invalidate(ownerJoinRequestsProvider);
+      ref.invalidate(myPendingRequestsProvider);
+      ref.invalidate(approvalsProvider);
+
+      // 4. Invalidate tournament API providers
+      ref.invalidate(apiTournamentsProvider);
+      ref.invalidate(blastxLiveTournamentsApiProvider);
+      ref.invalidate(blastxUpcomingTournamentsApiProvider);
+      ref.invalidate(blastxTournamentsApiProvider);
+      ref.invalidate(tournamentDetailApiProvider);
+      ref.invalidate(roomDetailsProvider);
+      ref.invalidate(registeredTeamsProvider);
+      ref.invalidate(tournamentStagesProvider);
+      ref.invalidate(myActiveAssignmentProvider);
+      ref.invalidate(tournamentBracketProvider);
+
+      // 5. Invalidate challenges and user home stats
+      ref.invalidate(challengesProvider);
+      ref.invalidate(userHomeStatsProvider);
+    } catch (e) {
+      debugPrint('Provider Invalidation Error: $e');
+    }
   }
 
   // Logout user
@@ -297,15 +353,8 @@ class AuthNotifier extends Notifier<AuthState> {
       debugPrint('Storage Clear Error: $e');
     }
 
-    try {
-      // 4. Invalidate Riverpod cached user state providers and navigation index
-      ref.invalidate(profileProvider);
-      ref.invalidate(squadProvider);
-      ref.invalidate(notificationProvider);
-      ref.invalidate(navigationIndexProvider);
-    } catch (e) {
-      debugPrint('Provider Invalidation Error: $e');
-    }
+    // 4. Reset RealTimeSyncManager tasks & hashes and invalidate Riverpod providers
+    _clearUserCacheAndProviders();
 
     // 5. Reset Auth State
     state = const AuthState();
