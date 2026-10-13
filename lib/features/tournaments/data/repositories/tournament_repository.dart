@@ -54,6 +54,7 @@ class TournamentRepository {
       status: status,
       q: q,
       cursor: cursor,
+      section: 'FREEFIRE_LIVE',
     );
   }
 
@@ -67,6 +68,7 @@ class TournamentRepository {
     String? teamMode,
     String? format,
     String? map,
+    String? section,
   }) async {
     try {
       final response = await _apiService.getTournaments(
@@ -79,6 +81,7 @@ class TournamentRepository {
         teamMode: teamMode,
         format: format,
         map: map,
+        section: section,
       );
 
       final items = (response['items'] as List<dynamic>?) ?? [];

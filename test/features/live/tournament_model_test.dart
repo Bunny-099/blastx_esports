@@ -61,11 +61,11 @@ void main() {
       expect(model.isRegistered, isNull);
 
       // Fallback getters & helpers
-      expect(model.effectiveFilledSlots, equals(32));
+      expect(model.effectiveFilledSlots, equals(0));
       expect(model.effectiveMaxSlots, equals(48));
       expect(model.effectiveIsRegistered, isFalse);
-      expect(model.slotsText, equals('32/48 slots'));
-      expect(model.slotsProgress, closeTo(32 / 48, 0.001));
+      expect(model.slotsText, equals('0/48 slots'));
+      expect(model.slotsProgress, equals(0.0));
       expect(model.isFull, isFalse);
     });
 

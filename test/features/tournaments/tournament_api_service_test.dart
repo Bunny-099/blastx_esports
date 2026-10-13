@@ -74,6 +74,20 @@ void main() {
       expect(mockClient.lastQueryParameters!.containsKey('status'), isFalse);
     });
 
+    test('getTournaments sends section parameter to backend when provided', () async {
+      final mockClient = RecordingMockApiClient();
+      final apiService = TournamentApiService(mockClient);
+
+      await apiService.getTournaments(
+        section: 'BLASTX',
+        status: 'LIVE',
+      );
+
+      expect(mockClient.lastQueryParameters, isNotNull);
+      expect(mockClient.lastQueryParameters!['section'], equals('BLASTX'));
+      expect(mockClient.lastQueryParameters!['status'], equals('LIVE'));
+    });
+
     test('getTournaments correctly parses nested data.items response object', () async {
       final mockClient = RecordingMockApiClient(
         mockResponse: {

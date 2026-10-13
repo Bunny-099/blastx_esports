@@ -153,6 +153,7 @@ class TournamentModel {
   final String accentColorHex;
 
   // Command Center & Backend Fields
+  final String section; // "BLASTX" / "FREEFIRE_LIVE"
   final String tournamentCode; // e.g. "BX-2049"
   final int maxTeams;
   final String mode; // SOLO / DUO / SQUAD
@@ -194,6 +195,7 @@ class TournamentModel {
     required this.status,
     required this.startTime,
     required this.organizer,
+    this.section = '',
     this.currency = '₹',
     this.teams = const [],
     this.matches = const [],
@@ -243,31 +245,54 @@ class TournamentModel {
   }
 
   /// Filter check for Free Fire Live tab according to Mobile App Filter Rules:
-  /// item.title.startsWith("[FF Live]") OR item.description?.includes("[SECTION:FREEFIRE_LIVE]")
-  /// OR (item.game_slug === "free_fire" && !item.title.startsWith("[BlastX]"))
+  /// 1. If `section` is explicitly set in backend: 'FREEFIRE_LIVE' -> true, 'BLASTX' -> false.
+  /// 2. Check title prefix [FF Live] or [SECTION:FREEFIRE_LIVE] in description/rules.
+  /// 3. If title starts with [BlastX] or contains [SECTION:BLASTX], return false.
+  /// 4. Otherwise, fallback to game check.
   bool get isFreeFireLiveSection {
+    final sec = section.trim().toUpperCase();
+    if (sec == 'FREEFIRE_LIVE' || sec == 'FREE_FIRE_LIVE') return true;
+    if (sec == 'BLASTX') return false;
+
     final titleLower = name.trim();
     final rulesStr = rules.join(' ');
+    final isBlastXExplicit = titleLower.startsWith('[BlastX]') ||
+        description.contains('[SECTION:BLASTX]') ||
+        rulesStr.contains('[SECTION:BLASTX]');
+    if (isBlastXExplicit) return false;
+
     final descriptionMatch = description.contains('[SECTION:FREEFIRE_LIVE]') || rulesStr.contains('[SECTION:FREEFIRE_LIVE]');
     final titlePrefix = titleLower.startsWith('[FF Live]');
     final gameIsFF = game.toLowerCase().contains('free fire') || game.toLowerCase() == 'free_fire';
 
     if (titlePrefix || descriptionMatch) return true;
-    if (gameIsFF && !titleLower.startsWith('[BlastX]')) return true;
+    if (gameIsFF) return true;
     return false;
   }
 
   /// Filter check for BlastX E-Sports tab according to Mobile App Filter Rules:
-  /// item.title.startsWith("[BlastX]") OR item.description?.includes("[SECTION:BLASTX]")
+  /// 1. If `section` is explicitly set in backend: 'BLASTX' -> true, 'FREEFIRE_LIVE' -> false.
+  /// 2. Check title prefix [BlastX] or [SECTION:BLASTX] in description/rules.
+  /// 3. If title starts with [FF Live] or contains [SECTION:FREEFIRE_LIVE], return false.
+  /// 4. Fallback default for BlastX catalog.
   bool get isBlastXSection {
+    final sec = section.trim().toUpperCase();
+    if (sec == 'BLASTX') return true;
+    if (sec == 'FREEFIRE_LIVE' || sec == 'FREE_FIRE_LIVE') return false;
+
     final titleLower = name.trim();
     final rulesStr = rules.join(' ');
+    final isFFLiveExplicit = titleLower.startsWith('[FF Live]') ||
+        description.contains('[SECTION:FREEFIRE_LIVE]') ||
+        rulesStr.contains('[SECTION:FREEFIRE_LIVE]');
+    if (isFFLiveExplicit) return false;
+
     final descriptionMatch = description.contains('[SECTION:BLASTX]') || rulesStr.contains('[SECTION:BLASTX]');
     final titlePrefix = titleLower.startsWith('[BlastX]');
 
     if (titlePrefix || descriptionMatch) return true;
-    if (!titleLower.startsWith('[FF Live]')) return true;
-    return false;
+    if (isFreeFireLiveSection) return false;
+    return true;
   }
 
   String get formattedViewers {
@@ -441,6 +466,7 @@ class TournamentModel {
       status: parsedStatus,
       startTime: rawStartsAt != null ? (DateTime.tryParse(rawStartsAt.toString()) ?? DateTime.now()) : DateTime.now(),
       organizer: parseString(json['organizer'], 'BlastX Esports'),
+      section: parseString(json['section']),
       accentColorHex: parseString(json['accentColorHex'], '#9B5CFF'),
       teams: parseList('teams', TeamModel.fromJson),
       matches: parseList('matches', MatchModel.fromJson),
@@ -486,6 +512,7 @@ class TournamentModel {
     'id': id,
     'name': name,
     'description': description,
+    'section': section,
     'game': game,
     'bannerImageUrl': bannerImageUrl,
     'gameLogoUrl': gameLogoUrl,
@@ -780,6 +807,7 @@ final List<TournamentModel> defaultSampleTournaments = [
     id: 'blastix_pro_championship_2026',
     name: 'BLASTIX PRO CHAMPIONSHIP 2026',
     game: 'Free Fire',
+    section: 'BLASTX',
     bannerImageUrl: 'assets/images/top_banner.jpg',
     gameLogoUrl: 'assets/logos/app_logo.png',
     prizePool: 50000.0,
@@ -805,6 +833,7 @@ final List<TournamentModel> defaultSampleTournaments = [
     id: 'blastix_clash_squad_cup',
     name: 'BLASTIX CLASH SQUAD CUP',
     game: 'Free Fire',
+    section: 'BLASTX',
     bannerImageUrl: 'assets/images/top_banner.jpg',
     gameLogoUrl: 'assets/logos/app_logo.png',
     prizePool: 25000.0,

@@ -97,11 +97,13 @@ class TournamentApiService {
     String? teamMode,
     String? format,
     String? map,
+    String? section,
   }) async {
     final queryParams = <String, dynamic>{
       'page': page,
       'limit': limit,
     };
+    if (section != null && section.isNotEmpty) queryParams['section'] = section;
     if (game != null && game.isNotEmpty) queryParams['game'] = game;
     if (status != null && status.isNotEmpty && status.toLowerCase() != 'all') {
       queryParams['status'] = status.toUpperCase();

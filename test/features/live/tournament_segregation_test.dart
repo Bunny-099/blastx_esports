@@ -51,6 +51,38 @@ void main() {
       expect(tournament.displayTitle, equals('Bermuda Open Championship'));
     });
 
+    test('Tournament with section: BLASTX and game: Free Fire is identified as BlastX section', () {
+      final json = {
+        'id': 'bx_top_001',
+        'title': 'Tournament of Power',
+        'game': 'Free Fire',
+        'section': 'BLASTX',
+        'status': 'LIVE',
+      };
+
+      final tournament = TournamentModel.fromJson(json);
+
+      expect(tournament.section, equals('BLASTX'));
+      expect(tournament.isBlastXSection, isTrue);
+      expect(tournament.isFreeFireLiveSection, isFalse);
+    });
+
+    test('Tournament with section: FREEFIRE_LIVE is identified as Free Fire Live section', () {
+      final json = {
+        'id': 'ff_live_001',
+        'title': 'FFWS Live Showcase',
+        'game': 'Free Fire',
+        'section': 'FREEFIRE_LIVE',
+        'status': 'LIVE',
+      };
+
+      final tournament = TournamentModel.fromJson(json);
+
+      expect(tournament.section, equals('FREEFIRE_LIVE'));
+      expect(tournament.isFreeFireLiveSection, isTrue);
+      expect(tournament.isBlastXSection, isFalse);
+    });
+
     test('Tournament displayTitle strips prefixes properly', () {
       final t1 = TournamentModel.fromJson({
         'id': '1',

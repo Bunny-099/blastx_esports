@@ -67,6 +67,49 @@ void main() {
       expect(preview.members.last.isSubstitute, isTrue);
     });
 
+    test('TeamPreview.fromJson parses integer slots_available response without TypeError', () {
+      final json = {
+        'id': 'cmv6oiglh000alo014o06iblz',
+        'name': 'vvv',
+        'tag': '',
+        'logo_url': null,
+        'tournament_id': 'cmv63koj9004bps01k5ejo9in',
+        'responsible_person': {
+          'name': 'Cyber Security New Delhi',
+          'role': 'LEADER',
+        },
+        'main_count': 1,
+        'max_main': 4,
+        'substitute_count': 0,
+        'max_substitutes': 1,
+        'accepting_substitutes': true,
+        'slots_available': 4,
+        'registration_state': 'FORMING',
+        'roster_locked': false,
+        'require_join_approval': true,
+        'is_member': false,
+        'my_request_status': 'NONE',
+        'members': [
+          {
+            'name': 'Cyber Security New Delhi',
+            'avatar': 'https://example.com/a.png',
+            'role': 'CAPTAIN',
+            'roster_type': 'MAIN',
+          },
+        ],
+      };
+
+      final preview = TeamPreview.fromJson(json);
+
+      expect(preview.id, 'cmv6oiglh000alo014o06iblz');
+      expect(preview.name, 'vvv');
+      expect(preview.slotsAvailable, isTrue);
+      expect(preview.mainCount, 1);
+      expect(preview.maxMain, 4);
+      expect(preview.responsiblePerson?.name, 'Cyber Security New Delhi');
+      expect(preview.members.length, 1);
+    });
+
     test('JoinRequestStatus.fromString falls back safely on unknown values', () {
       expect(JoinRequestStatus.fromString('PENDING'), JoinRequestStatus.pending);
       expect(JoinRequestStatus.fromString('APPROVED'), JoinRequestStatus.approved);

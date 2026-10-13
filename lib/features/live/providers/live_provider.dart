@@ -59,10 +59,14 @@ final apiTournamentsProvider = FutureProvider<List<TournamentModel>>((ref) async
 final liveTournamentsProvider = Provider<List<TournamentModel>>((ref) {
   final apiResult = ref.watch(apiTournamentsProvider);
   final list = apiResult.valueOrNull;
-  if (list != null && list.isNotEmpty) return list;
+  if (list != null && list.isNotEmpty) {
+    final filtered = list.where((t) => t.isFreeFireLiveSection).toList();
+    if (filtered.isNotEmpty) return filtered;
+  }
   final appTournaments = ref.watch(appTournamentsProvider);
-  if (appTournaments.isNotEmpty) return appTournaments;
-  return defaultSampleTournaments;
+  final ffAppTournaments = appTournaments.where((t) => t.isFreeFireLiveSection).toList();
+  if (ffAppTournaments.isNotEmpty) return ffAppTournaments;
+  return defaultSampleTournaments.where((t) => t.isFreeFireLiveSection).toList();
 });
 
 /// Official tournaments (Free Fire Live section)
@@ -111,7 +115,7 @@ final filteredOfficialTournamentsProvider = visibleTournamentsProvider;
 
 // ── 2. BLASTX ESPORTS TOURNAMENTS SECTION PROVIDERS ──
 
-/// Async provider for dedicated BlastX LIVE Tournaments API (`/tournaments?status=LIVE`)
+/// Async provider for dedicated BlastX LIVE Tournaments API (`/tournaments?status=LIVE&section=BLASTX`)
 final blastxLiveTournamentsApiProvider = FutureProvider<List<TournamentModel>>((ref) async {
   final repo = ref.watch(tournamentRepositoryProvider);
   final syncManager = ref.watch(realTimeSyncManagerProvider);
@@ -119,7 +123,7 @@ final blastxLiveTournamentsApiProvider = FutureProvider<List<TournamentModel>>((
   const taskKey = 'blastx_tournaments_live';
   syncManager.register(
     key: taskKey,
-    fetcher: () => repo.getTournaments(limit: 50, status: 'LIVE'),
+    fetcher: () => repo.getTournaments(limit: 50, status: 'LIVE', section: 'BLASTX'),
     onChanged: (_) {
       ref.invalidateSelf();
     },
@@ -131,11 +135,12 @@ final blastxLiveTournamentsApiProvider = FutureProvider<List<TournamentModel>>((
   final list = await repo.getTournaments(
     limit: 50,
     status: 'LIVE',
+    section: 'BLASTX',
   );
   return list;
 });
 
-/// Async provider for dedicated BlastX UPCOMING Tournaments API (`/tournaments?status=UPCOMING`)
+/// Async provider for dedicated BlastX UPCOMING Tournaments API (`/tournaments?status=UPCOMING&section=BLASTX`)
 final blastxUpcomingTournamentsApiProvider = FutureProvider<List<TournamentModel>>((ref) async {
   final repo = ref.watch(tournamentRepositoryProvider);
   final syncManager = ref.watch(realTimeSyncManagerProvider);
@@ -143,7 +148,7 @@ final blastxUpcomingTournamentsApiProvider = FutureProvider<List<TournamentModel
   const taskKey = 'blastx_tournaments_upcoming';
   syncManager.register(
     key: taskKey,
-    fetcher: () => repo.getTournaments(limit: 50, status: 'UPCOMING'),
+    fetcher: () => repo.getTournaments(limit: 50, status: 'UPCOMING', section: 'BLASTX'),
     onChanged: (_) {
       ref.invalidateSelf();
     },
@@ -155,11 +160,12 @@ final blastxUpcomingTournamentsApiProvider = FutureProvider<List<TournamentModel
   final list = await repo.getTournaments(
     limit: 50,
     status: 'UPCOMING',
+    section: 'BLASTX',
   );
   return list;
 });
 
-/// Async provider for dedicated BlastX Tournaments API (`/tournaments`)
+/// Async provider for dedicated BlastX Tournaments API (`/tournaments?section=BLASTX`)
 final blastxTournamentsApiProvider = FutureProvider<List<TournamentModel>>((ref) async {
   final repo = ref.watch(tournamentRepositoryProvider);
   final syncManager = ref.watch(realTimeSyncManagerProvider);
@@ -167,7 +173,7 @@ final blastxTournamentsApiProvider = FutureProvider<List<TournamentModel>>((ref)
   const taskKey = 'blastx_tournaments_all';
   syncManager.register(
     key: taskKey,
-    fetcher: () => repo.getTournaments(limit: 50),
+    fetcher: () => repo.getTournaments(limit: 50, section: 'BLASTX'),
     onChanged: (_) {
       ref.invalidateSelf();
     },
@@ -178,6 +184,7 @@ final blastxTournamentsApiProvider = FutureProvider<List<TournamentModel>>((ref)
 
   final list = await repo.getTournaments(
     limit: 50,
+    section: 'BLASTX',
   );
   return list;
 });
@@ -186,30 +193,39 @@ final blastxTournamentsApiProvider = FutureProvider<List<TournamentModel>>((ref)
 final appTournamentsProvider = Provider<List<TournamentModel>>((ref) {
   final apiResult = ref.watch(blastxTournamentsApiProvider);
   final list = apiResult.valueOrNull;
-  if (list != null && list.isNotEmpty) return list;
-  return defaultSampleTournaments;
+  if (list != null && list.isNotEmpty) {
+    final filtered = list.where((t) => t.isBlastXSection).toList();
+    if (filtered.isNotEmpty) return filtered;
+  }
+  return defaultSampleTournaments.where((t) => t.isBlastXSection).toList();
 });
 
 /// BlastX Live tournaments
 final appLiveTournamentsProvider = Provider<List<TournamentModel>>((ref) {
   final liveResult = ref.watch(blastxLiveTournamentsApiProvider);
   final liveList = liveResult.valueOrNull;
-  if (liveList != null && liveList.isNotEmpty) return liveList;
+  if (liveList != null && liveList.isNotEmpty) {
+    final filtered = liveList.where((t) => t.isBlastXSection).toList();
+    if (filtered.isNotEmpty) return filtered;
+  }
   final appTournaments = ref.watch(appTournamentsProvider);
-  final liveFiltered = appTournaments.where((t) => t.isLive).toList();
+  final liveFiltered = appTournaments.where((t) => t.isLive && t.isBlastXSection).toList();
   if (liveFiltered.isNotEmpty) return liveFiltered;
-  return defaultSampleTournaments.where((t) => t.isLive).toList();
+  return defaultSampleTournaments.where((t) => t.isLive && t.isBlastXSection).toList();
 });
 
 /// BlastX Upcoming tournaments
 final appUpcomingTournamentsProvider = Provider<List<TournamentModel>>((ref) {
   final upcomingResult = ref.watch(blastxUpcomingTournamentsApiProvider);
   final upcomingList = upcomingResult.valueOrNull;
-  if (upcomingList != null && upcomingList.isNotEmpty) return upcomingList;
+  if (upcomingList != null && upcomingList.isNotEmpty) {
+    final filtered = upcomingList.where((t) => t.isBlastXSection).toList();
+    if (filtered.isNotEmpty) return filtered;
+  }
   final appTournaments = ref.watch(appTournamentsProvider);
-  final upcomingFiltered = appTournaments.where((t) => t.status == TournamentStatus.upcoming).toList();
+  final upcomingFiltered = appTournaments.where((t) => t.status == TournamentStatus.upcoming && t.isBlastXSection).toList();
   if (upcomingFiltered.isNotEmpty) return upcomingFiltered;
-  return defaultSampleTournaments.where((t) => t.status == TournamentStatus.upcoming).toList();
+  return defaultSampleTournaments.where((t) => t.status == TournamentStatus.upcoming && t.isBlastXSection).toList();
 });
 
 /// Simple search query provider for upcoming tournaments.

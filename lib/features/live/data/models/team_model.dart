@@ -4,6 +4,28 @@ import 'team_member_model.dart';
 /// TOURNAMENT TEAM MODEL & JOIN REQUEST MODELS
 /// ============================================================
 
+bool _parseBool(dynamic val, [bool fallback = false]) {
+  if (val is bool) return val;
+  if (val is num) return val > 0;
+  if (val is String) {
+    final lower = val.toLowerCase().trim();
+    if (lower == 'true' || lower == '1' || lower == 'yes') return true;
+    if (lower == 'false' || lower == '0' || lower == 'no') return false;
+  }
+  return fallback;
+}
+
+int _parseInt(dynamic val, [int fallback = 0]) {
+  if (val is num) return val.toInt();
+  if (val is String) return int.tryParse(val.trim()) ?? fallback;
+  return fallback;
+}
+
+String _parseString(dynamic val, [String fallback = '']) {
+  if (val == null) return fallback;
+  return val.toString();
+}
+
 enum TeamRegistrationStatus { forming, ready, registered, locked }
 
 enum TeamRegistrationState {
@@ -242,11 +264,13 @@ class TeamPreviewMember {
 
   factory TeamPreviewMember.fromJson(Map<String, dynamic> json) {
     final roleRaw = (json['role'] ?? json['roster_type'] ?? json['rosterType'] ?? 'MEMBER').toString().toUpperCase();
-    final bool isSub = (json['is_substitute'] ?? json['isSubstitute'] as bool?) ??
-        (roleRaw == 'SUBSTITUTE' || roleRaw == 'SUB');
+    final rawSub = json['is_substitute'] ?? json['isSubstitute'];
+    final bool isSub = rawSub != null
+        ? _parseBool(rawSub)
+        : (roleRaw == 'SUBSTITUTE' || roleRaw == 'SUB');
     return TeamPreviewMember(
-      name: (json['name'] ?? json['user_name'] ?? 'Player').toString(),
-      avatarUrl: (json['avatar'] ?? json['avatar_url'] ?? json['avatarUrl'] ?? json['profile_pic'] ?? '').toString(),
+      name: _parseString(json['name'] ?? json['user_name'] ?? json['userName'], 'Player'),
+      avatarUrl: _parseString(json['avatar'] ?? json['avatar_url'] ?? json['avatarUrl'] ?? json['profile_pic']),
       role: roleRaw,
       isSubstitute: isSub,
     );
@@ -334,13 +358,13 @@ class TeamPreview {
 
   factory TeamPreview.fromJson(Map<String, dynamic> json) {
     ResponsiblePerson? resp;
-    if (json['responsible_person'] is Map<String, dynamic>) {
-      resp = ResponsiblePerson.fromJson(json['responsible_person'] as Map<String, dynamic>);
-    } else if (json['responsiblePerson'] is Map<String, dynamic>) {
-      resp = ResponsiblePerson.fromJson(json['responsiblePerson'] as Map<String, dynamic>);
+    if (json['responsible_person'] is Map) {
+      resp = ResponsiblePerson.fromJson(Map<String, dynamic>.from(json['responsible_person'] as Map));
+    } else if (json['responsiblePerson'] is Map) {
+      resp = ResponsiblePerson.fromJson(Map<String, dynamic>.from(json['responsiblePerson'] as Map));
     } else {
-      final respName = (json['captain_name'] ?? json['owner_name'] ?? json['responsible_person_name'] ?? '').toString();
-      final respRole = (json['owner_role'] ?? 'LEADER').toString().toUpperCase();
+      final respName = _parseString(json['captain_name'] ?? json['owner_name'] ?? json['responsible_person_name']);
+      final respRole = _parseString(json['owner_role'], 'LEADER').toUpperCase();
       if (respName.isNotEmpty) {
         resp = ResponsiblePerson(name: respName, role: respRole);
       }
@@ -373,29 +397,39 @@ class TeamPreview {
     }
 
     final parsedMembers = (json['members'] as List<dynamic>?)
-            ?.map((e) => TeamPreviewMember.fromJson(e as Map<String, dynamic>))
+            ?.map((e) => e is Map
+                ? TeamPreviewMember.fromJson(Map<String, dynamic>.from(e as Map))
+                : TeamPreviewMember(name: 'Player'))
             .toList() ??
         [];
 
-    final mainCountParsed = (json['main_count'] ?? json['mainCount'] as num?)?.toInt() ??
-        parsedMembers.where((m) => !m.isSubstitute).length;
-    final maxMainParsed = (json['max_main'] ?? json['maxMainPlayers'] ?? json['maxMain'] as num?)?.toInt() ?? 4;
-    final subCountParsed = (json['substitute_count'] ?? json['substituteCount'] as num?)?.toInt() ??
-        parsedMembers.where((m) => m.isSubstitute).length;
-    final maxSubParsed = (json['max_substitutes'] ?? json['maxSubstitutes'] as num?)?.toInt() ?? 2;
+    final mainCountParsed = json['main_count'] != null || json['mainCount'] != null
+        ? _parseInt(json['main_count'] ?? json['mainCount'])
+        : parsedMembers.where((m) => !m.isSubstitute).length;
 
-    final bool accSub = (json['accepting_substitutes'] ?? json['acceptingSubstitutes'] as bool?) ?? false;
-    final bool slotsAvail = (json['slots_available'] ?? json['slotsAvailable'] as bool?) ??
-        (mainCountParsed < maxMainParsed || (accSub && subCountParsed < maxSubParsed));
+    final maxMainParsed = _parseInt(json['max_main'] ?? json['maxMainPlayers'] ?? json['maxMain'], 4);
+
+    final subCountParsed = json['substitute_count'] != null || json['substituteCount'] != null
+        ? _parseInt(json['substitute_count'] ?? json['substituteCount'])
+        : parsedMembers.where((m) => m.isSubstitute).length;
+
+    final maxSubParsed = _parseInt(json['max_substitutes'] ?? json['maxSubstitutes'], 2);
+
+    final bool accSub = _parseBool(json['accepting_substitutes'] ?? json['acceptingSubstitutes'], false);
+
+    final rawSlots = json['slots_available'] ?? json['slotsAvailable'];
+    final bool slotsAvail = rawSlots != null
+        ? _parseBool(rawSlots, true)
+        : (mainCountParsed < maxMainParsed || (accSub && subCountParsed < maxSubParsed));
 
     return TeamPreview(
-      id: (json['id'] ?? '') as String,
-      name: (json['name'] ?? '') as String,
-      tag: (json['tag'] ?? '') as String,
-      logoUrl: (json['logo_url'] ?? json['logoUrl'] ?? '') as String,
-      tournamentId: (json['tournament_id'] ?? json['tournamentId'] ?? '') as String,
-      tournamentName: (json['tournament_name'] ?? json['tournamentName'] ?? '') as String,
-      code: (json['invite_code'] ?? json['code'] ?? '') as String,
+      id: _parseString(json['id']),
+      name: _parseString(json['name']),
+      tag: _parseString(json['tag']),
+      logoUrl: _parseString(json['logo_url'] ?? json['logoUrl']),
+      tournamentId: _parseString(json['tournament_id'] ?? json['tournamentId']),
+      tournamentName: _parseString(json['tournament_name'] ?? json['tournamentName']),
+      code: _parseString(json['invite_code'] ?? json['code']),
       responsiblePerson: resp,
       mainCount: mainCountParsed,
       maxMain: maxMainParsed,
@@ -404,9 +438,9 @@ class TeamPreview {
       acceptingSubstitutes: accSub,
       slotsAvailable: slotsAvail,
       registrationState: regState,
-      rosterLocked: (json['roster_locked'] ?? json['rosterLocked'] as bool?) ?? false,
-      requireJoinApproval: (json['require_join_approval'] ?? json['requireJoinApproval'] as bool?) ?? false,
-      isMember: (json['is_member'] ?? json['isMember'] as bool?) ?? false,
+      rosterLocked: _parseBool(json['roster_locked'] ?? json['rosterLocked'], false),
+      requireJoinApproval: _parseBool(json['require_join_approval'] ?? json['requireJoinApproval'], false),
+      isMember: _parseBool(json['is_member'] ?? json['isMember'], false),
       myRequestStatus: JoinRequestStatus.fromString(
         (json['my_request_status'] ?? json['myRequestStatus'])?.toString(),
       ),
