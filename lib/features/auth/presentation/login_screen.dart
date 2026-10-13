@@ -6,7 +6,9 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:pushable_button/pushable_button.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/custom_textfield.dart';
+import '../../home/providers/navigation_provider.dart';
 import '../../profile/data/repositories/user_repository.dart';
+import '../../profile/providers/profile_provider.dart';
 import '../../splash/providers/splash_providers.dart';
 import '../providers/auth_provider.dart';
 import 'ios_waitlist_dialog.dart';
@@ -239,6 +241,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           if (!mounted) return;
 
                           if (success) {
+                            // Reset navigation index to 0 (Home Screen) and invalidate profile provider
+                            ref.read(navigationIndexProvider.notifier).state = 0;
+                            ref.invalidate(profileProvider);
+
                             final isIos = ref.read(deviceInfoServiceProvider).isIos;
                             if (isIos) {
                               if (context.mounted) {

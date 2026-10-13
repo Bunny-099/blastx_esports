@@ -74,10 +74,10 @@ class ProfileNotifier extends Notifier<ProfileState> {
       },
       onChanged: (data) {
         if (data is UserProfileModel) {
-          state = state.copyWith(user: data);
+          state = state.copyWith(user: data, errorMessage: null);
         } else if (data is Map) {
           final user = UserProfileModel.fromJson(Map<String, dynamic>.from(data));
-          state = state.copyWith(user: user);
+          state = state.copyWith(user: user, errorMessage: null);
         }
       },
     );
@@ -96,51 +96,61 @@ class ProfileNotifier extends Notifier<ProfileState> {
     state = state.copyWith(isLoading: true, errorMessage: null);
     final storage = ref.read(storageServiceProvider);
 
-    try {
-      final repo = ref.read(userRepositoryProvider);
-      var user = await repo.getUserProfile();
-      
-      // Sync real-time count of tournaments registered by this user
+    // Try up to 2 times to handle microtask/token propagation delays on fresh login
+    for (int attempt = 1; attempt <= 2; attempt++) {
       try {
-        final tournamentRepo = ref.read(tournamentRepositoryProvider);
-        final myTournaments = await tournamentRepo.getMyTournaments();
-        if (myTournaments.isNotEmpty && myTournaments.length > user.tournamentsPlayed) {
-          user = user.copyWith(tournamentsPlayed: myTournaments.length);
-        }
-      } catch (e) {
-        debugPrint('Failed to sync myTournaments count: $e');
-      }
-
-      // Save user JSON locally for offline access
-      await storage.saveString('user_profile_data', jsonEncode(user.toJson()));
-
-      state = state.copyWith(
-        user: user,
-        isLoading: false,
-      );
-    } catch (e, stackTrace) {
-      debugPrint('ProfileNotifier loadProfile error: $e');
-      debugPrint(stackTrace.toString());
-
-      // Fallback: Check if we have saved user profile data locally
-      final savedUserJson = storage.getString('user_profile_data');
-      if (savedUserJson != null && savedUserJson.isNotEmpty) {
+        final repo = ref.read(userRepositoryProvider);
+        var user = await repo.getUserProfile();
+        
+        // Sync real-time count of tournaments registered by this user
         try {
-          final Map<String, dynamic> userMap = jsonDecode(savedUserJson);
-          final cachedUser = UserProfileModel.fromJson(userMap);
-          state = state.copyWith(
-            user: cachedUser,
-            isLoading: false,
-          );
-          return;
-        } catch (_) {}
-      }
+          final tournamentRepo = ref.read(tournamentRepositoryProvider);
+          final myTournaments = await tournamentRepo.getMyTournaments();
+          if (myTournaments.isNotEmpty && myTournaments.length > user.tournamentsPlayed) {
+            user = user.copyWith(tournamentsPlayed: myTournaments.length);
+          }
+        } catch (e) {
+          debugPrint('Failed to sync myTournaments count: $e');
+        }
 
-      state = state.copyWith(
-        isLoading: false,
-        errorMessage: 'Failed to load profile. Tap to retry.',
-      );
+        // Save user JSON locally for offline access
+        await storage.saveString('user_profile_data', jsonEncode(user.toJson()));
+
+        state = state.copyWith(
+          user: user,
+          isLoading: false,
+          errorMessage: null,
+        );
+        return;
+      } catch (e, stackTrace) {
+        debugPrint('ProfileNotifier loadProfile error (attempt $attempt): $e');
+        if (attempt == 1) {
+          await Future.delayed(const Duration(milliseconds: 800));
+        } else {
+          debugPrint(stackTrace.toString());
+        }
+      }
     }
+
+    // Fallback: Check if we have saved user profile data locally
+    final savedUserJson = storage.getString('user_profile_data');
+    if (savedUserJson != null && savedUserJson.isNotEmpty) {
+      try {
+        final Map<String, dynamic> userMap = jsonDecode(savedUserJson);
+        final cachedUser = UserProfileModel.fromJson(userMap);
+        state = state.copyWith(
+          user: cachedUser,
+          isLoading: false,
+          errorMessage: null,
+        );
+        return;
+      } catch (_) {}
+    }
+
+    state = state.copyWith(
+      isLoading: false,
+      errorMessage: 'Failed to load profile. Tap to retry.',
+    );
   }
 
   /// Safely adds claimed XP to total user XP, recalculates rank, persists locally, and returns [RankChangeResult].

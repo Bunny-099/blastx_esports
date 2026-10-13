@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import '../../../core/services/notification_navigator.dart';
 import '../../../core/services/notification_service.dart';
+import '../../home/providers/navigation_provider.dart';
 import '../../notifications/providers/notification_provider.dart';
 import '../../profile/providers/profile_provider.dart';
 import '../../splash/providers/splash_providers.dart';
@@ -135,6 +136,13 @@ class AuthNotifier extends Notifier<AuthState> {
         await storage.saveToken(user.token!);
       }
 
+      await storage.saveString('user_profile_data', jsonEncode({
+        'id': user.id,
+        'name': user.name ?? 'Gamer',
+        'email': user.email,
+        'profile_pic': user.profilePic,
+      }));
+
       // Register FCM device token with backend and process pending notification payload
       NotificationService.instance.registerDeviceTokenWithBackend(_repository, storage);
       NotificationNavigator.processPendingPayloadIfAny(isLoggedIn: true);
@@ -171,6 +179,13 @@ class AuthNotifier extends Notifier<AuthState> {
       if (user.token != null) {
         await storage.saveToken(user.token!);
       }
+
+      await storage.saveString('user_profile_data', jsonEncode({
+        'id': user.id,
+        'name': user.name ?? state.name,
+        'email': user.email,
+        'profile_pic': user.profilePic,
+      }));
 
       // Register FCM device token with backend and process pending notification payload
       NotificationService.instance.registerDeviceTokenWithBackend(_repository, storage);
@@ -283,10 +298,11 @@ class AuthNotifier extends Notifier<AuthState> {
     }
 
     try {
-      // 4. Invalidate Riverpod cached user state providers
+      // 4. Invalidate Riverpod cached user state providers and navigation index
       ref.invalidate(profileProvider);
       ref.invalidate(squadProvider);
       ref.invalidate(notificationProvider);
+      ref.invalidate(navigationIndexProvider);
     } catch (e) {
       debugPrint('Provider Invalidation Error: $e');
     }
