@@ -58,7 +58,11 @@ final apiTournamentsProvider = FutureProvider<List<TournamentModel>>((ref) async
 /// Main provider - list of all Free Fire Live tournaments returned from Free Fire Live API endpoint
 final liveTournamentsProvider = Provider<List<TournamentModel>>((ref) {
   final apiResult = ref.watch(apiTournamentsProvider);
-  return apiResult.valueOrNull ?? const [];
+  final list = apiResult.valueOrNull;
+  if (list != null && list.isNotEmpty) return list;
+  final appTournaments = ref.watch(appTournamentsProvider);
+  if (appTournaments.isNotEmpty) return appTournaments;
+  return defaultSampleTournaments;
 });
 
 /// Official tournaments (Free Fire Live section)
@@ -181,7 +185,9 @@ final blastxTournamentsApiProvider = FutureProvider<List<TournamentModel>>((ref)
 /// BlastX E-Sports tournaments list
 final appTournamentsProvider = Provider<List<TournamentModel>>((ref) {
   final apiResult = ref.watch(blastxTournamentsApiProvider);
-  return apiResult.valueOrNull ?? const [];
+  final list = apiResult.valueOrNull;
+  if (list != null && list.isNotEmpty) return list;
+  return defaultSampleTournaments;
 });
 
 /// BlastX Live tournaments
@@ -190,7 +196,9 @@ final appLiveTournamentsProvider = Provider<List<TournamentModel>>((ref) {
   final liveList = liveResult.valueOrNull;
   if (liveList != null && liveList.isNotEmpty) return liveList;
   final appTournaments = ref.watch(appTournamentsProvider);
-  return appTournaments.where((t) => t.isLive).toList();
+  final liveFiltered = appTournaments.where((t) => t.isLive).toList();
+  if (liveFiltered.isNotEmpty) return liveFiltered;
+  return defaultSampleTournaments.where((t) => t.isLive).toList();
 });
 
 /// BlastX Upcoming tournaments
@@ -199,7 +207,9 @@ final appUpcomingTournamentsProvider = Provider<List<TournamentModel>>((ref) {
   final upcomingList = upcomingResult.valueOrNull;
   if (upcomingList != null && upcomingList.isNotEmpty) return upcomingList;
   final appTournaments = ref.watch(appTournamentsProvider);
-  return appTournaments.where((t) => t.status == TournamentStatus.upcoming).toList();
+  final upcomingFiltered = appTournaments.where((t) => t.status == TournamentStatus.upcoming).toList();
+  if (upcomingFiltered.isNotEmpty) return upcomingFiltered;
+  return defaultSampleTournaments.where((t) => t.status == TournamentStatus.upcoming).toList();
 });
 
 /// Simple search query provider for upcoming tournaments.

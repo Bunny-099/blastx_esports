@@ -30,7 +30,7 @@ final homeFeaturedTournamentsProvider = Provider<List<TournamentModel>>((ref) {
   if (ffLive.isNotEmpty) {
     return ffLive;
   }
-  return const [];
+  return defaultSampleTournaments;
 });
 
 /// FutureProvider for dynamic promotional hero banners

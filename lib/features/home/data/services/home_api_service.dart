@@ -8,27 +8,30 @@ class HomeApiService {
 
   HomeApiService(this._apiClient);
 
+  List _extractListFromResponse(dynamic response, String primaryKey) {
+    if (response is List) return response;
+    if (response is Map) {
+      final map = Map<String, dynamic>.from(response);
+      if (map[primaryKey] is List) return map[primaryKey] as List;
+      if (map['data'] is List) return map['data'] as List;
+      if (map['data'] is Map) {
+        final dataMap = Map<String, dynamic>.from(map['data'] as Map);
+        if (dataMap[primaryKey] is List) return dataMap[primaryKey] as List;
+        if (dataMap['items'] is List) return dataMap['items'] as List;
+        if (dataMap['data'] is List) return dataMap['data'] as List;
+      }
+      if (map['items'] is List) return map['items'] as List;
+      if (map['docs'] is List) return map['docs'] as List;
+      if (map['results'] is List) return map['results'] as List;
+    }
+    return [];
+  }
+
   /// Fetch dynamic promotional hero banners from public endpoint GET /v1/home/banners
   Future<List<BannerItem>> getBanners() async {
     try {
       final response = await _apiClient.get(ApiEndpoints.homeBanners);
-
-      List itemsList = [];
-      if (response is List) {
-        itemsList = response;
-      } else if (response is Map) {
-        if (response['banners'] is List) {
-          itemsList = response['banners'] as List;
-        } else if (response['data'] is List) {
-          itemsList = response['data'] as List;
-        } else if (response['docs'] is List) {
-          itemsList = response['docs'] as List;
-        } else if (response['items'] is List) {
-          itemsList = response['items'] as List;
-        } else if (response['results'] is List) {
-          itemsList = response['results'] as List;
-        }
-      }
+      final itemsList = _extractListFromResponse(response, 'banners');
 
       return itemsList
           .whereType<Map>()
@@ -47,21 +50,7 @@ class HomeApiService {
   Future<List<LiveStreamCardItem>> getLiveStreams() async {
     try {
       final response = await _apiClient.get(ApiEndpoints.homeLiveStreams);
-
-      List itemsList = [];
-      if (response is List) {
-        itemsList = response;
-      } else if (response is Map) {
-        if (response['streams'] is List) {
-          itemsList = response['streams'] as List;
-        } else if (response['data'] is List) {
-          itemsList = response['data'] as List;
-        } else if (response['docs'] is List) {
-          itemsList = response['docs'] as List;
-        } else if (response['items'] is List) {
-          itemsList = response['items'] as List;
-        }
-      }
+      final itemsList = _extractListFromResponse(response, 'streams');
 
       return itemsList
           .whereType<Map>()
@@ -78,20 +67,7 @@ class HomeApiService {
   Future<List<PartnerItem>> getPartners() async {
     try {
       final response = await _apiClient.get(ApiEndpoints.homePartners);
-      List itemsList = [];
-      if (response is List) {
-        itemsList = response;
-      } else if (response is Map) {
-        if (response['partners'] is List) {
-          itemsList = response['partners'] as List;
-        } else if (response['data'] is List) {
-          itemsList = response['data'] as List;
-        } else if (response['docs'] is List) {
-          itemsList = response['docs'] as List;
-        } else if (response['items'] is List) {
-          itemsList = response['items'] as List;
-        }
-      }
+      final itemsList = _extractListFromResponse(response, 'partners');
 
       return itemsList
           .whereType<Map>()
