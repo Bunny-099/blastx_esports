@@ -1,5 +1,3 @@
-import 'package:flutter/foundation.dart';
-
 /// Room credentials model holding roomId and password
 class RoomCredentialsModel {
   final String roomId;
@@ -23,9 +21,12 @@ class RoomCredentialsModel {
       return DateTime.tryParse(val.toString());
     }
 
+    final rawRoomId = data['room_id'] ?? data['roomId'] ?? data['room_code'] ?? data['roomCode'] ?? data['id'];
+    final rawPassword = data['room_password'] ?? data['roomPassword'] ?? data['password'] ?? data['pass'] ?? data['room_pass'] ?? data['roomPass'];
+
     return RoomCredentialsModel(
-      roomId: data['room_id']?.toString() ?? data['roomId']?.toString() ?? '',
-      roomPassword: data['room_password']?.toString() ?? data['roomPassword']?.toString() ?? '',
+      roomId: rawRoomId?.toString() ?? '',
+      roomPassword: rawPassword?.toString() ?? '',
       visibleFrom: parseDate(data['visible_from'] ?? data['visibleFrom']),
       scheduledAt: parseDate(data['scheduled_at'] ?? data['scheduledAt']),
     );
@@ -72,12 +73,15 @@ final class RoomCredentialsNotEligible extends RoomCredentialsState {
 
   factory RoomCredentialsNotEligible.fromCode(String code, {DateTime? revealAt, String? customMsg}) {
     final cleanCode = code.toUpperCase().trim();
+    if (customMsg != null && customMsg.trim().isNotEmpty) {
+      return RoomCredentialsNotEligible(code: cleanCode, userMessage: customMsg);
+    }
     final msg = switch (cleanCode) {
       'NOT_PLAYING_MEMBER' => 'Only the Playing 4 can see room details.',
       'ELIMINATED' => 'Your team is eliminated from this tournament.',
       'NOT_IN_THIS_MATCH' => 'Your team is not in this match group.',
       'NOT_REGISTERED' => 'You are not registered in this tournament.',
-      _ => customMsg ?? 'You are not eligible to view this room.',
+      _ => 'You are not eligible to view this room.',
     };
     return RoomCredentialsNotEligible(code: cleanCode, userMessage: msg);
   }

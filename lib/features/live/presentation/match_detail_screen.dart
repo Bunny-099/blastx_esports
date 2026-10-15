@@ -67,13 +67,12 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> {
     final param = MatchParam(tournamentId: widget.tournamentId, matchKey: widget.matchKey);
     final matchDetailAsync = ref.watch(matchDetailProvider(param));
     final matchCenterAsync = ref.watch(matchCenterProvider(widget.tournamentId));
+    final credsAsync = ref.watch(matchRoomCredentialsProvider(param));
 
     // Determine myAccess level
     MyAccess myAccess = widget.myAccess;
-    if (myAccess == MyAccess.none) {
-      matchCenterAsync.whenData((mc) {
-        myAccess = mc.myAccess;
-      });
+    if (myAccess == MyAccess.none && matchCenterAsync.valueOrNull != null) {
+      myAccess = matchCenterAsync.valueOrNull!.myAccess;
     }
 
     final match = matchDetailAsync.valueOrNull ?? widget.initialMatch;
@@ -126,8 +125,8 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> {
                 _buildResultCard(match),
               ],
 
-              // 4. RECORDING SECTION (For Playing Members & Published Room)
-              if (match != null)
+              // 4. RECORDING SECTION (For Playing Members in Assigned Matches)
+              if (match != null && myAccess.isPlaying && credsAsync.valueOrNull is! RoomCredentialsNotEligible)
                 MatchRecordingSection(
                   tournamentId: widget.tournamentId,
                   matchKey: widget.matchKey,

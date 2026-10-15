@@ -336,11 +336,27 @@ class TournamentRepository {
         );
       }
 
-      final dataMap = res['data'] is Map ? Map<String, dynamic>.from(res['data'] as Map) : res;
-      final roomId = (dataMap['room_id'] ?? dataMap['roomId'] ?? '').toString();
+      // Check for nested data maps
+      Map<String, dynamic> dataMap = res['data'] is Map ? Map<String, dynamic>.from(res['data'] as Map) : res;
+      if (dataMap['credentials'] is Map) {
+        dataMap = Map<String, dynamic>.from(dataMap['credentials'] as Map);
+      } else if (dataMap['room'] is Map) {
+        dataMap = Map<String, dynamic>.from(dataMap['room'] as Map);
+      } else if (dataMap['room_details'] is Map) {
+        dataMap = Map<String, dynamic>.from(dataMap['room_details'] as Map);
+      }
+
+      final roomId = (dataMap['room_id'] ?? dataMap['roomId'] ?? dataMap['room_code'] ?? dataMap['roomCode'] ?? dataMap['id'] ?? '').toString();
 
       if (roomId.isNotEmpty) {
         return RoomCredentialsAvailable(RoomCredentialsModel.fromJson(dataMap));
+      }
+
+      if (res['message'] != null && res['message'].toString().trim().isNotEmpty) {
+        return RoomCredentialsNotEligible(
+          code: code.isNotEmpty ? code : 'NOT_ELIGIBLE',
+          userMessage: res['message'].toString(),
+        );
       }
     } catch (e) {
       return RoomCredentialsError(e.toString());
